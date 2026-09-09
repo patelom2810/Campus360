@@ -49,15 +49,14 @@ data/processed/v5/
 ├── dim_cs_skills_v5.csv     — 180 CS student skill profiles
 ├── fact_risk_behaviour.csv  — 36 survey/risk behaviour columns
 ├── fact_placement.csv       — placement outcomes + career skills
-├── fact_subject_marks.csv   — UCI subject marks (long format)
-├── fact_skill_scores.csv    — 10 skills, two scale types
+├── fact_skill_scores.csv    — 10 skills/course marks across scales
 ├── data_quality_report.md
 ├── data_lineage_v5.md
 ├── null_handling_report.md
 └── removed_columns.md
 ```
 
-**27/27 QA checks passed. 511 documented null imputations. Zero fabricated values.**
+**25/25 QA checks passed. 511 documented null imputations. Zero fabricated values.**
 
 ---
 
@@ -182,21 +181,7 @@ CREATE TABLE fact_placement (
     PRIMARY KEY (master_student_id)
 );
 
--- Fact: Subject Marks (long format)
-CREATE TABLE fact_subject_marks (
-    uci_ref_id      VARCHAR(15),
-    subject_id      VARCHAR(5),
-    subject_name    VARCHAR(50),
-    grade_period    VARCHAR(5),
-    marks           FLOAT,
-    max_marks       INT,
-    percentage      FLOAT,
-    source          VARCHAR(50),
-    is_synthetic    BOOLEAN,
-    PRIMARY KEY (uci_ref_id, subject_id, grade_period)
-);
-
--- Fact: Skill Scores (long format)
+-- Fact: Skill Scores & Course Marks (long format)
 CREATE TABLE fact_skill_scores (
     master_student_id VARCHAR(10) REFERENCES dim_student,
     skill             VARCHAR(30),
@@ -221,11 +206,11 @@ File: `etl/load_to_postgres.py`
 
 **Goal:** Compute subject analytics, risk summaries, skill gap insights
 
-#### 3.1 Subject Performance Analytics (`analytics/subject_analytics.py`)
-- Average marks per subject (Mathematics vs Portuguese)
-- Grade distribution (G1 → G2 → G3 progression trends)
-- Failure rate by school, age group, study time band
-- Heatmap: subject × grade period performance
+#### 3.1 Subject & Skill Performance Analytics (`analytics/subject_analytics.py`)
+- Course subject marks analysis (Python, SQL, Excel, Power BI, English) across program streams
+- Proficiency distribution and learning gap detection per subject domain
+- Coding skill, logical reasoning, and aptitude benchmarks
+- Stream-wise subject performance heatmaps and skill radar matrices
 
 #### 3.2 Risk Behaviour Analytics (`analytics/risk_analytics.py`)
 - Distribution of `performance_risk_level` (Low / Moderate / High)
@@ -363,7 +348,7 @@ dashboard/
 | Admin Dashboard | Admin | Total students, risk distribution, placement rate |
 | Faculty Dashboard | Faculty | At-risk list, class performance heatmap, GenAI copilot |
 | Student Profile | Student | 360° profile, career readiness score, skill gap radar |
-| Subject Analytics | Faculty | G1/G2/G3 trends, failure heatmap, subject comparison |
+| Subject & Skill Analytics | Faculty | Course marks & skill distributions, learning gaps, proficiency radar |
 | Placement Analytics | Faculty/Admin | Placement funnel, salary distribution, skill correlation |
 | GenAI Copilot | Faculty/Student | Chat interface powered by Gemini API |
 
@@ -372,7 +357,7 @@ dashboard/
 - Risk distribution donut chart
 - CGPA band vs placement rate bar chart
 - Study hours vs exam score scatter
-- Subject marks progression line chart (G1→G2→G3)
+- Subject & course marks distribution across streams
 - Skill score radar chart per student
 - Career readiness score gauge chart
 - SHAP waterfall chart for risk explanation

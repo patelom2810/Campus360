@@ -75,6 +75,4 @@
 | `fact_placement` | `college_tier` | `src_placement_prediction_2026.csv` | `college_tier` | direct |
 | `fact_placement` | `placement_status` | `src_placement_prediction_2026.csv` | `placement_status` | direct |
 | `fact_placement` | `salary_package_lpa` | `src_placement_prediction_2026.csv` | `salary_package_lpa` | direct |
-| `fact_subject_marks` | `uci_ref_id` | `src_uci_subject_marks.csv` | `student_id` | direct |
-| `fact_subject_marks` | `marks` | `src_uci_subject_marks.csv` | `g1_mat/g2_mat/g3_mat/g1_por/g2_por/g3_por` | melted to long format |
 | `fact_skill_scores` | `score` | `src_skill_scores.csv + src_ds_student_marks.csv` | `Python/Sql/ML/Tableau/Excel; sql_marks/excel_marks/python_marks/power_bi_marks/english_marks` | melted to long format + probabilistic match |
