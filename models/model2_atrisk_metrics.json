@@ -1,0 +1,90 @@
+{
+  "model": "RandomForestClassifier",
+  "target": "at_risk_flag",
+  "features": [
+    "anchor_sleep_hours",
+    "anchor_screen_time",
+    "anchor_gaming_hours",
+    "anchor_stress_level",
+    "anchor_burnout_score",
+    "anchor_study_hours_daily",
+    "anchor_self_learning_hours",
+    "anchor_motivation_level",
+    "anchor_adaptability_score",
+    "anchor_gym_frequency",
+    "anchor_family_income_lpa",
+    "anchor_resume_score",
+    "anchor_communication_skills",
+    "anchor_aptitude_score",
+    "anchor_mock_interview_score",
+    "anchor_hackathons_participated",
+    "anchor_development_projects_count",
+    "anchor_ai_ml_projects",
+    "anchor_git_hub_repos",
+    "anchor_ai_tool_usage_frequency",
+    "anchor_prompt_engineering_skill",
+    "wellness_score",
+    "screen_to_study_ratio"
+  ],
+  "feature_count": 23,
+  "original_feature_count": 11,
+  "added_anchor_feature_count": 10,
+  "engineered_feature_count": 2,
+  "leaked_columns_excluded": [
+    "anchor_attendance_percentage",
+    "anchor_backlog_history",
+    "anchor_cgpa"
+  ],
+  "best_params": {
+    "n_estimators": 600,
+    "min_samples_leaf": 3,
+    "max_features": "sqrt",
+    "max_depth": 6,
+    "class_weight": "balanced"
+  },
+  "decision_threshold": 0.5,
+  "roc_auc": 0.5044,
+  "test_accuracy": 0.5232,
+  "test_precision_class1": 0.323,
+  "test_recall_class1": 0.4514,
+  "test_f1_class1": 0.3766,
+  "confusion_matrix": [
+    [
+      1896,
+      1509
+    ],
+    [
+      875,
+      720
+    ]
+  ],
+  "classification_report": "              precision    recall  f1-score   support\n\n    Safe (0)       0.68      0.56      0.61      3405\n At-Risk (1)       0.32      0.45      0.38      1595\n\n    accuracy                           0.52      5000\n   macro avg       0.50      0.50      0.50      5000\nweighted avg       0.57      0.52      0.54      5000\n",
+  "previous_test_recall_class1": 0.3486,
+  "feature_importances": {
+    "screen_to_study_ratio": 0.0629,
+    "anchor_family_income_lpa": 0.0625,
+    "anchor_communication_skills": 0.0611,
+    "anchor_screen_time": 0.0568,
+    "anchor_adaptability_score": 0.0545,
+    "anchor_prompt_engineering_skill": 0.0518,
+    "wellness_score": 0.0504,
+    "anchor_stress_level": 0.0503,
+    "anchor_study_hours_daily": 0.0494,
+    "anchor_self_learning_hours": 0.0487,
+    "anchor_ai_tool_usage_frequency": 0.0466,
+    "anchor_mock_interview_score": 0.0453,
+    "anchor_burnout_score": 0.0442,
+    "anchor_motivation_level": 0.0434,
+    "anchor_aptitude_score": 0.0401,
+    "anchor_sleep_hours": 0.04,
+    "anchor_gaming_hours": 0.0378,
+    "anchor_git_hub_repos": 0.0374,
+    "anchor_resume_score": 0.0359,
+    "anchor_gym_frequency": 0.0233,
+    "anchor_development_projects_count": 0.0228,
+    "anchor_hackathons_participated": 0.0194,
+    "anchor_ai_ml_projects": 0.0153
+  },
+  "train_rows": 20000,
+  "test_rows": 5000
+}

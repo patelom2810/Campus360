@@ -1,0 +1,120 @@
+{
+  "purpose": "Genuine non-circular comparison of lifestyle-only vs lifestyle+academic features predicting an independent risk proxy (suvidya_pass_fail, 1=Fail, 0=Pass). Evaluated strictly on the Suvidya-matched subcohort.",
+  "sample_size": 5000,
+  "sample_source": "Suvidya-matched subset (has_suvidya_match == 1)",
+  "target_variable": "suvidya_pass_fail (1=Fail, 0=Pass)",
+  "train_rows": 4000,
+  "test_rows": 1000,
+  "test_fail_cases": 53,
+  "test_pass_cases": 947,
+  "decision_threshold": 0.5,
+  "honest_finding_summary": "Model B outperforms Model A (AUC A=0.6065, AUC B=0.8728, \u0394=+0.2663). Because suvidya_pass_fail was not constructed from any of these features, this reflects genuine non-circular predictive contribution from academic telemetry.",
+  "model_a_lifestyle_only": {
+    "model_name": "Lifestyle Only",
+    "feature_count": 23,
+    "features": [
+      "anchor_sleep_hours",
+      "anchor_screen_time",
+      "anchor_gaming_hours",
+      "anchor_stress_level",
+      "anchor_burnout_score",
+      "anchor_study_hours_daily",
+      "anchor_self_learning_hours",
+      "anchor_motivation_level",
+      "anchor_adaptability_score",
+      "anchor_gym_frequency",
+      "anchor_family_income_lpa",
+      "anchor_resume_score",
+      "anchor_communication_skills",
+      "anchor_aptitude_score",
+      "anchor_mock_interview_score",
+      "anchor_hackathons_participated",
+      "anchor_development_projects_count",
+      "anchor_ai_ml_projects",
+      "anchor_git_hub_repos",
+      "anchor_ai_tool_usage_frequency",
+      "anchor_prompt_engineering_skill",
+      "wellness_score",
+      "screen_to_study_ratio"
+    ],
+    "roc_auc": 0.6065,
+    "recall_class1": 0.1698,
+    "precision_class1": 0.1324,
+    "accuracy": 0.897,
+    "f1_class1": 0.1488,
+    "confusion_matrix": [
+      [
+        888,
+        59
+      ],
+      [
+        44,
+        9
+      ]
+    ],
+    "classification_report": "              precision    recall  f1-score   support\n\n    Pass (0)       0.95      0.94      0.95       947\n    Fail (1)       0.13      0.17      0.15        53\n\n    accuracy                           0.90      1000\n   macro avg       0.54      0.55      0.55      1000\nweighted avg       0.91      0.90      0.90      1000\n",
+    "top_5_features": {
+      "anchor_communication_skills": 0.1042,
+      "anchor_study_hours_daily": 0.0827,
+      "anchor_family_income_lpa": 0.073,
+      "anchor_ai_tool_usage_frequency": 0.0595,
+      "screen_to_study_ratio": 0.053
+    }
+  },
+  "model_b_lifestyle_plus_academic": {
+    "model_name": "Lifestyle + Academic",
+    "feature_count": 26,
+    "features": [
+      "anchor_sleep_hours",
+      "anchor_screen_time",
+      "anchor_gaming_hours",
+      "anchor_stress_level",
+      "anchor_burnout_score",
+      "anchor_study_hours_daily",
+      "anchor_self_learning_hours",
+      "anchor_motivation_level",
+      "anchor_adaptability_score",
+      "anchor_gym_frequency",
+      "anchor_family_income_lpa",
+      "anchor_resume_score",
+      "anchor_communication_skills",
+      "anchor_aptitude_score",
+      "anchor_mock_interview_score",
+      "anchor_hackathons_participated",
+      "anchor_development_projects_count",
+      "anchor_ai_ml_projects",
+      "anchor_git_hub_repos",
+      "anchor_ai_tool_usage_frequency",
+      "anchor_prompt_engineering_skill",
+      "wellness_score",
+      "screen_to_study_ratio",
+      "anchor_backlog_history",
+      "anchor_attendance_percentage",
+      "anchor_cgpa"
+    ],
+    "roc_auc": 0.8728,
+    "recall_class1": 0.6792,
+    "precision_class1": 0.1773,
+    "accuracy": 0.816,
+    "f1_class1": 0.2812,
+    "confusion_matrix": [
+      [
+        780,
+        167
+      ],
+      [
+        17,
+        36
+      ]
+    ],
+    "classification_report": "              precision    recall  f1-score   support\n\n    Pass (0)       0.98      0.82      0.89       947\n    Fail (1)       0.18      0.68      0.28        53\n\n    accuracy                           0.82      1000\n   macro avg       0.58      0.75      0.59      1000\nweighted avg       0.94      0.82      0.86      1000\n",
+    "top_5_features": {
+      "anchor_cgpa": 0.5932,
+      "anchor_communication_skills": 0.0449,
+      "anchor_study_hours_daily": 0.0334,
+      "anchor_family_income_lpa": 0.0289,
+      "anchor_ai_tool_usage_frequency": 0.024
+    }
+  },
+  "roc_auc_gap": 0.2663
+}

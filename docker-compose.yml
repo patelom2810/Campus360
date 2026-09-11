@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: campus360_postgres
+    environment:
+      POSTGRES_USER: campus360
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: campus360_warehouse
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campus360"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: campus360_api
+    environment:
+      - DB_ENGINE=postgres
+      - DATABASE_URL=postgresql://campus360:${POSTGRES_PASSWORD:-changeme}@postgres:5432/campus360_warehouse
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: campus360_dashboard
+    environment:
+      - DB_ENGINE=postgres
+      - DATABASE_URL=postgresql://campus360:${POSTGRES_PASSWORD:-changeme}@postgres:5432/campus360_warehouse
+      - STREAMLIT_PORT=8501
+    ports:
+      - "8501:8501"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
