@@ -42,7 +42,7 @@ services:
     environment:
       - DB_ENGINE=postgres
       - DATABASE_URL=postgresql://campus360:${POSTGRES_PASSWORD:-changeme}@postgres:5432/campus360_warehouse
-      - STREAMLIT_PORT=8501
+      - DASHBOARD_PORT=8501
     ports:
       - "8501:8501"
     depends_on:

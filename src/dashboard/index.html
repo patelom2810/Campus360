@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus360 • Student Academic Risk & Career Intelligence</title>
+  
+  <!-- Google Fonts: Sora (Headings & Metrics) and Inter (Body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            campus: {
+              bg: '#F6F5FC',
+              surface: '#FFFFFF',
+              primary: '#6C5CE7',
+              'primary-dark': '#4B3FA8',
+              lavender: '#EDEBFB',
+              blue: '#E6F0FE',
+              mint: '#E7F8EE',
+              coral: '#FDEDEF',
+              danger: '#E85D75',
+              success: '#4CAF7D',
+              text: '#1E1B2E',
+              muted: '#8A8797',
+            }
+          },
+          fontFamily: {
+            sora: ['Sora', 'sans-serif'],
+            inter: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-[#F6F5FC] text-[#1E1B2E] min-h-screen flex antialiased selection:bg-[#EDEBFB] selection:text-[#6C5CE7]">
+
+  <!-- ── Left Icon Rail (72px fixed) ────────────────────────────────────────── -->
+  <aside class="w-[72px] bg-white border-r border-[#EDEBFB] flex flex-col items-center py-6 fixed top-0 bottom-0 left-0 z-30 justify-between shadow-[2px_0_12px_rgba(108,92,231,0.03)]">
+    
+    <!-- Top: Logo Mark & Nav Buttons -->
+    <div class="flex flex-col items-center space-y-7 w-full">
+      <!-- Logo Mark -->
+      <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#6C5CE7] to-[#8C7CFF] flex items-center justify-center text-white shadow-md shadow-[#6C5CE7]/30 cursor-pointer" title="Campus360 Analytics">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+        </svg>
+      </div>
+
+      <!-- Nav Items -->
+      <nav class="flex flex-col items-center space-y-3 w-full px-2">
+        <!-- 1. Overview -->
+        <button class="nav-btn w-12 h-12 flex items-center justify-center rounded-2xl group transition-all" data-view="overview" title="Executive Overview">
+          <div class="nav-pill w-11 h-11 rounded-xl flex items-center justify-center transition-colors bg-[#EDEBFB] text-[#6C5CE7]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </div>
+        </button>
+
+        <!-- 2. Subjects -->
+        <button class="nav-btn w-12 h-12 flex items-center justify-center rounded-2xl group transition-all" data-view="subjects" title="Subject Learning Gaps">
+          <div class="nav-pill w-11 h-11 rounded-xl flex items-center justify-center transition-colors text-[#8A8797] hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+        </button>
+
+        <!-- 3. At-Risk -->
+        <button class="nav-btn w-12 h-12 flex items-center justify-center rounded-2xl group transition-all" data-view="atrisk" title="At-Risk Detection">
+          <div class="nav-pill w-11 h-11 rounded-xl flex items-center justify-center transition-colors text-[#8A8797] hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+        </button>
+
+        <!-- 4. Predict -->
+        <button class="nav-btn w-12 h-12 flex items-center justify-center rounded-2xl group transition-all" data-view="predict" title="CGPA Trajectory Predictor">
+          <div class="nav-pill w-11 h-11 rounded-xl flex items-center justify-center transition-colors text-[#8A8797] hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+        </button>
+
+        <!-- 5. Student Lookup -->
+        <button class="nav-btn w-12 h-12 flex items-center justify-center rounded-2xl group transition-all" data-view="student" title="Student 360° Profile">
+          <div class="nav-pill w-11 h-11 rounded-xl flex items-center justify-center transition-colors text-[#8A8797] hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Bottom Indicator -->
+    <div class="flex flex-col items-center space-y-3 pb-2">
+      <div class="w-2.5 h-2.5 rounded-full bg-[#4CAF7D] animate-ping" title="Warehouse Live"></div>
+    </div>
+  </aside>
+
+  <!-- ── Main Application Wrapper ─────────────────────────────────────────── -->
+  <div class="flex-1 ml-[72px] flex flex-col min-h-screen">
+    
+    <!-- Top Bar -->
+    <header class="h-20 bg-white/80 backdrop-blur-md border-b border-[#EDEBFB] px-8 flex items-center justify-between sticky top-0 z-20">
+      <div>
+        <h1 id="page-title" class="font-sora font-bold text-xl text-[#1E1B2E]">Executive Overview</h1>
+        <p class="text-xs text-[#8A8797] mt-0.5">Campus360 Academic Risk & Career Readiness Intelligence</p>
+      </div>
+
+      <!-- Right Controls: Date Pill, Bell, Avatar -->
+      <div class="flex items-center space-x-4">
+        <!-- Date Badge -->
+        <div class="hidden sm:flex items-center space-x-2 bg-[#F6F5FC] px-3.5 py-1.5 rounded-xl border border-[#EDEBFB] text-xs font-medium text-[#1E1B2E]">
+          <svg class="w-4 h-4 text-[#6C5CE7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span id="top-bar-date">Sep 11, 2026</span>
+        </div>
+
+        <!-- Notification Bell -->
+        <button class="w-10 h-10 rounded-xl bg-[#F6F5FC] hover:bg-[#EDEBFB] text-[#1E1B2E] hover:text-[#6C5CE7] flex items-center justify-center transition-colors relative" title="Notifications">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E85D75]"></span>
+        </button>
+
+        <!-- User Avatar -->
+        <div class="flex items-center space-x-3 pl-2 border-l border-[#EDEBFB]">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#6C5CE7] to-[#B6A8FF] flex items-center justify-center font-sora font-bold text-white text-sm shadow-sm">
+            OP
+          </div>
+          <div class="hidden md:block text-left">
+            <div class="font-sora font-semibold text-xs text-[#1E1B2E]">Om Patel</div>
+            <div class="text-[11px] text-[#8A8797]">Academic Dean</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="flex-1 p-8">
+      
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- VIEW 1: OVERVIEW                                                    -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <section id="view-overview" class="view-section space-y-6">
+        
+        <!-- 4 Pastel KPI Cards (4 Across Desktop) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          
+          <!-- KPI 1: Total Students (Pastel Lavender) -->
+          <div class="bg-[#EDEBFB] rounded-2xl p-5 border border-purple-100 card-hover flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-[#6C5CE7] uppercase tracking-wider">Total Students</span>
+              <div class="w-8 h-8 rounded-xl bg-white/80 text-[#6C5CE7] flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-4">
+              <div id="kpi-total-students" class="font-sora font-bold text-[32px] text-[#1E1B2E] leading-none">25,000</div>
+              <div class="text-xs text-[#8A8797] mt-2 flex items-center space-x-1">
+                <span class="text-[#4CAF7D] font-medium">↑ 100%</span>
+                <span>Active star-schema data</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 2: Average CGPA (Pastel Blue) -->
+          <div class="bg-[#E6F0FE] rounded-2xl p-5 border border-blue-100 card-hover flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-[#2F64C8] uppercase tracking-wider">Average CGPA</span>
+              <div class="w-8 h-8 rounded-xl bg-white/80 text-[#2F64C8] flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-4">
+              <div id="kpi-avg-cgpa" class="font-sora font-bold text-[32px] text-[#1E1B2E] leading-none">7.62</div>
+              <div class="text-xs text-[#8A8797] mt-2 flex items-center space-x-1">
+                <span class="text-[#2F64C8] font-medium">10.0 scale</span>
+                <span>Across 6 branches</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 3: Placement Rate % (Pastel Mint) -->
+          <div class="bg-[#E7F8EE] rounded-2xl p-5 border border-green-100 card-hover flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-[#2E8555] uppercase tracking-wider">Placement Rate</span>
+              <div class="w-8 h-8 rounded-xl bg-white/80 text-[#2E8555] flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-4">
+              <div id="kpi-placement-rate" class="font-sora font-bold text-[32px] text-[#1E1B2E] leading-none">62.4%</div>
+              <div class="text-xs text-[#8A8797] mt-2 flex items-center space-x-1">
+                <span class="text-[#4CAF7D] font-medium">↑ Healthy</span>
+                <span>Verified industry offers</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 4: At-Risk % (Pastel Coral) -->
+          <div class="bg-[#FDEDEF] rounded-2xl p-5 border border-red-100 card-hover flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-[#E85D75] uppercase tracking-wider">At-Risk Rate</span>
+              <div class="w-8 h-8 rounded-xl bg-white/80 text-[#E85D75] flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-4">
+              <div id="kpi-at-risk-rate" class="font-sora font-bold text-[32px] text-[#E85D75] leading-none">31.9%</div>
+              <div class="text-xs text-[#8A8797] mt-2 flex items-center space-x-1">
+                <span class="text-[#E85D75] font-medium">Calibrated</span>
+                <span>Model 2 population baseline</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Middle Section: 8-col CGPA Histogram & 4-col Flagged Students Panel -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Large Chart Panel (8 cols): CGPA Distribution Histogram -->
+          <div class="lg:col-span-8 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">CGPA Distribution Histogram</h3>
+                <p class="text-xs text-[#8A8797]">Stratified across entire 25,000 student body</p>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
+                Normal Bell Curve
+              </span>
+            </div>
+            
+            <div class="h-[280px] w-full relative">
+              <canvas id="cgpaDistributionChart"></canvas>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-[#EDEBFB] flex items-center justify-between text-xs text-[#8A8797]">
+              <span>Median: <strong>7.62</strong></span>
+              <span>Modal Range: <strong>7.0 – 8.0 CGPA (44.6%)</strong></span>
+              <span>Struggling Tier (&lt;6.0): <strong>4.1%</strong></span>
+            </div>
+          </div>
+
+          <!-- Side Panel (4 cols): Flagged At-Risk Students List -->
+          <div class="lg:col-span-4 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Flagged At-Risk Students</h3>
+                <span class="text-[11px] text-[#E85D75] font-semibold bg-[#FDEDEF] px-2 py-0.5 rounded-full">
+                  Top Priority
+                </span>
+              </div>
+              <p class="text-xs text-[#8A8797] mb-4">Top predicted risk candidates. Click any student to open 360° view.</p>
+              
+              <!-- Student Rows Container -->
+              <div id="overview-flagged-list" class="space-y-2.5">
+                <!-- Injected dynamically by app.js -->
+                <div class="skeleton h-14 w-full"></div>
+                <div class="skeleton h-14 w-full"></div>
+                <div class="skeleton h-14 w-full"></div>
+              </div>
+            </div>
+
+            <!-- Jump to Full List Link -->
+            <div class="mt-4 pt-3 border-t border-[#EDEBFB] text-center">
+              <button onclick="switchView('atrisk')" class="text-xs font-semibold text-[#6C5CE7] hover:text-[#4B3FA8] transition-colors">
+                View All At-Risk Students & Feature Analysis →
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Grid: Quick Insights & Interventions Schedule (Ed-Tech SaaS Style) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+            <h3 class="font-sora font-semibold text-base text-[#1E1B2E] mb-1">Academic Intervention Protocols</h3>
+            <p class="text-xs text-[#8A8797] mb-4">Active faculty counseling and automated tutoring assignments.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="p-3.5 rounded-xl border border-[#EDEBFB] bg-[#FAF9FD]">
+                <div class="text-xs text-[#6C5CE7] font-semibold">Track A: Mentorship</div>
+                <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">1,240 Students</div>
+                <div class="text-[11px] text-[#8A8797] mt-1">Focus on low daily study hours</div>
+              </div>
+              <div class="p-3.5 rounded-xl border border-[#EDEBFB] bg-[#FAF9FD]">
+                <div class="text-xs text-[#2E8555] font-semibold">Track B: Wellness & Sleep</div>
+                <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">890 Students</div>
+                <div class="text-[11px] text-[#8A8797] mt-1">Burnout reduction counseling</div>
+              </div>
+              <div class="p-3.5 rounded-xl border border-[#EDEBFB] bg-[#FAF9FD]">
+                <div class="text-xs text-[#E85D75] font-semibold">Track C: Coding Bootcamps</div>
+                <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">2,150 Students</div>
+                <div class="text-[11px] text-[#8A8797] mt-1">DSA foundational acceleration</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-4 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col justify-between">
+            <div>
+              <h3 class="font-sora font-semibold text-base text-[#1E1B2E] mb-1">System Audit & Status</h3>
+              <p class="text-xs text-[#8A8797] mb-3">Enterprise warehouse dual-engine status</p>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between py-1 border-b border-[#F6F5FC]">
+                  <span class="text-[#8A8797]">Warehouse DB:</span>
+                  <span class="font-sora font-semibold text-[#1E1B2E]">Postgres / SQLite Auto</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-[#F6F5FC]">
+                  <span class="text-[#8A8797]">Star Schema Tables:</span>
+                  <span class="font-sora font-semibold text-[#4CAF7D]">4 Verified (25k rows)</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-[#8A8797]">Models Active:</span>
+                  <span class="font-sora font-semibold text-[#6C5CE7]">GBR + RF Classifier</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- VIEW 2: SUBJECT-WISE PERFORMANCE                                   -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <section id="view-subjects" class="view-section hidden space-y-6">
+        
+        <!-- Header info -->
+        <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex items-center justify-between">
+          <div>
+            <h2 class="font-sora font-bold text-lg text-[#1E1B2E]">Learning Gaps & Subject Normalization</h2>
+            <p class="text-xs text-[#8A8797] mt-0.5">
+              All assessment scores are normalized server-side: <code class="bg-[#F6F5FC] px-1.5 py-0.5 rounded text-[#6C5CE7]">normalized_pct = marks / max_marks * 100</code>. Degree CGPA (0–10 scale) is scaled to 0–100% for direct parity with 100-mark exams.
+            </p>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-[#E7F8EE] text-[#2E8555]">
+            Cross-Scale Normalized
+          </span>
+        </div>
+
+        <!-- 8-col Bar Chart & Summary Info -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Bar chart: Normalized Averages -->
+          <div class="lg:col-span-8 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+            <h3 class="font-sora font-semibold text-base text-[#1E1B2E] mb-1">Average Normalized Score per Subject</h3>
+            <p class="text-xs text-[#8A8797] mb-4">Red bars highlight curriculum subjects performing below 65% benchmark.</p>
+            <div class="h-[280px] w-full relative">
+              <canvas id="subjectBarChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Heatmap Legend & Notes -->
+          <div class="lg:col-span-4 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col justify-between">
+            <div>
+              <h3 class="font-sora font-semibold text-base text-[#1E1B2E] mb-2">Subject Performance Insights</h3>
+              <p class="text-xs text-[#8A8797] leading-relaxed mb-4">
+                Intermediate foundational subjects (Math, Science, English) average between <strong>64.0%</strong> and <strong>64.8%</strong>, while collegiate Degree CGPA averages <strong>74.6%</strong> (7.46/10.0). Normalization prevents false outlier detection.
+              </p>
+              
+              <div class="space-y-2 text-xs">
+                <div class="flex items-center justify-between p-2 rounded-lg bg-[#FDEDEF] text-[#E85D75]">
+                  <span>&lt; 65% Low Proficiency</span>
+                  <span class="font-semibold">Urgent Intervention</span>
+                </div>
+                <div class="flex items-center justify-between p-2 rounded-lg bg-[#E6F0FE] text-[#2F64C8]">
+                  <span>65% – 72% Moderate Proficiency</span>
+                  <span class="font-semibold">Standard Progression</span>
+                </div>
+                <div class="flex items-center justify-between p-2 rounded-lg bg-[#E7F8EE] text-[#2E8555]">
+                  <span>&gt; 72% Strong Proficiency</span>
+                  <span class="font-semibold">Honors Baseline</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-t border-[#EDEBFB] text-xs text-[#8A8797]">
+              Source: Unified fact_performance joined with dim_student.
+            </div>
+          </div>
+        </div>
+
+        <!-- Heatmap-style Grid: Subject vs Branch (HTML styled div cells) -->
+        <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Curriculum Heatmap Grid (Subject vs Engineering Branch)</h3>
+              <p class="text-xs text-[#8A8797]">Styled HTML grid colored from pastel-coral (lower scores) to pastel-mint (higher scores)</p>
+            </div>
+            <span class="text-xs text-[#8A8797]">6 Engineering Streams</span>
+          </div>
+          
+          <div id="heatmap-grid-container" class="w-full">
+            <div class="skeleton h-48 w-full"></div>
+          </div>
+        </div>
+
+        <!-- Sortable Table: Lowest-Performing Subject per Branch -->
+        <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Lowest-Performing Subject per Engineering Branch</h3>
+              <p class="text-xs text-[#8A8797]">Click table headers to sort branches or gap severity.</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead>
+                <tr class="border-b border-[#EDEBFB] text-[#8A8797]">
+                  <th class="py-3 px-4 font-semibold cursor-pointer hover:text-[#6C5CE7]" onclick="sortSubjectGaps('stream_branch')">
+                    Branch <span class="text-[10px]">↕</span>
+                  </th>
+                  <th class="py-3 px-4 font-semibold cursor-pointer hover:text-[#6C5CE7]" onclick="sortSubjectGaps('lowest_subject')">
+                    Lowest-Performing Subject <span class="text-[10px]">↕</span>
+                  </th>
+                  <th class="py-3 px-4 font-semibold cursor-pointer hover:text-[#6C5CE7]" onclick="sortSubjectGaps('avg_normalized_pct')">
+                    Normalized Score (%) <span class="text-[10px]">↕</span>
+                  </th>
+                  <th class="py-3 px-4 font-semibold cursor-pointer hover:text-[#6C5CE7]" onclick="sortSubjectGaps('gap_severity')">
+                    Gap Severity <span class="text-[10px]">↕</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="subject-gaps-table-body">
+                <tr><td colspan="4" class="py-4 text-center text-[#8A8797]">Loading gaps data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- VIEW 3: AT-RISK DETECTION                                           -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <section id="view-atrisk" class="view-section hidden space-y-6">
+        
+        <!-- Honest Disclosure Banner (Quiet Info Bar, Visible at Top) -->
+        <div class="bg-[#F0EFFB] border-l-4 border-[#6C5CE7] rounded-xl p-4 shadow-sm flex items-start space-x-3">
+          <div class="text-[#6C5CE7] mt-0.5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <div class="font-sora font-semibold text-xs text-[#1E1B2E]">Calibrated Model Disclosure</div>
+            <p id="atrisk-disclosure-text" class="text-xs text-[#1E1B2E] mt-0.5 leading-relaxed">
+              This model correctly identifies ~45% of at-risk students (recall 0.45) using lifestyle and behavioral data alone. Absence of a flag does not rule out risk.
+            </p>
+          </div>
+        </div>
+
+        <!-- Split Chart & Feature Importance Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Doughnut Chart: Population Split (31.9% / 68.1%) (4 cols) -->
+          <div class="lg:col-span-4 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Population Risk Split</h3>
+                <span class="text-xs font-semibold text-[#4CAF7D]">Calibrated</span>
+              </div>
+              <p class="text-xs text-[#8A8797] mb-4">Stratified population baseline matching 32% / 68% verification.</p>
+              
+              <div class="h-[210px] w-full relative">
+                <canvas id="atRiskDoughnutChart"></canvas>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-[#EDEBFB] text-center text-xs text-[#8A8797]">
+              Safe: <strong>68.1%</strong> (17,025) • At-Risk: <strong>31.9%</strong> (7,975)
+            </div>
+          </div>
+
+          <!-- Bar Chart: Top 5 Feature Importances (8 cols) -->
+          <div class="lg:col-span-8 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Top 5 Features Driving Risk Predictions</h3>
+                <p class="text-xs text-[#8A8797]">Loaded dynamically from <code>models/model2_atrisk_metrics.json</code></p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
+                RandomForestClassifier
+              </span>
+            </div>
+            
+            <div class="h-[240px] w-full relative">
+              <canvas id="atRiskFeatureImportanceChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Full Sortable At-Risk Table -->
+        <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Student Risk Registry</h3>
+              <p class="text-xs text-[#8A8797]">Click table headers to sort. Click any student row to jump to their 360° profile.</p>
+            </div>
+            <!-- Search Bar -->
+            <div class="relative w-full sm:w-64">
+              <input
+                id="atrisk-table-search"
+                type="text"
+                placeholder="Search Student ID (e.g. STU15140)..."
+                class="w-full pl-9 pr-3 py-2 bg-[#F6F5FC] border border-[#EDEBFB] rounded-xl text-xs outline-none focus:border-[#6C5CE7] transition-all"
+                oninput="filterAtRiskTable()"
+              />
+              <svg class="w-4 h-4 text-[#8A8797] absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead>
+                <tr class="border-b border-[#EDEBFB] text-[#8A8797]">
+                  <th class="py-3 px-4 font-semibold cursor-pointer hover:text-[#6C5CE7]" onclick="sortAtRiskTable('student_id')">
+                    Student ID <span class="text-[10px]">↕</span>
+                  </th>
+                  <th class="py-3 px-4 font-semibold cursor-pointer hover:text-[#6C5CE7]" onclick="sortAtRiskTable('predicted_risk_probability')">
+                    Risk Probability <span class="text-[10px]">↕</span>
+                  </th>
+                  <th class="py-3 px-4 font-semibold cursor-pointer hover:text-[#6C5CE7]" onclick="sortAtRiskTable('current_cgpa')">
+                    Current CGPA <span class="text-[10px]">↕</span>
+                  </th>
+                  <th class="py-3 px-4 font-semibold">Top Contributing Factor (Server-Derived)</th>
+                  <th class="py-3 px-4 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody id="atrisk-table-body">
+                <tr><td colspan="5" class="py-4 text-center text-[#8A8797]">Loading student risk registry...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- VIEW 4: PERFORMANCE PREDICTION                                      -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <section id="view-predict" class="view-section hidden space-y-6">
+        
+        <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-sora font-bold text-lg text-[#1E1B2E]">CGPA Performance Trajectory Predictor</h2>
+            <p class="text-xs text-[#8A8797] mt-0.5">
+              Simulate lifestyle and study habit interventions using Model 1 (GradientBoostingRegressor).
+            </p>
+          </div>
+          <!-- Presets -->
+          <div class="flex items-center space-x-2">
+            <span class="text-xs text-[#8A8797] mr-1">Intervention Presets:</span>
+            <button onclick="applyPredictPreset('achiever')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#E7F8EE] text-[#2E8555] hover:opacity-90">
+              High Effort
+            </button>
+            <button onclick="applyPredictPreset('typical')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7] hover:opacity-90">
+              Average
+            </button>
+            <button onclick="applyPredictPreset('distress')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#FDEDEF] text-[#E85D75] hover:opacity-90">
+              Struggling
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Interactive Sliders Form (7 cols) -->
+          <div class="lg:col-span-7 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm space-y-5">
+            <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Student Behavior & Effort Parameters</h3>
+            
+            <!-- Slider 1: Attendance -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <label for="slider-attendance" class="font-medium text-[#1E1B2E]">Class Attendance Rate</label>
+                <span id="badge-attendance" class="font-sora font-semibold px-2 py-0.5 rounded bg-[#EDEBFB] text-[#6C5CE7]">85%</span>
+              </div>
+              <input id="slider-attendance" type="range" min="50" max="100" step="1" value="85" class="w-full cursor-pointer" />
+            </div>
+
+            <!-- Slider 2: Daily Study Hours -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <label for="slider-study" class="font-medium text-[#1E1B2E]">Daily Study Hours</label>
+                <span id="badge-study" class="font-sora font-semibold px-2 py-0.5 rounded bg-[#EDEBFB] text-[#6C5CE7]">5.0 hrs</span>
+              </div>
+              <input id="slider-study" type="range" min="0.5" max="12.0" step="0.5" value="5.0" class="w-full cursor-pointer" />
+            </div>
+
+            <!-- Slider 3: DSA Problems Solved -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <label for="slider-dsa" class="font-medium text-[#1E1B2E]">DSA Coding Problems Solved</label>
+                <span id="badge-dsa" class="font-sora font-semibold px-2 py-0.5 rounded bg-[#EDEBFB] text-[#6C5CE7]">180 solved</span>
+              </div>
+              <input id="slider-dsa" type="range" min="0" max="600" step="10" value="180" class="w-full cursor-pointer" />
+            </div>
+
+            <!-- Slider 4: Internships -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <label for="slider-internships" class="font-medium text-[#1E1B2E]">Completed Industry Internships</label>
+                <span id="badge-internships" class="font-sora font-semibold px-2 py-0.5 rounded bg-[#EDEBFB] text-[#6C5CE7]">1</span>
+              </div>
+              <input id="slider-internships" type="range" min="0" max="5" step="1" value="1" class="w-full cursor-pointer" />
+            </div>
+
+            <!-- Slider 5: Sleep Hours -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <label for="slider-sleep" class="font-medium text-[#1E1B2E]">Nightly Sleep Duration</label>
+                <span id="badge-sleep" class="font-sora font-semibold px-2 py-0.5 rounded bg-[#EDEBFB] text-[#6C5CE7]">7.0 hrs</span>
+              </div>
+              <input id="slider-sleep" type="range" min="3.5" max="10.0" step="0.5" value="7.0" class="w-full cursor-pointer" />
+            </div>
+
+            <!-- Slider 6: Communication Skills -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <label for="slider-comms" class="font-medium text-[#1E1B2E]">Communication Assessment Score</label>
+                <span id="badge-comms" class="font-sora font-semibold px-2 py-0.5 rounded bg-[#EDEBFB] text-[#6C5CE7]">75 / 100</span>
+              </div>
+              <input id="slider-comms" type="range" min="20" max="100" step="5" value="75" class="w-full cursor-pointer" />
+            </div>
+
+            <!-- Action Button -->
+            <div class="pt-3">
+              <button id="btn-predict-cgpa" class="w-full py-3 px-6 rounded-xl bg-[#6C5CE7] hover:bg-[#4B3FA8] text-white font-sora font-semibold text-sm shadow-md shadow-[#6C5CE7]/30 transition-all">
+                Run Model 1 Prediction
+              </button>
+            </div>
+          </div>
+
+          <!-- Prediction Output Card (5 cols) -->
+          <div class="lg:col-span-5 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Forecasted Trajectory</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
+                  GBR Live Inference
+                </span>
+              </div>
+
+              <!-- Big Sora Metric Card -->
+              <div id="prediction-output-card" class="bg-gradient-to-br from-[#EDEBFB] to-[#F6F5FC] rounded-2xl p-6 text-center border border-purple-100 my-4">
+                <div class="text-xs font-semibold uppercase tracking-wider text-[#6C5CE7]">Predicted Next-Term CGPA</div>
+                <div id="predicted-cgpa-number" class="font-sora font-bold text-5xl text-[#1E1B2E] my-3">
+                  8.14
+                </div>
+                <div class="text-xs text-[#8A8797]">out of 10.0 Maximum Scale</div>
+              </div>
+
+              <!-- Transparent Limitation Disclosure -->
+              <div class="p-4 rounded-xl bg-[#FAF9FD] border border-[#EDEBFB] text-xs space-y-1.5">
+                <div class="font-semibold text-[#1E1B2E]">Transparent Confidence Level</div>
+                <div id="prediction-confidence-note" class="text-[#8A8797] leading-relaxed">
+                  Model R² = <span class="font-semibold text-[#6C5CE7]">0.21</span> (RMSE 0.76) — provides directional guidance.
+                </div>
+                <div class="text-[11px] text-[#8A8797] pt-1">
+                  Non-slider parameters (hackathons, family income, mock interview scores) are fixed to population median baselines.
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-[#EDEBFB] text-[11px] text-[#8A8797] text-center">
+              Trained on 20,000 students across 28 multi-modal features.
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- VIEW 5: STUDENT 360 LOOKUP                                          -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <section id="view-student" class="view-section hidden space-y-6">
+        
+        <!-- Search Input & Quick Chips -->
+        <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+          <form id="student-search-form" class="flex flex-col sm:flex-row items-center gap-3">
+            <div class="relative flex-1 w-full">
+              <input
+                id="student-search-input"
+                type="text"
+                placeholder="Enter Student ID (e.g. STU00001, STU15140, STU16970)..."
+                value="STU00001"
+                class="w-full pl-10 pr-4 py-3 bg-[#F6F5FC] border border-[#EDEBFB] rounded-xl text-sm font-sora font-semibold text-[#1E1B2E] outline-none focus:border-[#6C5CE7] transition-all"
+              />
+              <svg class="w-5 h-5 text-[#8A8797] absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-[#6C5CE7] hover:bg-[#4B3FA8] text-white font-sora font-semibold text-sm rounded-xl transition-all shadow-sm">
+              Search Profile
+            </button>
+          </form>
+
+          <!-- Quick Chips -->
+          <div class="flex items-center space-x-2 mt-4 pt-3 border-t border-[#EDEBFB] text-xs">
+            <span class="text-[#8A8797]">Try student records:</span>
+            <button onclick="jumpToStudent('STU00001')" class="px-2.5 py-1 rounded-lg bg-[#EDEBFB] text-[#6C5CE7] font-semibold hover:bg-purple-100">
+              STU00001 (Placed)
+            </button>
+            <button onclick="jumpToStudent('STU15140')" class="px-2.5 py-1 rounded-lg bg-[#FDEDEF] text-[#E85D75] font-semibold hover:bg-red-100">
+              STU15140 (At-Risk Flagged)
+            </button>
+            <button onclick="jumpToStudent('STU16970')" class="px-2.5 py-1 rounded-lg bg-[#FDEDEF] text-[#E85D75] font-semibold hover:bg-red-100">
+              STU16970 (Low CGPA)
+            </button>
+            <button onclick="jumpToStudent('STU08983')" class="px-2.5 py-1 rounded-lg bg-[#E6F0FE] text-[#2F64C8] font-semibold hover:bg-blue-100">
+              STU08983 (Tier 1)
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Profile Container (Populated by app.js) -->
+        <div id="student-360-content">
+          <!-- Skeleton Loading placeholder -->
+          <div class="skeleton h-32 w-full mb-6"></div>
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-7 skeleton h-64"></div>
+            <div class="lg:col-span-5 skeleton h-64"></div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Dashboard JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>

@@ -54,17 +54,19 @@ Campus360/
 │   │   └── insights.py                # GenAI faculty copilot & student intervention summaries
 │   │
 │   ├── dashboard/
-│   │   └── app.py                     # Streamlit analytics dashboard
+│   │   ├── index.html                 # Modern HTML5 + Tailwind CSS + Vanilla JS dashboard
+│   │   ├── app.js                     # Vanilla JS state, Chart.js lifecycle & fetch API
+│   │   └── style.css                  # Custom tokens, Sora & Inter fonts, slider styles
 │   │
 │   └── api/
-│       └── main.py                    # FastAPI service backend
+│       └── main.py                    # FastAPI service backend & model inference
 │
 ├── notebooks/
 │   └── eda.ipynb                      # Exploratory Data Analysis
 │
 ├── docker/
 │   ├── Dockerfile.api                 # API Docker container
-│   └── Dockerfile.dashboard           # Streamlit Docker container
+│   └── Dockerfile.dashboard           # Lightweight static dashboard container (port 8501)
 │
 ├── docker-compose.yml                 # Multi-container orchestration (PostgreSQL, API, Dashboard)
 ├── tests/                             # Automated unit and integration test suite
@@ -110,13 +112,13 @@ python3 src/etl/fix_and_prepare.py
 ```
 
 ### 3. Launch Services
-- **Run FastAPI Backend:**
+- **Run FastAPI Backend (serves API & static dashboard at /dashboard):**
   ```bash
   uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
   ```
-- **Run Streamlit Dashboard:**
+- **Run Standalone Static Dashboard (port 8501):**
   ```bash
-  streamlit run src/dashboard/app.py
+  python3 -m http.server 8501 --directory src/dashboard
   ```
 - **Or run everything via Docker Compose:**
   ```bash
