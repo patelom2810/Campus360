@@ -580,6 +580,18 @@ function renderAtRiskTableRows() {
     return asc ? vA - vB : vB - vA;
   });
 
+  if (sorted.length === 0) {
+    container.innerHTML = `
+      <tr>
+        <td colspan="6" class="py-8 text-center text-xs text-[#8A8797]">
+          <div class="text-xl mb-1">🔍</div>
+          No students match the current filter parameters.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
   container.innerHTML = sorted
     .map(
       (stu) => `

@@ -86,10 +86,9 @@ Campus360/
 │   │   ├── fix_and_prepare.py         # PII drop, casing standardization, at_risk_flag & splits
 │   │   └── run_pipeline.py            # Master CLI runner executing Stages 1-4 end-to-end
 │   │
-│   ├── models/                        # ML Model Pipelines
 │   │   ├── train_performance_model.py # Marks prediction regressor (Model 1)
-│   │   ├── train_atrisk_model.py      # At-risk early detection classifier (Model 2)
-│   │   └── train_career_model.py      # Career fit predictor (Model 3)
+│   │   └── train_atrisk_model.py      # At-risk early detection classifier (Model 2)
+│   │   # Note: Career Guidance is an analytical 6-pillar composite scoring engine (_CAREER_WEIGHTS)
 │   │
 │   ├── genai/                         # GenAI Copilot Layer
 │   │   └── insights.py                # Plain-language student & teacher guidance

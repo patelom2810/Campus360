@@ -505,20 +505,25 @@ def get_subject_performance():
             row_data[b] = float(val.iloc[0]["avg_normalized_pct"]) if not val.empty else None
         heatmap_rows.append(row_data)
 
-    # 3. Lowest-performing subject per branch table
+    # 3. Lowest-performing subject per branch table (modular curriculum subjects)
+    modular_subjects = ["Mathematics", "Science", "English"]
     lowest_per_branch = []
     for b in branches:
-        b_subs = branch_subject_df[branch_subject_df["stream_branch"] == b]
+        b_subs = branch_subject_df[
+            (branch_subject_df["stream_branch"] == b)
+            & (branch_subject_df["subject"].isin(modular_subjects))
+        ]
         if not b_subs.empty:
             min_row = b_subs.sort_values(by="avg_normalized_pct").iloc[0]
             score = float(min_row["avg_normalized_pct"])
-            severity = "High Gap" if score < 64.0 else ("Moderate Gap" if score < 66.0 else "Low Gap")
+            severity = "High Gap" if score < 64.0 else ("Moderate Gap" if score < 64.8 else "Low Gap")
             lowest_per_branch.append({
                 "stream_branch": b,
                 "lowest_subject": str(min_row["subject"]),
                 "avg_normalized_pct": score,
                 "gap_severity": severity,
             })
+
 
     return {
         "engine": engine_type,

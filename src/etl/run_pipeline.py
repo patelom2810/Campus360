@@ -10,10 +10,13 @@ Description: Master end-to-end ETL orchestrator:
 import sys
 import time
 from pathlib import Path
+import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
+
+PROCESSED_DATA_DIR = BASE_DIR / "data" / "processed"
 
 from src.etl.extract import load_raw_datasets, profile_datasets
 from src.etl.clean import clean_all_datasets
@@ -45,6 +48,8 @@ def run_full_pipeline():
     # Step 4: Fix, PII Removal, Label Engineering, & Train/Test Splits
     print(">>> STAGE 4: REMEDIATION, PII REMOVAL & MODEL PREPARATION")
     run_fix_and_prepare()
+    # Reload wide_df to reflect post-remediation schema (116 columns including engineered features)
+    wide_df = pd.read_csv(PROCESSED_DATA_DIR / "student_master_wide.csv")
 
     # Step 5: Star Schema Load
     print(">>> STAGE 5: STAR SCHEMA WAREHOUSE GENERATION")

@@ -21,8 +21,7 @@ The data warehouse layer of Campus360 was migrated from an embedded SQLite datab
 ## 2. Unchanged Upstream Layers (Zero Disruption)
 
 - **Star Schema Design:** Preserves 1 dimension (`dim_student`) and 3 fact tables (`fact_performance`, `fact_lifestyle`, `fact_career`) without modifying table schemas or column names.
-- **Data Stitching & Cleaning:** All raw-to-interim cleaning (`src/etl/clean.py`), attribute-based matching (`src/etl/stitch.py`), and master wide table generation remain untouched.
-- **ML Training Pipelines:** Model 1 (Performance Regression), Model 2 (At-Risk Classifier), and Model 3 (Career Readiness) continue consuming their designated feature matrices from `data/processed/` with zero breaking changes.
+- **ML Training Pipelines:** Model 1 (Performance Regression) and Model 2 (At-Risk Classifier) continue consuming their designated feature matrices from `data/processed/`, while Career Readiness uses an analytical 6-pillar composite score with zero breaking changes.
 
 ---
 

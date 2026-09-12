@@ -55,7 +55,9 @@ Once running, access the platform services:
 - **Interactive API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
 
-> **First Run Timing:** `docker compose up --build` takes approximately 3–5 minutes total on first run (~2 minutes for container image builds and ~1–2 minutes for the automated ETL entrypoint to load 180,000 rows across 4 star-schema tables into PostgreSQL). Subsequent runs take ~30 seconds as ETL is automatically skipped when tables exist. For full reproduction steps, see [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md).
+> **First Run Timing:** `docker compose up --build` takes ~5.3 minutes total from scratch without layer cache (~5.1 minutes for image build and dependency installation, and **11.92 seconds** for container startup and the automated ETL entrypoint to populate all 180,000 rows into PostgreSQL). Subsequent runs with pre-built images start in **~12–16 seconds** (or **~3–5 seconds** on existing volumes). For the full audit, see [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md).
+> 
+> **Port 5432 Conflict Note:** If your host machine already runs a local PostgreSQL service on port 5432, stop it before starting Docker (`brew services stop postgresql@16` or `sudo systemctl stop postgresql`), or toggle `DB_ENGINE=sqlite` to evaluate Campus360 using the built-in standalone database.
 
 ---
 
