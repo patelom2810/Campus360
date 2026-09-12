@@ -1,131 +1,132 @@
-# Student Academic Success, Subject Performance & Career Readiness Analytics Platform
+<div align="center">
 
-An enterprise-grade, end-to-end student success analytics and career readiness intelligence platform. Integrates academic assessments, behavioural habits, and career placement metrics into a unified 360° student data warehouse and star schema.
+# ![Campus360](src/dashboard/assets/logo-full.svg)
+
+### Student Academic Success, Subject Performance & Career Readiness Analytics Platform
+**KDAC-3 — KENEXA AI Hackathon**
+
+</div>
+
+Higher education institutions routinely isolate student data across disconnected ERP systems, academic mark sheets, wellness surveys, and placement portals, leaving advisors without an integrated view of student progress. Campus360 solves this by ingesting and stitching 6 independent Indian student datasets (70,000 raw records) into a unified 25,000-student PostgreSQL star-schema warehouse, analyzing multi-branch academic performance, detecting early at-risk indicators, predicting performance trends, and benchmarking career readiness against peer cohorts. Its standout differentiator is a Google Gemini GenAI intelligence layer that translates predictive model outputs into actionable, faculty-readable intervention briefs and student mentoring narratives—with every statistical claim and model limitation honestly calibrated rather than oversold.
 
 ---
 
-## 🏗️ Project Architecture
+## What It Does
+
+- **Academic Performance:** Standardizes heterogeneous exam marks and degree CGPA onto a unified scale to track student progress across semesters and degree branches.
+- **Learning Gaps:** Identifies branch-level subject weaknesses through interactive gap severity heatmaps so departments can target curriculum interventions.
+- **At-Risk Detection:** Screens students early using lifestyle and behavioral telemetry to surface individuals who may need counseling before exams or backlogs occur.
+- **Trend Prediction:** Projects future CGPA trajectories via an interactive simulator, helping students and advisors evaluate the impact of study habits and attendance.
+- **Career Guidance:** Benchmarks technical and soft skills against branch peers to recommend personalized focus areas and reference historical placement outcomes.
+
+---
+
+## Architecture
+
+```
+6 Raw Datasets (70k rows) ➔ Attribute-Based Stitching ➔ PostgreSQL Star Schema (180k rows) ➔ ML Models (Performance Regressor + At-Risk Classifier) ➔ GenAI Layer (Google Gemini) ➔ Analytics Dashboard (7 views) ➔ Dockerized Deployment
+```
+
+For complete technical specifications, schema definitions, and data lineage, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Data Engineering** | Python 3.11, Pandas, PostgreSQL 16 (Star Schema), SQLite fallback, Docker Compose |
+| **Machine Learning** | Scikit-Learn (GradientBoostingRegressor, RandomForestClassifier), Joblib |
+| **Generative AI** | Google Gemini API (with deterministic offline fallback engine) |
+| **Backend API** | FastAPI, Uvicorn, SQLAlchemy, Pydantic |
+| **Frontend Dashboard** | HTML5, Tailwind CSS, Vanilla JavaScript, Chart.js |
+
+---
+
+## Quick Start
+
+```bash
+docker compose up --build
+```
+
+Once running, access the platform services:
+- **Dashboard:** [http://localhost:8000/dashboard](http://localhost:8000/dashboard) (or standalone on port 8501: [http://localhost:8501](http://localhost:8501))
+- **REST API:** [http://localhost:8000](http://localhost:8000)
+- **Interactive API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
+
+> **First Run Timing:** `docker compose up --build` takes approximately 3–5 minutes total on first run (~2 minutes for container image builds and ~1–2 minutes for the automated ETL entrypoint to load 180,000 rows across 4 star-schema tables into PostgreSQL). Subsequent runs take ~30 seconds as ETL is automatically skipped when tables exist. For full reproduction steps, see [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md).
+
+---
+
+## Dashboard Views
+
+1. **View 7: Data & ETL Monitoring (`data-view="pipeline"`) — Default Landing View:** Live vertical flow status of the entire 7-stage data pipeline, displaying operational integrity progress (100%), 30s auto-refresh polling ticker, raw file table, interim duplicate pruning metrics (-10k rows), star-schema row counts (180,000), and model limitation disclosures.
+2. **View 1: Executive Overview (`data-view="overview"`):** Institutional KPI metric cards (25,000 students, 7.46 avg CGPA, 98.38% placement rate, 31.9% at-risk baseline), 5-bin CGPA histogram distribution, and prioritized at-risk student quicklist.
+3. **View 2: Subject Performance & Gaps (`data-view="subjects"`):** Standardized 0–100% subject score averages, 6x6 branch-by-subject gap severity heatmap, and branch-wise lowest subject gap action cards.
+4. **View 3: At-Risk Detection (`data-view="atrisk"`):** Prominent amber model calibration banner (45% recall / 32% precision), top 5 lifestyle driving factors, and interactive searchable, sortable at-risk roster with direct 360° profile jump links.
+5. **View 4: Trajectory Predictor (`data-view="predict"`):** Interactive student trajectory simulator powered by Model 1 with real-time sliders for study hours, sleep, attendance, and DSA problem counts.
+6. **View 5: Student 360° Profile (`data-view="student"`):** Multi-dimensional individual dossier detailing demographics, multi-semester academic trends, wellness metrics, matched secondary source chips, and modal trigger for AI Mentor Briefs.
+7. **View 6: Career Guidance (`data-view="career"`):** Career readiness index (0–100), branch peer benchmark, 6-component skill gap percentiles, suggested focus area recommendations, peer placement references, and personalized AI narrative.
+
+---
+
+## Model Performance — Reported Honestly
+
+| Model | Metric | Result | Assessment |
+| :--- | :--- | :---: | :--- |
+| **Performance Prediction (CGPA)** | R² | 0.2096 | Weak — directional signal only |
+| **At-Risk Detection** | Recall / AUC | 45.14% / 0.5044 | Weak — screening tool, not a diagnostic trigger |
+
+We report these honestly rather than hide them — see [docs/FINAL_SUBMISSION_AUDIT.md](docs/FINAL_SUBMISSION_AUDIT.md) for the full methodology, leakage checks, and why these numbers are what they are.
+
+---
+
+## Known Limitations
+
+- **Model 1 Low Variance Explained ($R^2 = 0.2096$, $\text{RMSE} = 0.7581$):** Lifestyle and aptitude metrics explain ~21% of CGPA variance; the model offers directional guidance rather than deterministic grade forecasting.
+- **Model 2 Early-Stage Screening Quality ($\text{Recall} = 45.14\%$, $\text{Precision} = 32.30\%$, $\text{AUC} = 0.5044$):** Academic defining features (CGPA, backlogs, attendance) were strictly excluded to avoid circular target leakage, leaving lifestyle signals with weak separation (~2 in 3 flags are false alarms).
+- **Suvidya Ceiling Test Confound ($\Delta\text{AUC} = +0.2663$):** Adding academic features lifted AUC from 0.6065 to 0.8728 on `suvidya_pass_fail`, but the lift is confounded because `anchor_cgpa` was the similarity key used in data stitching.
+- **GenAI External Latency & Fallbacks:** Google Gemini API calls can encounter upstream latency or `503` errors; in-memory caching and deterministic rule-based template fallbacks guarantee continuous operation.
+- **Cross-Cohort Secondary Sparsity:** Secondary datasets cover between 1,000 and 15,000 students of the 25,000 anchor cohort, requiring ML models to rely strictly on complete anchor attributes.
+
+---
+
+## Project Structure
 
 ```
 Campus360/
-│
-├── venv/                              # Python virtual environment
-│
-├── data/
-│   ├── raw/                           # 6 canonical raw datasets (unmodified)
-│   │   ├── suvidya_student_performance.csv
-│   │   ├── kundan_student_performance.csv
-│   │   ├── sehaj_student_lifestyle.csv
-│   │   ├── navinpatidar_indian_placement.csv
-│   │   ├── sakharebharat_indian_placement_2025.csv
-│   │   └── shambhuraje_placement_career_2026.csv
-│   ├── interim/                       # Cleaned individual datasets (snake_case, imputed, clipped)
-│   └── processed/                     # Final stitched warehouse tables (Star Schema & master wide)
-│       ├── student_master_wide.csv    # Master wide table (25k rows, 112 cols, 0 PII)
-│       ├── dim_student.csv            # Demographics dimension
-│       ├── fact_performance.csv       # Normalized marks & exams fact table
-│       ├── fact_lifestyle.csv         # Wellness, sleep & stress fact table
-│       ├── fact_career.csv            # Skills, packages & placement fact table
-│       ├── model1_performance_train.csv
-│       ├── model1_performance_test.csv
-│       ├── model2_atrisk_train.csv
-│       ├── model2_atrisk_test.csv
-│       └── warehouse.db               # Embedded SQLite database fallback
-│
-├── docs/                              # Consolidated Technical Documentation
-│   ├── ARCHITECTURE.md                # Data engineering, stitching, lineage & label engineering
-│   └── DEPLOYMENT.md                  # Container deployment, PostgreSQL migration & fallback
-│
-├── src/
-│   ├── etl/
-│   │   ├── extract.py                 # Raw dataset ingestion and profiling
-│   │   ├── clean.py                   # Per-dataset cleaning, imputation & clipping
-│   │   ├── stitch.py                  # Attribute-based matching & wide table merge
-│   │   ├── load.py                    # Star schema PostgreSQL loader & SQLite fallback
-│   │   ├── fix_and_prepare.py         # PII drop, casing standardization, at_risk_flag & splits
-│   │   └── run_pipeline.py            # End-to-end pipeline runner
-│   │
-│   ├── models/
-│   │   ├── train_performance_model.py # Regression: next-term marks prediction
-│   │   ├── train_atrisk_model.py      # Classification: student at-risk detection
-│   │   └── train_career_model.py      # Career fit & placement predictor
-│   │
-│   ├── genai/
-│   │   └── insights.py                # GenAI faculty copilot & student intervention summaries
-│   │
-│   ├── dashboard/
-│   │   ├── index.html                 # Modern HTML5 + Tailwind CSS + Vanilla JS dashboard
-│   │   ├── app.js                     # Vanilla JS state, Chart.js lifecycle & fetch API
-│   │   └── style.css                  # Custom tokens, Sora & Inter fonts, slider styles
-│   │
-│   └── api/
-│       └── main.py                    # FastAPI service backend & model inference
-│
-├── notebooks/
-│   └── eda.ipynb                      # Exploratory Data Analysis
-│
-├── docker/
-│   ├── Dockerfile.api                 # API Docker container
-│   └── Dockerfile.dashboard           # Lightweight static dashboard container (port 8501)
-│
-├── docker-compose.yml                 # Multi-container orchestration (PostgreSQL, API, Dashboard)
-├── tests/                             # Automated unit and integration test suite
-├── requirements.txt                   # Frozen dependencies
-├── .env.example                       # Environment configuration template
-├── .gitignore                         # Git ignore rules
-└── README.md
+├── data/       # Raw CSV datasets (70k rows), cleaned interim data, and stitched star-schema tables
+├── src/        # Application source code (ETL pipelines, ML training, GenAI, FastAPI backend, Dashboard)
+├── models/     # Serialized Scikit-Learn model artifacts (.joblib) for performance and risk prediction
+├── docs/       # Comprehensive technical documentation, architecture specs, audits, and deployment guides
+├── tests/      # Automated unit and integration test suites validating warehouse and API integrity
+└── docker/     # Dockerfiles and entrypoint initialization scripts for containerized deployment
 ```
+
+For the comprehensive file tree and component breakdown, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-For in-depth technical reports, data lineage, mathematical methodology, and deployment guides:
-- 🏛️ **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md):** Complete technical report covering raw data extraction, attribute-based similarity stitching, data lineage, synthetic field audit, label engineering (`at_risk_flag`), and PII removal audit.
-- 🚀 **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md):** Production deployment guide detailing PostgreSQL 16 containerization, Docker Compose architecture, foreign key constraints, API endpoints, and the zero-downtime SQLite local fallback.
-
-## ⚠️ Disclosed Limitations
-
-> **Data-Stitching Methodology Caveat**: Our data-stitching methodology, while statistically validated for internal consistency, can introduce correlations between the join key (CGPA) and other academic fields that don't reflect genuine real-world relationships — a disclosed limitation of synthetic multi-source stitching, and a primary motivation for validating this platform against a real institution's naturally-linked data in future work.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture, 6-dataset stitching methodology, 180k-row star schema, and data lineage.
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Multi-container Docker deployment guide, PostgreSQL migration, and SQLite fallback mechanism.
+- [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md) — Independent verification log of clean-state Docker execution, auto-ETL timing, and failure-recovery tests.
+- [docs/FINAL_SUBMISSION_AUDIT.md](docs/FINAL_SUBMISSION_AUDIT.md) — Source of truth audit report verifying live row counts, model evaluations, leakage checks, and submission rubric coverage.
 
 ---
 
-## ⚡ Quick Start
+## Team
 
-### 1. Environment Setup
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-cp .env.example .env
-```
+- **Team ID:** 60
+- **Members:** Om Patel & Rahil Nagariya
+- **Hackathon:** KDAC-3 — KENEXA AI Hackathon
 
-### 2. Run ETL & Data Stitching Pipeline
-Run the entire extraction, cleaning, attribute-based stitching, and star-schema warehouse generation with a single command:
-```bash
-python3 -m src.etl.run_pipeline
-```
-Or run quality fixes and model preparation:
-```bash
-python3 src/etl/fix_and_prepare.py
-```
+<br>
 
-### 3. Launch Services
-- **Run FastAPI Backend (serves API & static dashboard at /dashboard):**
-  ```bash
-  uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
-  ```
-- **Run Standalone Static Dashboard (port 8501):**
-  ```bash
-  python3 -m http.server 8501 --directory src/dashboard
-  ```
-- **Or run everything via Docker Compose:**
-  ```bash
-  docker compose up --build
-  ```
+<div align="center">
 
-### 4. Run Test Suite
-```bash
-python3 -m unittest discover tests
-```
+<img src="src/dashboard/assets/logo-icon.svg" alt="Campus360 Logo Mark" width="48" height="48" />
+
+</div>
