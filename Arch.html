@@ -49,8 +49,11 @@
     }
 
     html {
-      scroll-behavior: smooth;
       font-size: 15px;
+    }
+
+    body.continuous-mode {
+      scroll-behavior: smooth;
     }
 
     body {
@@ -337,7 +340,7 @@
     .main-content {
       flex: 1;
       min-width: 0;
-      padding: 36px 48px 120px 48px;
+      padding: 22px 36px 110px 36px;
       transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -394,13 +397,13 @@
       letter-spacing: 0.06em;
     }
 
-    /* Header Banner */
+    /* Header Banner - Compact Executive View */
     .page-header {
       background: linear-gradient(135deg, #FFFFFF 0%, #FAF9FE 100%);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 32px;
-      margin-bottom: 32px;
+      padding: 16px 22px;
+      margin-bottom: 14px;
       box-shadow: var(--shadow-sm);
       position: relative;
       overflow: hidden;
@@ -419,41 +422,43 @@
     .header-top {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 12px;
+      align-items: center;
+      margin-bottom: 8px;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 12px;
     }
 
     .header-title-group h1 {
-      font-size: 2rem;
+      font-size: 1.45rem;
       font-weight: 800;
       color: var(--text);
-      margin-bottom: 6px;
+      margin-bottom: 3px;
     }
 
     .header-title-group p {
-      font-size: 0.95rem;
+      font-size: 0.82rem;
+      line-height: 1.45;
       color: var(--text-secondary);
-      max-width: 720px;
+      max-width: 780px;
     }
 
     .verification-chip {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
       background: var(--success-bg);
       border: 1px solid var(--success-border);
       color: #1B5E20;
-      padding: 6px 14px;
+      padding: 5px 12px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.76rem;
       font-weight: 600;
+      flex-shrink: 0;
     }
 
     .pulse-dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: var(--success);
       box-shadow: 0 0 0 rgba(76, 175, 125, 0.4);
@@ -468,10 +473,10 @@
 
     .header-stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
-      margin-top: 24px;
-      padding-top: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 12px;
       border-top: 1px solid var(--border-light);
     }
 
@@ -479,11 +484,11 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      padding: 12px 16px;
+      padding: 9px 14px;
     }
 
     .stat-card .stat-label {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--muted);
       text-transform: uppercase;
       font-weight: 600;
@@ -492,16 +497,16 @@
 
     .stat-card .stat-val {
       font-family: 'Sora', sans-serif;
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: 700;
       color: var(--text);
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .stat-card .stat-desc {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text-secondary);
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     /* Layer Section Styles */
@@ -509,7 +514,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 32px;
+      padding: 22px 26px;
       box-shadow: var(--shadow-sm);
     }
 
@@ -2006,9 +2011,9 @@
 
         <section class="page-header">
           <div class="header-top">
-            <div class="header-title-group" style="display: flex; align-items: flex-start; gap: 18px;">
-              <div style="width: 52px; height: 52px; flex-shrink: 0; background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: 12px; display: flex; align-items: center; justify-content: center; padding: 4px; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.15);">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="42" height="42" role="img" aria-label="Campus360 Logo">
+            <div class="header-title-group" style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 42px; height: 42px; flex-shrink: 0; background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 4px; box-shadow: 0 4px 10px rgba(108, 92, 231, 0.12);">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34" role="img" aria-label="Campus360 Logo">
                   <path fill="none" stroke="#6C5CE7" stroke-linecap="round" stroke-width="8" d="M25 28 A38 38 0 0 1 73 20"/>
                   <path fill="none" stroke="#6C5CE7" stroke-linecap="round" stroke-width="6" d="M78 34 A38 38 0 0 1 70 78"/>
                   <path fill="none" stroke="#4B3FA8" stroke-linecap="round" stroke-width="4.5" d="M61 82 A38 38 0 0 1 22 55"/>
@@ -3750,7 +3755,9 @@
           slide.classList.remove('active-slide');
         }
       });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     } else {
       const targetSec = document.getElementById(`slide-${index}`);
       if (targetSec) {
@@ -4224,8 +4231,25 @@
     return 0;
   }
 
+  // Disable automatic browser scroll restoration to prevent landing halfway down on reload
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+
   window.addEventListener('DOMContentLoaded', () => {
     goToSlide(parseHashSlide());
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  });
+
+  window.addEventListener('load', () => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   });
 
   window.addEventListener('hashchange', () => {
