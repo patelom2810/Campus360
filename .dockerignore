@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+.env
+.DS_Store
+notebooks/
+.ipynb_checkpoints/
+data/interim/
+docs/
+tests/
+*.log

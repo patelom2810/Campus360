@@ -8,3 +8,7 @@ data/processed/*.db
 .ipynb_checkpoints/
 .DS_Store
 /*.csv
+logs/
+*.log
+*.bak
+**/.DS_Store

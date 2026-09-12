@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-labelledby="title desc">
+  <title id="title">Campus360</title>
+  <desc id="desc">Campus360 logo with three open orbital arcs converging on a central student-data node and a Sora wordmark.</desc>
+  <style>
+    :root { --logo-primary:#6C5CE7; --logo-primary-dark:#4B3FA8; }
+    .orbit { fill:none; stroke:var(--logo-primary); stroke-linecap:round; }
+    .orbit-dark { fill:none; stroke:var(--logo-primary-dark); stroke-linecap:round; }
+    .wordmark { font-family:"Sora",sans-serif; font-size:31px; font-weight:650; letter-spacing:-1.25px; fill:var(--logo-primary-dark); }
+  </style>
+  <g transform="translate(8 8) scale(.64)">
+    <path class="orbit" stroke-width="8" d="M25 28 A38 38 0 0 1 73 20"/>
+    <path class="orbit" stroke-width="6" d="M78 34 A38 38 0 0 1 70 78"/>
+    <path class="orbit-dark" stroke-width="4.5" d="M61 82 A38 38 0 0 1 22 55"/>
+    <path fill="var(--logo-primary-dark)" d="M50 31L68 50L50 69L32 50Z"/>
+    <circle cx="50" cy="50" r="6.5" fill="var(--logo-primary)"/>
+  </g>
+  <text class="wordmark" x="72" y="53" dominant-baseline="middle">Campus360</text>
+</svg>

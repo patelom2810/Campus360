@@ -18,14 +18,15 @@ if str(BASE_DIR) not in sys.path:
 from src.etl.extract import load_raw_datasets, profile_datasets
 from src.etl.clean import clean_all_datasets
 from src.etl.stitch import stitch_datasets
+from src.etl.fix_and_prepare import run_pipeline as run_fix_and_prepare
 from src.etl.load import load_star_schema
 
 
 def run_full_pipeline():
-    """Runs the complete student data warehouse pipeline from raw files to star schema."""
+    """Runs the complete student data warehouse pipeline from raw files to star schema and model-ready splits."""
     start_time = time.time()
     print("\n" + "#" * 80)
-    print("STARTING COMPLETE ETL & DATA STITCHING PIPELINE")
+    print("STARTING COMPLETE ETL, STITCHING & REMEDIATION PIPELINE")
     print("#" * 80 + "\n")
 
     # Step 1: Extract & Profile
@@ -37,24 +38,30 @@ def run_full_pipeline():
     print(">>> STAGE 2: INDEPENDENT DATASET CLEANING")
     cleaned_datasets = clean_all_datasets(raw_datasets)
 
-    # Step 3, 4, 5: Anchor, Attribute-Based Matching & Wide Table
+    # Step 3: Anchor, Attribute-Based Matching & Master Wide Generation
     print(">>> STAGE 3: ATTRIBUTE-BASED STITCHING & MASTER WIDE GENERATION")
     wide_df = stitch_datasets()
 
-    # Step 6: Star Schema Load
-    print(">>> STAGE 4: STAR SCHEMA WAREHOUSE GENERATION")
+    # Step 4: Fix, PII Removal, Label Engineering, & Train/Test Splits
+    print(">>> STAGE 4: REMEDIATION, PII REMOVAL & MODEL PREPARATION")
+    run_fix_and_prepare()
+
+    # Step 5: Star Schema Load
+    print(">>> STAGE 5: STAR SCHEMA WAREHOUSE GENERATION")
     dim_student, fact_perf, fact_life, fact_career = load_star_schema()
 
     elapsed = time.time() - start_time
     print("#" * 80)
     print(f"PIPELINE COMPLETED SUCCESSFULLY IN {elapsed:.2f} SECONDS")
     print("Processed Warehouse Artifacts (data/processed/):")
-    print(f"  1. student_master_wide.csv  : {wide_df.shape[0]:,} rows x {wide_df.shape[1]} cols")
-    print(f"  2. dim_student.csv          : {dim_student.shape[0]:,} rows x {dim_student.shape[1]} cols")
-    print(f"  3. fact_performance.csv     : {fact_perf.shape[0]:,} rows x {fact_perf.shape[1]} cols")
-    print(f"  4. fact_lifestyle.csv       : {fact_life.shape[0]:,} rows x {fact_life.shape[1]} cols")
-    print(f"  5. fact_career.csv          : {fact_career.shape[0]:,} rows x {fact_career.shape[1]} cols")
-    print(f"  6. warehouse.db             : SQLite database with 4 star schema tables")
+    print(f"  1. student_master_wide.csv       : {wide_df.shape[0]:,} rows x {wide_df.shape[1]} cols")
+    print(f"  2. dim_student.csv               : {dim_student.shape[0]:,} rows x {dim_student.shape[1]} cols")
+    print(f"  3. fact_performance.csv          : {fact_perf.shape[0]:,} rows x {fact_perf.shape[1]} cols")
+    print(f"  4. fact_lifestyle.csv            : {fact_life.shape[0]:,} rows x {fact_life.shape[1]} cols")
+    print(f"  5. fact_career.csv               : {fact_career.shape[0]:,} rows x {fact_career.shape[1]} cols")
+    print(f"  6. model1_performance_train/test : 20,000 / 5,000 rows")
+    print(f"  7. model2_atrisk_train/test      : 20,000 / 5,000 rows")
+    print(f"  8. warehouse.db                  : SQLite database with 4 star schema tables")
     print("#" * 80 + "\n")
 
 

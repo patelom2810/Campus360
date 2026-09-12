@@ -16,8 +16,6 @@ PURPOSE:
 Outputs:
   - models/label_reconstruction_sanity_check.joblib (primary)
   - models/label_reconstruction_sanity_check.json (primary)
-  - models/reference_diagnostic_atrisk.joblib (compatibility copy)
-  - models/reference_diagnostic_metrics.json (compatibility copy)
 """
 
 import json
@@ -181,9 +179,6 @@ def train_diagnostic():
     # Save Artifacts
     primary_model_path = MODELS_DIR / "label_reconstruction_sanity_check.joblib"
     joblib.dump(model, primary_model_path)
-    # Compatibility copy
-    compat_model_path = MODELS_DIR / "reference_diagnostic_atrisk.joblib"
-    joblib.dump(model, compat_model_path)
     print(f"\nSaved model → {primary_model_path.relative_to(BASE_DIR)}")
 
     sanity_metrics = {
@@ -218,8 +213,6 @@ def train_diagnostic():
 
     primary_metrics_path = MODELS_DIR / "label_reconstruction_sanity_check.json"
     primary_metrics_path.write_text(json.dumps(sanity_metrics, indent=2))
-    compat_metrics_path = MODELS_DIR / "reference_diagnostic_metrics.json"
-    compat_metrics_path.write_text(json.dumps(sanity_metrics, indent=2))
     print(f"Saved sanity check metrics → {primary_metrics_path.relative_to(BASE_DIR)}")
 
     return model, sanity_metrics
