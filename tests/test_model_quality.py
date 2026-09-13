@@ -135,14 +135,14 @@ def run_verification():
         ("R²", m1_r2, m1_saved["test_r2"]),
     ]:
         if abs(recomputed - saved) > 0.01:
-            print(f"  ⚠ MISMATCH: {metric} recomputed={recomputed:.4f} vs saved={saved}")
+            print(f"  [MISMATCH] {metric} recomputed={recomputed:.4f} vs saved={saved}")
             m1_match = False
             issues.append(f"Model 1 {metric} mismatch: recomputed {recomputed:.4f} vs saved {saved}")
 
     if m1_match:
-        print("\n  ✅ Recomputed metrics MATCH saved metrics (within tolerance)")
+        print("\n  [PASS] Recomputed metrics MATCH saved metrics (within tolerance)")
     else:
-        print("\n  ❌ Metrics MISMATCH — saved model and metrics JSON are out of sync")
+        print("\n  [FAIL] Metrics MISMATCH — saved model and metrics JSON are out of sync")
 
     # ═════════════════════════════════════════════════════════════════════
     # STEP 2: Reload and re-score Model 2 independently
@@ -197,14 +197,14 @@ def run_verification():
         ("F1", m2_f1, m2_saved["test_f1_class1"]),
     ]:
         if abs(recomputed - saved) > 0.01:
-            print(f"  ⚠ MISMATCH: {metric} recomputed={recomputed:.4f} vs saved={saved}")
+            print(f"  [MISMATCH] {metric} recomputed={recomputed:.4f} vs saved={saved}")
             m2_match = False
             issues.append(f"Model 2 {metric} mismatch: recomputed {recomputed:.4f} vs saved {saved}")
 
     if m2_match:
-        print("\n  ✅ Recomputed metrics MATCH saved metrics (within tolerance)")
+        print("\n  [PASS] Recomputed metrics MATCH saved metrics (within tolerance)")
     else:
-        print("\n  ❌ Metrics MISMATCH — saved model and metrics JSON are out of sync")
+        print("\n  [FAIL] Metrics MISMATCH — saved model and metrics JSON are out of sync")
 
     print(f"\n  Full classification report (recomputed at threshold {decision_threshold:.2f}):")
     print(classification_report(y_test_m2, y_pred_m2, target_names=["Safe (0)", "At-Risk (1)"]))
@@ -263,7 +263,7 @@ def run_verification():
     suspicious = False
 
     if m1_r2 > MODEL1_R2_SUSPICIOUS:
-        print(f"\n  🚩 RED FLAG: Model 1 R² = {m1_r2:.4f} > {MODEL1_R2_SUSPICIOUS}")
+        print(f"\n  [ALERT] RED FLAG: Model 1 R² = {m1_r2:.4f} > {MODEL1_R2_SUSPICIOUS}")
         print(f"     This is suspiciously high — possible data leakage or train/test overlap")
         suspicious = True
         verdicts["model1"] = "SUSPICIOUS"
@@ -271,7 +271,7 @@ def run_verification():
         print(f"\n  Model 1 R² = {m1_r2:.4f} — not suspiciously high (threshold: {MODEL1_R2_SUSPICIOUS})")
 
     if m2_accuracy > MODEL2_ACC_SUSPICIOUS:
-        print(f"\n  🚩 RED FLAG: Model 2 accuracy = {m2_accuracy:.4f} > {MODEL2_ACC_SUSPICIOUS}")
+        print(f"\n  [ALERT] RED FLAG: Model 2 accuracy = {m2_accuracy:.4f} > {MODEL2_ACC_SUSPICIOUS}")
         print(f"     This is suspiciously high — possible data leakage")
         suspicious = True
         verdicts["model2"] = "SUSPICIOUS"
@@ -281,26 +281,26 @@ def run_verification():
     # Leakage column check for Model 2
     print(f"\n  Model 2 feature list ({len(m2_features)} features):")
     for f in m2_features:
-        flag = " 🚩 LEAKED!" if f in LEAKED_COLUMNS else ""
+        flag = " [LEAKED!]" if f in LEAKED_COLUMNS else ""
         print(f"    - {f}{flag}")
 
     leaked = set(m2_features) & LEAKED_COLUMNS
     if leaked:
-        print(f"\n  ❌ LEAKAGE DETECTED: {leaked} in Model 2 features")
+        print(f"\n  [FAIL] LEAKAGE DETECTED: {leaked} in Model 2 features")
         issues.append(f"Label leakage in Model 2: {leaked}")
         verdicts["model2"] = "SUSPICIOUS"
     else:
-        print(f"\n  ✅ No leakage columns found in Model 2 features list")
+        print(f"\n  [PASS] No leakage columns found in Model 2 features list")
 
     # Confirm feature_names_in_ on saved model object
     if hasattr(m2_model, "feature_names_in_"):
         m2_saved_leaked = set(m2_model.feature_names_in_) & LEAKED_COLUMNS
         if m2_saved_leaked:
-            print(f"  ❌ LEAKAGE in m2_model.feature_names_in_: {m2_saved_leaked}")
+            print(f"  [FAIL] LEAKAGE in m2_model.feature_names_in_: {m2_saved_leaked}")
             issues.append(f"Label leakage in saved Model 2 artifact feature_names_in_: {m2_saved_leaked}")
             verdicts["model2"] = "SUSPICIOUS"
         else:
-            print(f"  ✅ Confirmed: m2_model.feature_names_in_ strictly excludes all 3 leakage columns")
+            print(f"  [PASS] Confirmed: m2_model.feature_names_in_ strictly excludes all 3 leakage columns")
 
     # Model 1 feature list
     print(f"\n  Model 1 feature list ({len(m1_features)} features):")
@@ -325,13 +325,13 @@ def run_verification():
     print(f"    Model 2: {len(m2_overlap)} overlapping rows between train and test")
 
     if len(m1_overlap) > 0 or len(m2_overlap) > 0:
-        print(f"  ❌ Train/test overlap detected — possible data contamination")
+        print(f"  [FAIL] Train/test overlap detected — possible data contamination")
         issues.append("Train/test row overlap detected")
     else:
-        print(f"  ✅ No train/test row overlap detected")
+        print(f"  [PASS] No train/test row overlap detected")
 
     if not suspicious:
-        print(f"\n  ✅ No signs of suspicious perfection — scores look realistic")
+        print(f"\n  [PASS] No signs of suspicious perfection — scores look realistic")
 
     # ═════════════════════════════════════════════════════════════════════
     # STEP 5: Feature importance sanity check
@@ -353,7 +353,7 @@ def run_verification():
         imp_values = [v for _, v in m1_imp]
         imp_range = max(imp_values) - min(imp_values)
         if imp_range < 0.05:
-            print(f"\n  ⚠ WARNING: Feature importances are nearly uniform (range={imp_range:.4f})")
+            print(f"\n  [WARNING] Feature importances are nearly uniform (range={imp_range:.4f})")
             print(f"    This suggests no single feature has strong predictive power for {m1_target}")
             issues.append("Model 1 feature importances are nearly uniform — no strong signal")
     else:
@@ -373,7 +373,7 @@ def run_verification():
         imp_values = [v for _, v in m2_imp]
         imp_range = max(imp_values) - min(imp_values)
         if imp_range < 0.05:
-            print(f"\n  ⚠ WARNING: Feature importances are nearly uniform (range={imp_range:.4f})")
+            print(f"\n  [WARNING] Feature importances are nearly uniform (range={imp_range:.4f})")
             print(f"    This suggests no single feature has strong predictive power for {m2_target}")
             issues.append("Model 2 feature importances are nearly uniform — no strong signal")
     else:

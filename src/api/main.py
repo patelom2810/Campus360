@@ -2315,8 +2315,17 @@ def chat_guided(req: ChatGuidedRequest):
                     "collected_data": collected,
                 }
 
-        session["question_index"] = q_idx + 1
+        from src.api.assessment_engine import is_cs_branch
         next_idx = q_idx + 1
+        collected_branch = collected.get("branch")
+        while next_idx < len(_CHAT_QUESTIONS):
+            q_field = _CHAT_QUESTIONS[next_idx]["field"]
+            if q_field == "anchor_dsa_problems_solved" and not is_cs_branch(collected_branch):
+                # Non-CS student: dynamically skip DSA problem-solving question
+                next_idx += 1
+            else:
+                break
+        session["question_index"] = next_idx
 
         # ── All questions answered → run assessment ───────────────────────────
         if next_idx >= len(_CHAT_QUESTIONS):
@@ -2337,7 +2346,7 @@ def chat_guided(req: ChatGuidedRequest):
             completion_msg = (
                 f"{ack_msg}Thank you! I've gathered all the information I need. "
                 f"Running your full assessment now...\n\n"
-                f"✅ **Assessment complete!**\n"
+                f"**Assessment Complete**\n"
                 f"• Predicted CGPA: **{result['predicted_cgpa']:.2f}** / 10.0\n"
                 f"• At-Risk Probability: **{result['at_risk_probability']:.1%}** ({result['at_risk_label']})\n"
             )
@@ -2346,7 +2355,7 @@ def chat_guided(req: ChatGuidedRequest):
                 completion_msg += f"• Career Readiness Score: **{score:.1f}** / 100\n"
 
             if defaulted_display:
-                completion_msg += f"\n⚠️ Fields filled with population averages: {', '.join(defaulted_display[:5])}"
+                completion_msg += f"\n**Notice:** Fields filled with population averages: {', '.join(defaulted_display[:5])}"
                 if len(defaulted_display) > 5:
                     completion_msg += f" and {len(defaulted_display) - 5} more."
 

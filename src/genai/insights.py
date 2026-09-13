@@ -19,6 +19,7 @@ import os
 import sys
 import json
 import hashlib
+import concurrent.futures
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
@@ -125,38 +126,72 @@ def _log_interaction(func_name: str, student_id: str, prompt: str, response: str
 
 
 # ── Gemini Client Helper ──────────────────────────────────────────────────────
-def _call_gemini(prompt: str) -> Tuple[Optional[str], Optional[str]]:
+def is_gemini_token_available() -> Tuple[bool, str]:
+    """Checks whether a valid Google Gemini API token/key is configured."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return False, "Gemini token is not available (GEMINI_API_KEY unset or empty)."
+    if api_key in ("your_gemini_api_key_here", "dummy", "invalid", "invalid_key_12345"):
+        return False, "Gemini token is not available (GEMINI_API_KEY is placeholder or invalid)."
+    return True, "Gemini token available."
+
+
+def _call_gemini(prompt: str, timeout_sec: float = 4.0) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Attempts to call Google Gemini API with gemini-3.6-flash or other modern flash models.
-    If the requested model ID is retired or returns 404, gracefully tries available flash models.
-    Returns (generated_text, model_name) if successful, or (None, None) on failure/missing key.
+    Enforces a strict timeout (default 4.0s) per model call so the system never hangs.
+    Returns (generated_text, model_name, fallback_reason) if successful (fallback_reason=None),
+    or (None, None, fallback_reason) on timeout/failure/missing token.
     """
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not api_key or api_key in ("your_gemini_api_key_here", "dummy", "invalid", "invalid_key_12345"):
-        return None, None
+    token_ok, token_msg = is_gemini_token_available()
+    if not token_ok:
+        return None, None, token_msg
 
     try:
         from google import genai
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY", "").strip())
         candidate_models = [GEMINI_MODEL, "gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash"]
+
+        def _do_call(m_name: str):
+            return client.models.generate_content(
+                model=m_name,
+                contents=prompt,
+            )
+
+        last_reason = "Gemini call failed"
         for m in candidate_models:
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            future = executor.submit(_do_call, m)
             try:
-                resp = client.models.generate_content(
-                    model=m,
-                    contents=prompt,
-                )
+                resp = future.result(timeout=timeout_sec)
+                executor.shutdown(wait=False)
                 if resp and resp.text:
-                    return resp.text.strip(), m
+                    return resp.text.strip(), m, None
+            except concurrent.futures.TimeoutError:
+                executor.shutdown(wait=False)
+                print(f"[genai] Gemini model {m} timed out after {timeout_sec}s. Activating fast fallback.", file=sys.stderr)
+                last_reason = f"Gemini model {m} timed out after {timeout_sec}s."
+                return None, None, last_reason
             except Exception as model_err:
+                executor.shutdown(wait=False)
                 err_str = str(model_err)
-                if "404" in err_str or "429" in err_str or "quota" in err_str.lower() or "not found" in err_str.lower() or "no longer available" in err_str.lower():
+                if "503" in err_str or "unavailable" in err_str.lower():
+                    print(f"[genai] Gemini 503 Unavailable. Activating fast fallback.", file=sys.stderr)
+                    last_reason = "Gemini service temporarily unavailable (503)."
+                    return None, None, last_reason
+                if "429" in err_str or "quota" in err_str.lower() or "resource_exhausted" in err_str.lower():
+                    print(f"[genai] Gemini quota exhausted. Activating fallback.", file=sys.stderr)
+                    last_reason = "Gemini API quota exhausted (429 rate limit)."
+                    return None, None, last_reason
+                if "404" in err_str or "not found" in err_str.lower() or "no longer available" in err_str.lower():
                     continue
                 print(f"[genai] Gemini model {m} call error: {model_err}", file=sys.stderr)
-                return None, None
+                last_reason = f"Gemini model {m} error: {err_str[:60]}"
+                return None, None, last_reason
     except Exception as e:
         print(f"[genai] Gemini API call exception: {e}", file=sys.stderr)
-        return None, None
-    return None, None
+        return None, None, f"Gemini API initialization error: {str(e)[:60]}"
+    return None, None, "Gemini models were unreachable. Fallback template activated."
 
 
 
@@ -278,7 +313,7 @@ Keep it factual and calm. Do not use clinical/diagnostic language about the stud
         f"As a constructive next step, consider scheduling an informal 10-minute check-in to ask how their current schedule and coursework load are feeling."
     )
 
-    gemini_resp, model_used = _call_gemini(prompt)
+    gemini_resp, model_used, fallback_reason = _call_gemini(prompt)
     if gemini_resp:
         brief_text = gemini_resp
         source = model_used or GEMINI_MODEL
@@ -287,6 +322,14 @@ Keep it factual and calm. Do not use clinical/diagnostic language about the stud
         brief_text = fallback_brief
         source = "deterministic-template-fallback"
         is_fallback = True
+
+    token_ok, _ = is_gemini_token_available()
+    fallback_notice = None
+    if is_fallback:
+        if not token_ok:
+            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Rule-grounded deterministic statistical brief displayed."
+        else:
+            fallback_notice = f"Gemini unreachable ({fallback_reason or 'rate-limited'}). Rule-grounded deterministic statistical brief displayed."
 
     _log_interaction("generate_atrisk_brief", sid, prompt, brief_text, source)
 
@@ -297,6 +340,9 @@ Keep it factual and calm. Do not use clinical/diagnostic language about the stud
         "model_probability": round(prob, 4),
         "model_top_factor": top_factor,
         "is_fallback": is_fallback,
+        "token_available": token_ok,
+        "fallback_reason": fallback_reason if is_fallback else None,
+        "fallback_notice": fallback_notice,
         "raw_inputs": raw_payload,
     }
     _GENAI_CACHE[ck] = result
@@ -390,7 +436,7 @@ Write a 2-3 sentence summary explaining the prediction's direction (improving/de
         f"this trajectory should be understood strictly as a tentative directional indicator rather than a definitive forecast."
     )
 
-    gemini_resp, model_used = _call_gemini(prompt)
+    gemini_resp, model_used, fallback_reason = _call_gemini(prompt)
     if gemini_resp:
         summary_text = gemini_resp
         source = model_used or GEMINI_MODEL
@@ -399,6 +445,14 @@ Write a 2-3 sentence summary explaining the prediction's direction (improving/de
         summary_text = fallback_summary
         source = "deterministic-template-fallback"
         is_fallback = True
+
+    token_ok, _ = is_gemini_token_available()
+    fallback_notice = None
+    if is_fallback:
+        if not token_ok:
+            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Rule-grounded deterministic trajectory summary displayed."
+        else:
+            fallback_notice = f"Gemini unreachable ({fallback_reason or 'rate-limited'}). Rule-grounded deterministic trajectory summary displayed."
 
     _log_interaction("generate_performance_summary", sid, prompt, summary_text, source)
 
@@ -409,6 +463,9 @@ Write a 2-3 sentence summary explaining the prediction's direction (improving/de
         "current_cgpa": round(current_cgpa, 2),
         "predicted_cgpa": round(pred_cgpa, 2),
         "is_fallback": is_fallback,
+        "token_available": token_ok,
+        "fallback_reason": fallback_reason if is_fallback else None,
+        "fallback_notice": fallback_notice,
         "raw_inputs": raw_payload,
     }
     _GENAI_CACHE[ck] = result
@@ -586,7 +643,7 @@ Write a warm, encouraging 3-4 sentence career guidance note. Expand on the rule-
         f"{peer_fallback_clause}"
     )
 
-    gemini_resp, model_used = _call_gemini(prompt)
+    gemini_resp, model_used, fallback_reason = _call_gemini(prompt)
     if gemini_resp:
         narrative_text = gemini_resp
         source = model_used or GEMINI_MODEL
@@ -595,6 +652,14 @@ Write a warm, encouraging 3-4 sentence career guidance note. Expand on the rule-
         narrative_text = fallback_narrative
         source = "deterministic-template-fallback"
         is_fallback = True
+
+    token_ok, _ = is_gemini_token_available()
+    fallback_notice = None
+    if is_fallback:
+        if not token_ok:
+            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Rule-grounded deterministic career narrative displayed."
+        else:
+            fallback_notice = f"Gemini unreachable ({fallback_reason or 'rate-limited'}). Rule-grounded deterministic career narrative displayed."
 
     _log_interaction("generate_career_guidance_narrative", sid, prompt, narrative_text, source)
 
@@ -606,6 +671,9 @@ Write a warm, encouraging 3-4 sentence career guidance note. Expand on the rule-
         "peer_avg": peer_avg,
         "suggested_focus_area": rule_sugg,
         "is_fallback": is_fallback,
+        "token_available": token_ok,
+        "fallback_reason": fallback_reason if is_fallback else None,
+        "fallback_notice": fallback_notice,
         "raw_inputs": raw_payload,
     }
     _GENAI_CACHE[ck] = result
@@ -665,10 +733,18 @@ Keep it factual and calm. Do not use clinical/diagnostic language about the stud
         f"to ask how their current schedule and coursework load are feeling."
     )
 
-    gemini_resp, model_used = _call_gemini(prompt)
+    gemini_resp, model_used, fallback_reason = _call_gemini(prompt)
     brief_text = gemini_resp if gemini_resp else fallback_text
     source = model_used if gemini_resp else "deterministic-template-fallback"
     is_fallback = not bool(gemini_resp)
+    token_ok, _ = is_gemini_token_available()
+
+    fallback_notice = None
+    if is_fallback:
+        if not token_ok:
+            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Real-time deterministic statistical fallback was applied."
+        else:
+            fallback_notice = f"Gemini unreachable ({fallback_reason or 'rate-limited'}). Real-time deterministic statistical fallback was applied."
 
     _log_interaction("generate_atrisk_brief_from_data", sid, prompt, brief_text, source)
 
@@ -679,6 +755,10 @@ Keep it factual and calm. Do not use clinical/diagnostic language about the stud
         "model_probability": round(prob, 4),
         "model_top_factor": top_factor,
         "is_fallback": is_fallback,
+        "token_available": token_ok,
+        "fallback_reason": fallback_reason if is_fallback else None,
+        "source": source,
+        "fallback_notice": fallback_notice,
         "raw_inputs": payload,
     }
     _GENAI_CACHE[ck] = result
@@ -730,10 +810,18 @@ Write a 2-3 sentence summary explaining the prediction's direction and which fac
         f"this trajectory should be understood strictly as a tentative directional indicator rather than a definitive forecast."
     )
 
-    gemini_resp, model_used = _call_gemini(prompt)
+    gemini_resp, model_used, fallback_reason = _call_gemini(prompt)
     summary_text = gemini_resp if gemini_resp else fallback_text
     source = model_used if gemini_resp else "deterministic-template-fallback"
     is_fallback = not bool(gemini_resp)
+    token_ok, _ = is_gemini_token_available()
+
+    fallback_notice = None
+    if is_fallback:
+        if not token_ok:
+            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Real-time deterministic statistical fallback was applied."
+        else:
+            fallback_notice = f"Gemini unreachable ({fallback_reason or 'rate-limited'}). Real-time deterministic statistical fallback was applied."
 
     _log_interaction("generate_performance_summary_from_data", sid, prompt, summary_text, source)
 
@@ -744,6 +832,10 @@ Write a 2-3 sentence summary explaining the prediction's direction and which fac
         "predicted_cgpa": round(pred_cgpa, 2),
         "current_cgpa": round(current_cgpa, 2) if current_cgpa is not None else None,
         "is_fallback": is_fallback,
+        "token_available": token_ok,
+        "fallback_reason": fallback_reason if is_fallback else None,
+        "source": source,
+        "fallback_notice": fallback_notice,
         "raw_inputs": payload,
     }
     _GENAI_CACHE[ck] = result
@@ -809,10 +901,18 @@ Write a warm, encouraging 3-4 sentence career guidance note. Expand on the rule-
         f"{rule_sugg} {peer_fallback_clause}"
     )
 
-    gemini_resp, model_used = _call_gemini(prompt)
+    gemini_resp, model_used, fallback_reason = _call_gemini(prompt)
     narrative_text = gemini_resp if gemini_resp else fallback_text
     source = model_used if gemini_resp else "deterministic-template-fallback"
     is_fallback = not bool(gemini_resp)
+    token_ok, _ = is_gemini_token_available()
+
+    fallback_notice = None
+    if is_fallback:
+        if not token_ok:
+            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Real-time deterministic statistical fallback was applied."
+        else:
+            fallback_notice = f"Gemini unreachable ({fallback_reason or 'rate-limited'}). Real-time deterministic statistical fallback was applied."
 
     _log_interaction("generate_career_guidance_narrative_from_data", sid, prompt, narrative_text, source)
 
@@ -824,6 +924,10 @@ Write a warm, encouraging 3-4 sentence career guidance note. Expand on the rule-
         "peer_avg": peer_avg,
         "suggested_focus_area": rule_sugg,
         "is_fallback": is_fallback,
+        "token_available": token_ok,
+        "fallback_reason": fallback_reason if is_fallback else None,
+        "source": source,
+        "fallback_notice": fallback_notice,
         "raw_inputs": career_data,
     }
     _GENAI_CACHE[ck] = result

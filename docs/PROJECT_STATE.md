@@ -468,4 +468,4 @@ A prioritized punch-list of remaining work required to fully satisfy the problem
    - Explore whether non-leaking academic proxies (e.g. historical school marks from Kundan or Suvidya on matched cohorts) can raise Model 2 recall above 0.50 without introducing circular leakage from the anchor defining columns.
 
 5. **Repository Housekeeping (Completed)**
-   - ✅ Completed: Purged the 6 stray unstandardized CSV files from the project root (`Student_Performance.csv`, `Indian_Student_Placement_Dataset_2025.csv`, `Student_Performance_Dataset.csv`, `Student_Performance_Dataset (1).csv`, `indian_student_placement_data.csv`, `student_placement_career_success_dataset.csv`). All ETL and training pipelines continue to draw strictly from `data/raw/`.
+   - [DONE] Completed: Purged the 6 stray unstandardized CSV files from the project root (`Student_Performance.csv`, `Indian_Student_Placement_Dataset_2025.csv`, `Student_Performance_Dataset.csv`, `Student_Performance_Dataset (1).csv`, `indian_student_placement_data.csv`, `student_placement_career_success_dataset.csv`). All ETL and training pipelines continue to draw strictly from `data/raw/`.

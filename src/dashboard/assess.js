@@ -113,6 +113,36 @@ function restoreButton(btn) {
   btn.disabled = false;
 }
 
+function showToast(message, type = 'info', durationMs = 4500) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  const isWarning = type === 'warning' || type === 'fallback';
+  const bgColor = isWarning
+    ? 'bg-amber-50 border border-amber-300 text-amber-900'
+    : 'bg-slate-900 border border-slate-700 text-white';
+  const iconSvg = isWarning
+    ? `<svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+    : `<svg class="w-4 h-4 text-campus-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+
+  toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-lg text-xs font-medium flex items-center gap-2.5 transition-all transform translate-y-2 opacity-0 ${bgColor}`;
+  toast.innerHTML = `
+    <span class="flex-shrink-0">${iconSvg}</span>
+    <span class="leading-snug">${message}</span>
+  `;
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-y-2', 'opacity-0');
+  });
+
+  setTimeout(() => {
+    toast.classList.add('opacity-0', 'translate-y-2');
+    setTimeout(() => toast.remove(), 300);
+  }, durationMs);
+}
+
 // ── Real Progress Bar Component ──────────────────────────────────────────────
 function renderRealProgressBar(containerId, options = {}) {
   const container = document.getElementById(containerId);
@@ -299,26 +329,87 @@ function renderSingleResult(containerId, data, label = null) {
       </div>`;
   }
 
-  // GenAI brief cards
+  // GenAI brief cards & fallback detection
+  const isFallback = Boolean(
+    data.gemini_fallback_active ||
+    data.atrisk_brief?.is_fallback ||
+    data.performance_summary?.is_fallback ||
+    data.career_narrative?.is_fallback
+  );
+
+  if (isFallback) {
+    const toastMsg = (data.token_available === false || (data.fallback_notice && data.fallback_notice.includes('token is not available')))
+      ? 'Gemini token unavailable — real-time statistical fallback applied.'
+      : 'Gemini AI was unreachable — real-time statistical fallback applied.';
+    showToast(toastMsg, 'fallback', 5000);
+  }
+
+  const isTokenUnavailable = Boolean(
+    data.token_available === false ||
+    (data.fallback_notice && data.fallback_notice.toLowerCase().includes('token is not available'))
+  );
+  const fallbackTitle = isTokenUnavailable ? 'Gemini Token Unavailable:' : 'AI Offline Fallback Active:';
+  const fallbackDesc = isTokenUnavailable
+    ? 'Google Gemini API token is not configured (GEMINI_API_KEY unset). Real-time deterministic statistical fallback was applied automatically.'
+    : 'Gemini AI was unreachable or rate-limited. Statistical deterministic rules were applied automatically to guarantee uninterrupted assessment.';
+
+  const fallbackBanner = isFallback ? `
+    <div class="mb-5 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between shadow-xs">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-xl bg-amber-200/80 text-amber-800 flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-amber-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <span class="font-bold text-amber-950">${fallbackTitle}</span>
+          <span class="text-amber-800 ml-1">${fallbackDesc}</span>
+        </div>
+      </div>
+      <span class="px-2.5 py-1 rounded-lg bg-amber-200/60 text-amber-900 font-semibold text-[10px] uppercase tracking-wider flex-shrink-0">Rule Fallback</span>
+    </div>` : '';
+
   const briefText = data.atrisk_brief?.brief_text || '';
   const summaryText = data.performance_summary?.summary_text || '';
   const narrativeText = data.career_narrative?.narrative_text || '';
 
   const genaiCards = [
-    briefText ? { title: 'At-Risk Mentor Brief', text: briefText, color: isAtRisk ? '#FDEDEF' : '#E7F8EE', border: isAtRisk ? '#E85D75' : '#4CAF7D' } : null,
-    summaryText ? { title: 'Academic Trajectory', text: summaryText, color: '#E6F0FE', border: '#6C5CE7' } : null,
-    narrativeText ? { title: 'Career Guidance', text: narrativeText, color: '#E7F8EE', border: '#4CAF7D' } : null,
+    briefText ? {
+      title: 'At-Risk Mentor Brief',
+      text: briefText,
+      color: isAtRisk ? '#FDEDEF' : '#E7F8EE',
+      border: isAtRisk ? '#E85D75' : '#4CAF7D',
+      isFallback: data.atrisk_brief?.is_fallback
+    } : null,
+    summaryText ? {
+      title: 'Academic Trajectory',
+      text: summaryText,
+      color: '#E6F0FE',
+      border: '#6C5CE7',
+      isFallback: data.performance_summary?.is_fallback
+    } : null,
+    narrativeText ? {
+      title: 'Career Guidance',
+      text: narrativeText,
+      color: '#E7F8EE',
+      border: '#4CAF7D',
+      isFallback: data.career_narrative?.is_fallback
+    } : null,
   ].filter(Boolean);
 
   const genaiHtml = genaiCards.map(card => `
     <div class="result-card" style="border-color:${card.border}40;background:${card.color}40;">
-      <h4 class="sora font-semibold text-campus-text mb-2 text-sm">${card.title}</h4>
+      <div class="flex items-center justify-between mb-2">
+        <h4 class="sora font-semibold text-campus-text text-sm">${card.title}</h4>
+        ${card.isFallback
+          ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">Rule Fallback</span>`
+          : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-[#6C5CE7] border border-purple-200">Gemini Live</span>`}
+      </div>
       <p class="text-sm text-campus-text leading-relaxed">${card.text}</p>
-      ${data.atrisk_brief?.is_fallback ? `<p class="text-xs text-campus-muted mt-2 inline-flex items-center gap-1"><svg class="w-3 h-3 text-campus-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Generated from deterministic template (GenAI unavailable)</p>` : ''}
+      ${card.isFallback ? `<p class="text-xs text-amber-800/80 mt-2 inline-flex items-center gap-1"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> Statistical rules template used (Gemini not responding)</p>` : ''}
     </div>`).join('');
 
   el.innerHTML = `
     <div style="animation: fadeUp 0.4s ease forwards;">
+      ${fallbackBanner}
       ${label ? `<div class="flex items-center justify-between mb-4">
         <h3 class="sora font-bold text-xl text-campus-text">${label}</h3>
         <span class="text-xs text-campus-muted bg-campus-lavender px-3 py-1 rounded-full">BYOD Assessment</span>
@@ -1384,6 +1475,11 @@ async function submitDirectForm(event) {
     }
   });
 
+  // If non-CS branch, remove DSA problem count from direct submission
+  if (body.branch && !isComputerScienceBranch(body.branch)) {
+    delete body.anchor_dsa_problems_solved;
+  }
+
   try {
     const resp = await fetch(`${API_BASE}/api/assess/new-student`, {
       method: 'POST',
@@ -1444,3 +1540,33 @@ function setupDropZone(zoneId, inputId, multiple, handler) {
     handler({ target: { files: multiple ? files : [files[0]] } });
   });
 }
+
+// ── Branch Selection Event & CS-Track Toggle ─────────────────────────────────
+function isComputerScienceBranch(branch) {
+  if (!branch) return true;
+  const b = branch.toLowerCase().trim();
+  return b.includes('computer') || b.includes('cse') || b.includes('cs') || b.includes('information') || b.includes('it') || b.includes('ai & ds') || b.includes('data science') || b.includes('software');
+}
+
+function onBranchSelectionChange(branchVal) {
+  const container = document.getElementById('cs-metrics-container');
+  const notice = document.getElementById('non-cs-branch-notice');
+  const branchLabel = document.getElementById('non-cs-branch-label');
+  const isCS = isComputerScienceBranch(branchVal);
+
+  if (isCS || !branchVal) {
+    if (container) container.classList.remove('hidden');
+    if (notice) notice.classList.add('hidden');
+  } else {
+    if (container) container.classList.add('hidden');
+    if (notice) {
+      notice.classList.remove('hidden');
+      if (branchLabel) branchLabel.textContent = branchVal;
+    }
+    const dsaInput = document.getElementById('direct-dsa-input');
+    if (dsaInput) dsaInput.value = '';
+  }
+}
+window.onBranchSelectionChange = onBranchSelectionChange;
+window.isComputerScienceBranch = isComputerScienceBranch;
+

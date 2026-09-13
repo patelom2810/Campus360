@@ -74,10 +74,10 @@ Evaluated on 23 non-leakage lifestyle and skill features. Label-defining academi
 | 6 | XGBoost | Candidate | 0.4495 | 0.5014 | 0.3147 | 0.3703 | 0.5122 | 1,844 | 1,561 | 878 | 717 | Nominal |
 | 7 | MLP Classifier | Candidate | 0.2345 | 0.5076 | 0.3366 | 0.2764 | 0.6084 | 2,668 | 737 | 1,221 | 374 | Nominal |
 | 8 | KNN Classifier | Candidate | 0.1367 | 0.4987 | 0.3234 | 0.1922 | 0.6334 | 2,949 | 456 | 1,377 | 218 | Nominal |
-| 9 | QDA | Candidate | 0.0019 | 0.5214 | 0.3000 | 0.0037 | 0.6802 | 3,398 | 7 | 1,592 | 3 | 🚨 DEGENERATE |
-| 10 | Naive Bayes | Candidate | 0.0000 | 0.5100 | 0.0000 | 0.0000 | 0.6810 | 3,405 | 0 | 1,595 | 0 | 🚨 DEGENERATE |
-| 11 | AdaBoost | Candidate | 0.0000 | 0.5054 | 0.0000 | 0.0000 | 0.6810 | 3,405 | 0 | 1,595 | 0 | 🚨 DEGENERATE |
-| 12 | Gradient Boosting | Candidate | 0.0000 | 0.5038 | 0.0000 | 0.0000 | 0.6804 | 3,402 | 3 | 1,595 | 0 | 🚨 DEGENERATE |
+| 9 | QDA | Candidate | 0.0019 | 0.5214 | 0.3000 | 0.0037 | 0.6802 | 3,398 | 7 | 1,592 | 3 | [DEGENERATE] DEGENERATE |
+| 10 | Naive Bayes | Candidate | 0.0000 | 0.5100 | 0.0000 | 0.0000 | 0.6810 | 3,405 | 0 | 1,595 | 0 | [DEGENERATE] DEGENERATE |
+| 11 | AdaBoost | Candidate | 0.0000 | 0.5054 | 0.0000 | 0.0000 | 0.6810 | 3,405 | 0 | 1,595 | 0 | [DEGENERATE] DEGENERATE |
+| 12 | Gradient Boosting | Candidate | 0.0000 | 0.5038 | 0.0000 | 0.0000 | 0.6804 | 3,402 | 3 | 1,595 | 0 | [DEGENERATE] DEGENERATE |
 
 ### Model 2 Recommendation & Decision Threshold
 

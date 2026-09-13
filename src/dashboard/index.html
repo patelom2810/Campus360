@@ -952,8 +952,8 @@
             <p id="ai-modal-subtitle" class="text-xs text-[#8A8797]">AI-synthesized from calibrated model outputs</p>
           </div>
         </div>
-        <button onclick="closeAiModal()" class="w-8 h-8 rounded-full bg-[#F6F5FC] hover:bg-[#EDEBFB] text-[#8A8797] hover:text-[#1E1B2E] flex items-center justify-center transition-all">
-          ✕
+        <button onclick="closeAiModal()" aria-label="Close modal" class="w-8 h-8 rounded-full bg-[#F6F5FC] hover:bg-[#EDEBFB] text-[#8A8797] hover:text-[#1E1B2E] flex items-center justify-center transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
       <div id="ai-modal-body" class="p-6">
@@ -961,6 +961,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Floating Toast Notifications -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 pointer-events-none"></div>
 
   <!-- Dashboard JavaScript -->
   <script src="app.js"></script>

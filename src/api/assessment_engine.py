@@ -73,7 +73,7 @@ RAW_FEATURE_FIELDS: List[str] = [
 ENGINEERED_FEATURES = ["effort_score", "screen_to_study_ratio", "wellness_score", "project_activity"]
 
 # Career Readiness Engine — weights and column mapping
-_CAREER_WEIGHTS = {
+_CAREER_WEIGHTS_CS = {
     "dsa": 0.25,
     "internships": 0.20,
     "communication": 0.15,
@@ -81,6 +81,52 @@ _CAREER_WEIGHTS = {
     "projects": 0.15,
     "mock_interview": 0.10,
 }
+
+# Adaptive weights for non-CS branches (Mechanical, Civil, Chemical, Electrical)
+# DSA coding practice is excluded so core engineering students are not penalized.
+_CAREER_WEIGHTS_NON_CS = {
+    "internships": 0.25,
+    "projects": 0.30,
+    "aptitude": 0.20,
+    "communication": 0.15,
+    "mock_interview": 0.10,
+}
+_CAREER_WEIGHTS = _CAREER_WEIGHTS_CS
+
+
+def normalize_branch(b: Optional[str]) -> Optional[str]:
+    """Normalizes colloquial or acronym branch names to warehouse canonical values."""
+    if not b:
+        return None
+    s = str(b).strip()
+    s_lower = s.lower()
+    if s_lower in ("cse", "cs", "computer science", "computer science & engineering", "computer science and engineering", "comp sci"):
+        return "Computer Science"
+    if s_lower in ("it", "information technology", "info tech"):
+        return "Information Technology"
+    if s_lower in ("ai & ds", "ai&ds", "aids", "ai", "data science", "ai/ml", "artificial intelligence"):
+        return "AI & DS"
+    if s_lower in ("ece", "electronics", "electronics & communication", "electronics and communication"):
+        return "Electronics"
+    if s_lower in ("mech", "mechanical", "mechanical engineering"):
+        return "Mechanical"
+    if s_lower in ("civil", "civil engineering"):
+        return "Civil"
+    if s_lower in ("ee", "electrical", "electrical engineering"):
+        return "Electrical"
+    if s_lower in ("chem", "chemical", "chemical engineering"):
+        return "Chemical"
+    return s
+
+
+def is_cs_branch(b: Optional[str]) -> bool:
+    """Returns True if the branch is in the Computer Science / Software / IT track."""
+    if not b:
+        return True  # If branch is unspecified, default to standard track
+    b_norm = normalize_branch(b) or str(b)
+    b_lower = b_norm.lower()
+    return any(term in b_lower for term in ("computer science", "information technology", "ai & ds", "software"))
+
 _CAREER_COL_MAP = {
     "dsa": "anchor_dsa_problems_solved",
     "internships": "anchor_internships_completed",
@@ -219,10 +265,12 @@ def _get_all_medians() -> Dict[str, float]:
 
 
 # ── Engineered Feature Computation ───────────────────────────────────────────
-def _compute_engineered_features(row: Dict[str, float]) -> Dict[str, float]:
+def _compute_engineered_features(row: Dict[str, float], branch: Optional[str] = None) -> Dict[str, float]:
     """
     Computes the 4 production engineered interaction features from filled raw fields.
-    Exact same formulas as in /api/models/predict-performance and Model 2 preprocessing.
+    For Computer Science / IT track, effort_score incorporates DSA problem practice.
+    For non-CS branches (Mechanical, Civil, etc.), effort_score relies on daily study,
+    attendance, and self-learning without penalizing students for DSA.
     """
     study = row.get("anchor_study_hours_daily", 4.0)
     screen = row.get("anchor_screen_time", 5.0)
@@ -234,11 +282,18 @@ def _compute_engineered_features(row: Dict[str, float]) -> Dict[str, float]:
     dev_projects = row.get("anchor_development_projects_count", 2.0)
     ai_projects = row.get("anchor_ai_ml_projects", 1.0)
     github = row.get("anchor_git_hub_repos", 8.0)
+    self_learning = row.get("anchor_self_learning_hours", 1.5)
+
+    if is_cs_branch(branch):
+        effort_score = study + (attendance / 10.0) + (dsa / 100.0)
+    else:
+        # Non-CS: Effort is driven by study hours, class attendance, and self-learning hours
+        effort_score = study + (attendance / 10.0) + (self_learning * 0.8)
 
     return {
         "screen_to_study_ratio": screen / (study + 1.0),
         "wellness_score": sleep - (stress / 10.0) - (burnout / 10.0),
-        "effort_score": study + (attendance / 10.0) + (dsa / 100.0),
+        "effort_score": effort_score,
         "project_activity": dev_projects + ai_projects + (github / 5.0),
     }
 
@@ -251,8 +306,11 @@ def _compute_career_readiness(
 ) -> Optional[Dict[str, Any]]:
     """
     Computes Career Readiness Score for a BYOD student.
-    Uses the same 6-component weighted composite as the production endpoint,
-    normalized against the existing population from student_master_wide.csv.
+    Uses branch-tailored weighted composites:
+    - Computer Science / IT track: includes DSA coding practice (25%) + internships (20%).
+    - Core / Non-CS tracks: excludes DSA coding requirements; weights core engineering
+      projects (30%), domain internships (25%), aptitude (20%), communication (15%),
+      and mock interviews (10%).
     Returns None if the population CSV is unavailable.
     """
     try:
@@ -260,15 +318,20 @@ def _compute_career_readiness(
     except RuntimeError:
         return None
 
+    norm_branch = normalize_branch(branch)
+    is_cs = is_cs_branch(norm_branch)
+    active_weights = _CAREER_WEIGHTS_CS if is_cs else _CAREER_WEIGHTS_NON_CS
+
     # Build a _projects_total field for the student
     dev = student_row.get("anchor_development_projects_count", 0.0)
     ai_proj = student_row.get("anchor_ai_ml_projects", 0.0)
     student_row_extended = dict(student_row)
     student_row_extended["_projects_total"] = dev + ai_proj
 
-    # Step 1: Normalize each component against population min/max
+    # Step 1: Normalize each active component against population min/max
     component_norms: Dict[str, float] = {}
-    for key, col in _CAREER_COL_MAP.items():
+    for key in active_weights.keys():
+        col = _CAREER_COL_MAP[key]
         raw_val = float(student_row_extended.get(col, 0.0))
         pop_min = float(pop_df[col].min())
         pop_max = float(pop_df[col].max())
@@ -278,34 +341,35 @@ def _compute_career_readiness(
 
     # Step 2: Weighted composite
     readiness_score = sum(
-        component_norms[k] * w for k, w in _CAREER_WEIGHTS.items()
+        component_norms[k] * w for k, w in active_weights.items()
     )
     readiness_score = round(float(np.clip(readiness_score, 0.0, 100.0)), 1)
 
     # Step 3: Peer benchmark if branch is known
     peer_avg_score: Optional[float] = None
     peer_group_label = "All Students"
-    if branch:
-        peer_df = pop_df[pop_df["anchor_branch"] == branch].copy()
+    if norm_branch and norm_branch in pop_df["anchor_branch"].values:
+        peer_df = pop_df[pop_df["anchor_branch"] == norm_branch].copy()
         if tier is not None and len(peer_df) >= 2:
             tier_df = peer_df[peer_df["anchor_college_tier"] == tier]
             if len(tier_df) >= 2:
                 peer_df = tier_df
-                peer_group_label = f"{branch} · Tier {tier}"
+                peer_group_label = f"{norm_branch} · Tier {tier}"
             else:
-                peer_group_label = branch
+                peer_group_label = norm_branch
         else:
-            peer_group_label = branch
+            peer_group_label = norm_branch
 
         def _score_row(r: pd.Series) -> float:
             s = 0.0
-            for k, col in _CAREER_COL_MAP.items():
+            for k, w in active_weights.items():
+                col = _CAREER_COL_MAP[k]
                 rv = float(r[col]) if pd.notna(r[col]) else 0.0
                 pm = float(pop_df[col].min())
                 px = float(pop_df[col].max())
                 rng = px - pm
                 n = (rv - pm) / rng * 100.0 if rng > 0 else 50.0
-                s += float(np.clip(n, 0.0, 100.0)) * _CAREER_WEIGHTS[k]
+                s += float(np.clip(n, 0.0, 100.0)) * w
             return round(float(np.clip(s, 0.0, 100.0)), 1)
 
         if len(peer_df) >= 1:
@@ -313,8 +377,9 @@ def _compute_career_readiness(
 
     # Step 4: Skill gap breakdown (percentile within branch population)
     skill_gaps: List[Dict[str, Any]] = []
-    ref_df = pop_df[pop_df["anchor_branch"] == branch] if branch else pop_df
-    for key, col in _CAREER_COL_MAP.items():
+    ref_df = pop_df[pop_df["anchor_branch"] == norm_branch] if (norm_branch and norm_branch in pop_df["anchor_branch"].values) else pop_df
+    for key in active_weights.keys():
+        col = _CAREER_COL_MAP[key]
         stu_val = float(student_row_extended.get(col, 0.0))
         branch_vals = ref_df[col].dropna().values
         percentile = float(np.mean(branch_vals <= stu_val) * 100.0) if len(branch_vals) else 50.0
@@ -332,6 +397,8 @@ def _compute_career_readiness(
 
     return {
         "career_readiness_score": readiness_score,
+        "is_cs_track": is_cs,
+        "active_weights": active_weights,
         "peer_benchmark": {
             "peer_avg_readiness": peer_avg_score,
             "peer_group": peer_group_label,
@@ -372,6 +439,12 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         input_echo              dict   — cleaned/filled values actually used
     """
     # ── Step 1: Fill missing raw fields with population medians ───────────────
+    branch_raw = student_data.get("branch") or student_data.get("stream_branch")
+    branch = normalize_branch(branch_raw)
+    tier_raw = student_data.get("tier") or student_data.get("college_tier")
+    tier = int(tier_raw) if tier_raw is not None else None
+    is_cs = is_cs_branch(branch)
+
     medians = _get_all_medians()
     filled: Dict[str, float] = {}
     defaulted_fields: List[str] = []
@@ -380,17 +453,20 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         raw_val = student_data.get(field)
         if raw_val is None or (isinstance(raw_val, float) and np.isnan(raw_val)):
             filled[field] = medians.get(field, 0.0)
-            defaulted_fields.append(field)
+            # Only list anchor_dsa_problems_solved as defaulted if this is a CS track student
+            if field != "anchor_dsa_problems_solved" or is_cs:
+                defaulted_fields.append(field)
             logger.info("Defaulted field '%s' → %.2f (population median)", field, filled[field])
         else:
             try:
                 filled[field] = float(raw_val)
             except (ValueError, TypeError):
                 filled[field] = medians.get(field, 0.0)
-                defaulted_fields.append(field)
+                if field != "anchor_dsa_problems_solved" or is_cs:
+                    defaulted_fields.append(field)
 
     # ── Step 2: Compute 4 engineered interaction features ─────────────────────
-    engineered = _compute_engineered_features(filled)
+    engineered = _compute_engineered_features(filled, branch=branch)
     full_row = {**filled, **engineered}
 
     # ── Step 3: Run Model 1 — CGPA Prediction ─────────────────────────────────
@@ -409,9 +485,6 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
     at_risk_label = "At-Risk" if at_risk_prob >= threshold else "Safe"
 
     # ── Step 5: Career Readiness Engine ───────────────────────────────────────
-    branch = student_data.get("branch") or student_data.get("stream_branch")
-    tier_raw = student_data.get("tier") or student_data.get("college_tier")
-    tier = int(tier_raw) if tier_raw is not None else None
     career_readiness = _compute_career_readiness(filled, branch, tier)
 
     # ── Step 6: Build GenAI-compatible payload and call all 3 functions ────────
@@ -518,42 +591,66 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
             },
         }
 
-    # ── Step 7: Call GenAI functions via data-dict bypass ─────────────────────
+    # ── Step 7: Call GenAI functions via data-dict bypass in parallel ─────────
     if include_genai:
-        try:
-            from src.genai.insights import (
-                generate_atrisk_brief_from_data,
-                generate_performance_summary_from_data,
-                generate_career_guidance_narrative_from_data,
-            )
-            atrisk_brief = generate_atrisk_brief_from_data(atrisk_payload)
-        except Exception as e:
-            logger.warning("GenAI at-risk brief failed: %s", e)
-            atrisk_brief = _fallback_atrisk_brief(atrisk_payload)
+        from src.genai.insights import (
+            generate_atrisk_brief_from_data,
+            generate_performance_summary_from_data,
+            generate_career_guidance_narrative_from_data,
+        )
+        import concurrent.futures
 
-        try:
-            from src.genai.insights import generate_performance_summary_from_data
-            performance_summary = generate_performance_summary_from_data(perf_payload)
-        except Exception as e:
-            logger.warning("GenAI performance summary failed: %s", e)
-            performance_summary = _fallback_performance_summary(perf_payload)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            fut_atrisk = executor.submit(generate_atrisk_brief_from_data, atrisk_payload)
+            fut_perf = executor.submit(generate_performance_summary_from_data, perf_payload)
+            fut_career = executor.submit(generate_career_guidance_narrative_from_data, career_payload) if career_payload else None
 
-        try:
-            from src.genai.insights import generate_career_guidance_narrative_from_data
-            career_narrative = (
-                generate_career_guidance_narrative_from_data(career_payload)
-                if career_payload else None
-            )
-        except Exception as e:
-            logger.warning("GenAI career narrative failed: %s", e)
-            career_narrative = None
+            try:
+                atrisk_brief = fut_atrisk.result(timeout=6.0)
+            except Exception as e:
+                logger.warning("GenAI at-risk brief failed: %s", e)
+                atrisk_brief = _fallback_atrisk_brief(atrisk_payload)
+
+            try:
+                performance_summary = fut_perf.result(timeout=6.0)
+            except Exception as e:
+                logger.warning("GenAI performance summary failed: %s", e)
+                performance_summary = _fallback_performance_summary(perf_payload)
+
+            if fut_career:
+                try:
+                    career_narrative = fut_career.result(timeout=6.0)
+                except Exception as e:
+                    logger.warning("GenAI career narrative failed: %s", e)
+                    career_narrative = None
+            else:
+                career_narrative = None
     else:
         atrisk_brief = _fallback_atrisk_brief(atrisk_payload)
         performance_summary = _fallback_performance_summary(perf_payload)
         career_narrative = None
 
+    # Compute if any AI insight fell back
+    from src.genai.insights import is_gemini_token_available
+    token_ok, _ = is_gemini_token_available()
+
+    gemini_fallback_active = bool(
+        (atrisk_brief and atrisk_brief.get("is_fallback")) or
+        (performance_summary and performance_summary.get("is_fallback")) or
+        (career_narrative and career_narrative.get("is_fallback"))
+    )
+    if gemini_fallback_active:
+        if not token_ok:
+            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Real-time deterministic statistical fallback was applied."
+        else:
+            fallback_notice = "Gemini AI was not responding or rate-limited. Real-time deterministic statistical fallback was applied."
+    else:
+        fallback_notice = None
+
     # ── Step 8: Assemble and return response ──────────────────────────────────
     return {
+        "branch": branch,
+        "is_cs_track": is_cs,
         "predicted_cgpa": predicted_cgpa,
         "at_risk_probability": at_risk_prob,
         "at_risk_label": at_risk_label,
@@ -561,6 +658,9 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         "atrisk_brief": atrisk_brief,
         "performance_summary": performance_summary,
         "career_narrative": career_narrative,
+        "gemini_fallback_active": gemini_fallback_active,
+        "token_available": token_ok,
+        "fallback_notice": fallback_notice,
         "defaulted_fields": defaulted_fields,
         "disclaimers": {
             "model1_note": (
@@ -612,6 +712,8 @@ def _fallback_atrisk_brief(payload: dict) -> dict:
         "model_probability": prob,
         "model_top_factor": factor,
         "is_fallback": True,
+        "source": "deterministic-template-fallback",
+        "fallback_notice": "Gemini AI was not responding or timed out. Real-time deterministic statistical fallback was applied.",
     }
 
 
@@ -631,4 +733,6 @@ def _fallback_performance_summary(payload: dict) -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "predicted_cgpa": pred,
         "is_fallback": True,
+        "source": "deterministic-template-fallback",
+        "fallback_notice": "Gemini AI was not responding or timed out. Real-time deterministic statistical fallback was applied.",
     }

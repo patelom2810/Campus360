@@ -88,6 +88,36 @@ function loadCurrentDate() {
   }
 }
 
+function showToast(message, type = 'info', durationMs = 4500) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  const isWarning = type === 'warning' || type === 'fallback';
+  const bgColor = isWarning
+    ? 'bg-amber-50 border border-amber-300 text-amber-900'
+    : 'bg-slate-900 border border-slate-700 text-white';
+  const iconSvg = isWarning
+    ? `<svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+    : `<svg class="w-4 h-4 text-campus-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+
+  toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-lg text-xs font-medium flex items-center gap-2.5 transition-all transform translate-y-2 opacity-0 ${bgColor}`;
+  toast.innerHTML = `
+    <span class="flex-shrink-0">${iconSvg}</span>
+    <span class="leading-snug">${message}</span>
+  `;
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-y-2', 'opacity-0');
+  });
+
+  setTimeout(() => {
+    toast.classList.add('opacity-0', 'translate-y-2');
+    setTimeout(() => toast.remove(), 300);
+  }, durationMs);
+}
+
 // ── Navigation ────────────────────────────────────────────────────────────────
 function setupNavigation() {
   const navBtns = document.querySelectorAll('.nav-btn');
@@ -614,7 +644,9 @@ function renderAtRiskTableRows() {
     container.innerHTML = `
       <tr>
         <td colspan="6" class="py-8 text-center text-xs text-[#8A8797]">
-          <div class="text-xl mb-1">🔍</div>
+          <div class="w-8 h-8 mx-auto mb-1.5 flex items-center justify-center text-[#8A8797]">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
           No students match the current filter parameters.
         </td>
       </tr>
@@ -706,7 +738,21 @@ window.showAtRiskMentorBrief = async function (studentId) {
     const prob = (data.model_probability * 100).toFixed(1);
     const badgeColor = data.model_probability >= 0.5 ? 'bg-[#FDEDEF] text-[#E85D75]' : 'bg-[#E7F8EE] text-[#4CAF7D]';
 
+    if (data.is_fallback) {
+      showToast('Gemini AI did not respond — displaying rule-grounded fallback brief.', 'fallback');
+    }
+
+    const fallbackModalNotice = data.is_fallback ? `
+      <div class="mb-3.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span><strong>AI Fallback Mode:</strong> Gemini was unreachable or timed out; deterministic statistical brief displayed.</span>
+        </div>
+        <span class="px-2 py-0.5 rounded-md bg-amber-200/60 text-amber-900 font-semibold text-[10px]">Fallback</span>
+      </div>` : '';
+
     body.innerHTML = `
+      ${fallbackModalNotice}
       <div class="rounded-2xl p-5 border border-purple-100" style="background: linear-gradient(135deg, #EDEBFB 0%, #F6F5FC 100%)">
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
@@ -715,14 +761,14 @@ window.showAtRiskMentorBrief = async function (studentId) {
           <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#6C5CE7]">
             Top Factor: ${data.model_top_factor}
           </span>
-          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-white/70 text-[#8A8797]">Rule-Grounded</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini 2.5 Flash</span>'}
+          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
         </div>
         <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-4">
           ${data.brief_text}
         </p>
         <div class="pt-3 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
           <span>Generated: ${new Date(data.generated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-          <span class="italic font-medium">AI-generated — verify before acting</span>
+          <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'Gemini AI generated'}</span>
         </div>
       </div>
       <div class="mt-5 flex items-center justify-end space-x-3">
@@ -878,7 +924,9 @@ async function loadStudentView(studentId) {
     if (!res.ok) {
       container.innerHTML = `
         <div class="p-12 text-center bg-white rounded-2xl border border-[#EDEBFB]">
-          <div class="text-4xl mb-2">🔍</div>
+          <div class="w-12 h-12 mx-auto mb-2 text-[#8A8797] flex items-center justify-center">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
           <div class="font-sora font-semibold text-lg text-[#1E1B2E]">Student ${studentId} not found</div>
           <div class="text-xs text-[#8A8797] mt-1">Please try one of the demo IDs: STU00001, STU15140, STU16970, STU08983.</div>
         </div>
@@ -1132,10 +1180,24 @@ window.switchStudentBriefTab = async function (studentId, tab) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
+    if (data.is_fallback) {
+      showToast('Gemini AI did not respond — displaying rule-based statistical brief.', 'fallback');
+    }
+
+    const fallbackPill = data.is_fallback ? `
+      <div class="mb-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span><strong>AI Fallback:</strong> Gemini not responding; statistical rule brief generated.</span>
+        </div>
+        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-200/60 text-amber-900">Rule Fallback</span>
+      </div>` : '';
+
     if (tab === 'atrisk') {
       const prob = (data.model_probability * 100).toFixed(1);
       const badgeColor = data.model_probability >= 0.5 ? 'bg-[#FDEDEF] text-[#E85D75]' : 'bg-[#E7F8EE] text-[#4CAF7D]';
       container.innerHTML = `
+        ${fallbackPill}
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
             Model Probability: ${prob}%
@@ -1143,34 +1205,36 @@ window.switchStudentBriefTab = async function (studentId, tab) {
           <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#6C5CE7]">
             Top Factor: ${data.model_top_factor}
           </span>
-          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-white/70 text-[#8A8797]">Rule-Grounded</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini 2.5 Flash</span>'}
+          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
         </div>
         <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">
           ${data.brief_text}
         </p>
         <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
           <span>Source: Model 2 Early-Warning Classifier (45% Recall, 32% Precision)</span>
-          <span class="italic font-medium">AI-generated — verify before acting</span>
+          <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'AI-generated — verify before acting'}</span>
         </div>
       `;
     } else {
-      const dirColor = data.predicted_cgpa >= data.current_cgpa ? 'text-[#4CAF7D]' : 'text-[#E85D75]';
+      const dirColor = (data.current_cgpa !== null && data.predicted_cgpa >= data.current_cgpa) ? 'text-[#4CAF7D]' : 'text-[#E85D75]';
+      const currCgpaStr = data.current_cgpa !== null ? data.current_cgpa.toFixed(2) : 'N/A';
       container.innerHTML = `
+        ${fallbackPill}
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#1E1B2E]">
-            Current: ${data.current_cgpa.toFixed(2)} → Predicted: <strong class="${dirColor}">${data.predicted_cgpa.toFixed(2)}</strong>
+            Current: ${currCgpaStr} → Predicted: <strong class="${dirColor}">${data.predicted_cgpa.toFixed(2)}</strong>
           </span>
           <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
             R² = 0.21 Calibration
           </span>
-          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-white/70 text-[#8A8797]">Rule-Grounded</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini 2.5 Flash</span>'}
+          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
         </div>
         <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">
           ${data.summary_text}
         </p>
         <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
           <span>Source: Model 1 Trajectory Predictor (R²=0.21 directional signal)</span>
-          <span class="italic font-medium">AI-generated — verify before acting</span>
+          <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'AI-generated — verify before acting'}</span>
         </div>
       `;
     }
@@ -1212,7 +1276,9 @@ async function loadCareerView(studentId) {
       const err = await res.json().catch(() => ({}));
       container.innerHTML = `
         <div class="p-12 text-center bg-white rounded-2xl border border-[#EDEBFB]">
-          <div class="text-4xl mb-2">🎯</div>
+          <div class="w-12 h-12 mx-auto mb-2 text-[#8A8797] flex items-center justify-center">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
           <div class="font-sora font-semibold text-lg text-[#1E1B2E]">Student ${studentId} not found</div>
           <div class="text-xs text-[#8A8797] mt-1">Please try: STU00001, STU15140, STU08983, STU16970.</div>
         </div>
@@ -1263,7 +1329,9 @@ function renderCareerGuidance(data) {
           <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F6F5FC] text-[#8A8797]">Insufficient Cohort</span>
         </div>
         <div class="py-6 text-center">
-          <div class="text-3xl mb-2">📊</div>
+          <div class="w-10 h-10 mx-auto mb-2 text-[#8A8797] flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
           <p class="text-xs text-[#8A8797] font-medium leading-relaxed max-w-sm mx-auto">
             Not enough comparable students in your branch/tier to show a reliable reference.
           </p>
@@ -1503,7 +1571,21 @@ async function loadCareerNarrative(studentId) {
     const res = await fetch(`${API_BASE}/api/genai/career-guidance/${encodeURIComponent(studentId)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    textEl.innerHTML = `<p>${data.narrative_text}</p>`;
+    if (data.is_fallback) {
+      showToast('Gemini AI did not respond — displaying rule-grounded career guidance.', 'fallback');
+    }
+    const fallbackBanner = data.is_fallback ? `
+      <div class="mb-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span><strong>AI Fallback:</strong> Gemini not responding; statistical peer narrative displayed.</span>
+        </div>
+        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-200/60 text-amber-900">Rule Fallback</span>
+      </div>` : '';
+    textEl.innerHTML = `
+      ${fallbackBanner}
+      <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed">${data.narrative_text}</p>
+    `;
   } catch (err) {
     console.error('Career narrative fetch error:', err);
     textEl.innerHTML = '<p class="text-xs text-red-500">Failed to load AI career narrative.</p>';

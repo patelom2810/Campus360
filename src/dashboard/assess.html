@@ -676,11 +676,17 @@
               </div>
               <div>
                 <label class="form-label">Branch</label>
-                <select name="branch" class="form-input">
+                <select name="branch" id="direct-form-branch" class="form-input" onchange="onBranchSelectionChange(this.value)">
                   <option value="">Select branch…</option>
-                  <option>CSE</option><option>ECE</option><option>Mechanical</option>
-                  <option>Civil</option><option>Information Technology</option>
-                  <option>Chemical</option><option>Electrical</option><option>Other</option>
+                  <option value="Computer Science">Computer Science (CSE)</option>
+                  <option value="Information Technology">Information Technology (IT)</option>
+                  <option value="AI & DS">AI &amp; Data Science</option>
+                  <option value="Electronics">Electronics (ECE)</option>
+                  <option value="Mechanical">Mechanical</option>
+                  <option value="Civil">Civil</option>
+                  <option value="Electrical">Electrical</option>
+                  <option value="Chemical">Chemical</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
               <div>
@@ -701,7 +707,7 @@
               <span class="w-6 h-6 rounded-full bg-campus-lavender text-campus-primary text-xs flex items-center justify-center font-bold">2</span>
               Academic Performance
             </legend>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
               <div>
                 <label class="form-label">Attendance %</label>
                 <input type="number" name="anchor_attendance_percentage" class="form-input" min="0" max="100" step="0.1" placeholder="e.g. 82" />
@@ -719,13 +725,43 @@
                 <label class="form-label">Backlog Count</label>
                 <input type="number" name="anchor_backlog_history" class="form-input" min="0" step="1" placeholder="0 = none" />
               </div>
-              <div>
-                <label class="form-label">DSA Problems Solved</label>
-                <input type="number" name="anchor_dsa_problems_solved" class="form-input" min="0" step="1" placeholder="e.g. 120" />
+            </div>
+
+            <!-- Computer Science & Tech Track Skills -->
+            <div id="cs-metrics-container" class="mt-4 pt-4 border-t border-campus-lavender">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-campus-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  <span class="text-xs font-semibold text-campus-primary uppercase tracking-wider sora">Computer Science Track Metrics</span>
+                </div>
+                <span id="cs-track-badge" class="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-campus-lavender text-campus-primary">
+                  Evaluated for Computer Science &amp; IT
+                </span>
               </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label">DSA Problems Solved</label>
+                  <input type="number" name="anchor_dsa_problems_solved" id="direct-dsa-input" class="form-input" min="0" step="1" placeholder="e.g. 120" />
+                  <p class="form-muted">LeetCode / HackerRank / Codeforces coding practice</p>
+                </div>
+                <div>
+                  <label class="form-label">Internships Completed</label>
+                  <input type="number" name="anchor_internships_completed" id="direct-internships-input" class="form-input" min="0" step="1" placeholder="e.g. 1" />
+                  <p class="form-muted">Industry technical or software development internships</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Non-CS Branch Adaptive Notice -->
+            <div id="non-cs-branch-notice" class="hidden mt-3.5 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-start gap-2.5">
+              <svg class="w-4 h-4 text-campus-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               <div>
-                <label class="form-label">Internships Completed</label>
-                <input type="number" name="anchor_internships_completed" class="form-input" min="0" step="1" placeholder="e.g. 1" />
+                <span class="font-bold text-slate-800">Non-CS Discipline Track (<span id="non-cs-branch-label">Core Engineering</span>):</span>
+                <span>DSA Problem Solving is tailored specifically for Computer Science &amp; IT. For your branch, career readiness emphasizes core engineering projects, domain internships, and aptitude, without any DSA penalties.</span>
               </div>
             </div>
           </fieldset>
@@ -851,6 +887,9 @@
       </p>
     </div>
   </footer>
+
+  <!-- Floating Toast Notifications -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 pointer-events-none"></div>
 
   <script src="assess.js"></script>
 </body>

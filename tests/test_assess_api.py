@@ -30,7 +30,7 @@ class TestAssessAPI(unittest.TestCase):
         self.assertIn("Bring Your Own Data", r1.text)
         self.assertIn("How would you like to", r1.text)
         self.assertIn("provide your data?", r1.text)
-        self.assertIn("Our Data Dashboard", r1.text)
+        self.assertIn("Analytics Dashboard", r1.text)
 
         r2 = self.client.get("/assess/")
         self.assertEqual(r2.status_code, 200)
@@ -209,6 +209,90 @@ class TestAssessAPI(unittest.TestCase):
         self.assertEqual(count_perf_after, count_perf_before)
         self.assertEqual(count_lifestyle_after, count_lifestyle_before)
         self.assertEqual(count_career_after, count_career_before)
+
+    def test_cs_vs_non_cs_branch_assessment(self):
+        """Verify adaptive weighting: CS branch evaluates DSA; non-CS adapts weights without DSA penalty."""
+        # CS track
+        cs_payload = {
+            "branch": "Computer Science",
+            "anchor_attendance_percentage": 85.0,
+            "anchor_study_hours_daily": 5.0,
+            "anchor_dsa_problems_solved": 300,
+            "anchor_internships_completed": 2,
+        }
+        r_cs = self.client.post("/api/assess/new-student", json=cs_payload)
+        self.assertEqual(r_cs.status_code, 200)
+        data_cs = r_cs.json()
+        self.assertTrue(data_cs.get("is_cs_track"))
+        self.assertIn("dsa", data_cs["career_readiness"]["active_weights"])
+        self.assertEqual(data_cs["career_readiness"]["active_weights"]["dsa"], 0.25)
+
+        # Non-CS track (Mechanical)
+        mech_payload = {
+            "branch": "Mechanical",
+            "anchor_attendance_percentage": 85.0,
+            "anchor_study_hours_daily": 5.0,
+            "anchor_internships_completed": 2,
+        }
+        r_mech = self.client.post("/api/assess/new-student", json=mech_payload)
+        self.assertEqual(r_mech.status_code, 200)
+        data_mech = r_mech.json()
+        self.assertFalse(data_mech.get("is_cs_track"))
+        self.assertNotIn("dsa", data_mech["career_readiness"]["active_weights"])
+        self.assertNotIn("anchor_dsa_problems_solved", data_mech["defaulted_fields"])
+        # Non-CS student receives fair career readiness without DSA penalty
+        self.assertGreater(data_mech["career_readiness"]["career_readiness_score"], 20.0)
+
+    def test_gemini_token_fallback_handling(self):
+        """Verify GenAI outputs cleanly expose token availability and fallback notices."""
+        payload = {
+            "branch": "Computer Science",
+            "anchor_attendance_percentage": 75.0,
+            "anchor_study_hours_daily": 4.0,
+        }
+        res = self.client.post("/api/assess/new-student", json=payload)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+
+        for section in ["atrisk_brief", "performance_summary", "career_narrative"]:
+            self.assertIn(section, data)
+            sec_data = data[section]
+            self.assertIn("token_available", sec_data)
+            self.assertIn("is_fallback", sec_data)
+            self.assertIn("fallback_reason", sec_data)
+            # Must contain structured, non-empty text regardless of token availability
+            text_content = sec_data.get("brief_text") or sec_data.get("summary_text") or sec_data.get("narrative_text")
+            self.assertTrue(bool(text_content) and len(text_content) > 0)
+            if not sec_data["token_available"]:
+                self.assertTrue(sec_data["is_fallback"])
+                self.assertIn("fallback_notice", sec_data)
+
+    def test_chat_guided_skips_dsa_for_non_cs(self):
+        """Verify chat-guided conversational flow skips DSA question when student branch is non-CS."""
+        r1 = self.client.post("/api/assess/chat-guided", json={"message": "hello"})
+        self.assertEqual(r1.status_code, 200)
+        sess = r1.json()
+        session_id = sess["session_id"]
+        self.assertEqual(sess["current_field"], "branch")
+
+        # Answer branch as Mechanical
+        r2 = self.client.post("/api/assess/chat-guided", json={"session_id": session_id, "message": "Mechanical"})
+        self.assertEqual(r2.status_code, 200)
+
+        # Step through questions until session ends or completes
+        fields_visited = ["branch"]
+        for _ in range(25):
+            r = self.client.post("/api/assess/chat-guided", json={"session_id": session_id, "message": "skip"})
+            self.assertEqual(r.status_code, 200)
+            data = r.json()
+            curr = data.get("current_field")
+            if curr:
+                fields_visited.append(curr)
+            if data.get("session_complete"):
+                break
+
+        self.assertNotIn("anchor_dsa_problems_solved", fields_visited)
+        self.assertIn("anchor_internships_completed", fields_visited)
 
 
 if __name__ == "__main__":

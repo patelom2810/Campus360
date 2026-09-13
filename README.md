@@ -24,7 +24,7 @@ Higher education institutions routinely isolate student data across disconnected
 ## Architecture
 
 ```
-6 Raw Datasets (70k rows) ➔ Attribute-Based Stitching ➔ PostgreSQL Star Schema (180k rows) ➔ ML Models (Performance Regressor + At-Risk Classifier) ➔ GenAI Layer (Google Gemini) ➔ Analytics Dashboard (7 views) ➔ Dockerized Deployment
+6 Raw Datasets (70k rows) -> Attribute-Based Stitching -> PostgreSQL Star Schema (180k rows) -> ML Models (Performance Regressor + At-Risk Classifier) -> GenAI Layer (Google Gemini) -> Analytics Dashboard (7 views) -> Dockerized Deployment
 ```
 
 For complete technical specifications, schema definitions, and data lineage, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

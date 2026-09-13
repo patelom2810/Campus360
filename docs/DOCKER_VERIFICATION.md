@@ -44,7 +44,7 @@ $ curl -s http://localhost:8000/health | python3 -m json.tool
 }
 ```
 
-✅ Real row counts: **25,000 / 105,000 / 25,000 / 25,000** — match source CSV exactly. Both ML models found. Engine: `postgres`.
+[PASS] Real row counts: **25,000 / 105,000 / 25,000 / 25,000** — match source CSV exactly. Both ML models found. Engine: `postgres`.
 
 ---
 
@@ -70,7 +70,7 @@ $ curl -s http://localhost:8000/api/analytics/overview | python3 -m json.tool
 }
 ```
 
-✅ Real KPI numbers: avg CGPA 7.46, 98.38% placement rate, full CGPA histogram.
+[PASS] Real KPI numbers: avg CGPA 7.46, 98.38% placement rate, full CGPA histogram.
 
 ---
 
@@ -115,7 +115,7 @@ $ docker compose exec postgres psql -U campus360 -d campus360_warehouse \
 (1 row)
 ```
 
-✅ All 4 tables confirmed directly in Postgres — independent of the API layer.
+[PASS] All 4 tables confirmed directly in Postgres — independent of the API layer.
 
 ---
 
@@ -145,7 +145,7 @@ $ curl -s http://localhost:8000/health | python3 -m json.tool
 }
 ```
 
-✅ API returns **HTTP 200** with `"database_engine": "sqlite"` — graceful fallback, no crash.  
+[PASS] API returns **HTTP 200** with `"database_engine": "sqlite"` — graceful fallback, no crash.  
 API logs show: `[WARNING] PostgreSQL connection failed (...). Falling back to SQLite.`
 
 ---
@@ -176,7 +176,7 @@ $ curl -s http://localhost:8000/health | python3 -m json.tool
 }
 ```
 
-✅ API **automatically reconnected** to Postgres without needing an API container restart.  
+[PASS] API **automatically reconnected** to Postgres without needing an API container restart.  
 Works because `create_warehouse_engine()` re-establishes a fresh connection on every request,
 and `pool_pre_ping=True` discards any stale pool connections immediately.
 

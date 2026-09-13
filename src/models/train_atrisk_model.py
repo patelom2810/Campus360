@@ -206,7 +206,7 @@ def train():
     print("-" * 72)
     is_bad, reason = is_degenerate(metrics)
     if is_bad:
-        print(f"  ⚠ REJECTED candidate model: {reason}")
+        print(f"  [REJECTED] candidate model: {reason}")
         print("  → Falling back to default class_weight='balanced' with baseline parameters...")
         fallback_model = RandomForestClassifier(
             n_estimators=200,
@@ -221,7 +221,7 @@ def train():
         metrics = evaluate_model(best_model, X_test, y_test, threshold=0.50)
         print("  Fallback model trained successfully.")
     else:
-        print("  ✅ Candidate model PASSED all sanity checks (non-degenerate).")
+        print("  [PASSED] Candidate model PASSED all sanity checks (non-degenerate).")
 
     # ── Print Metrics & STEP 3: Report ROC AUC Explicitly ───────────────
     print("\n" + "=" * 72)

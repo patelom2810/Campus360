@@ -166,7 +166,7 @@ def run_leakage_guard():
         raise AssertionError(
             f"CRITICAL SAFETY VIOLATION: MODEL_2_FEATURES contains leakage columns: {leakage}"
         )
-    print("✅ SAFETY CHECK PASSED: MODEL_2_FEATURES is free of target leakage columns.")
+    print("[PASS] SAFETY CHECK PASSED: MODEL_2_FEATURES is free of target leakage columns.")
 
 
 # ── Feature Engineering ───────────────────────────────────────────────
@@ -252,7 +252,7 @@ def score_deployed_model_1():
     rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
     mae = float(mean_absolute_error(y_test, y_pred))
 
-    print(f"  ★ ACTUAL DEPLOYED MODEL (Gradient Boosting) | R²: {r2:7.4f} | RMSE: {rmse:6.4f} | MAE: {mae:6.4f}")
+    print(f"  [*] ACTUAL DEPLOYED MODEL (Gradient Boosting) | R²: {r2:7.4f} | RMSE: {rmse:6.4f} | MAE: {mae:6.4f}")
     return {
         "model_name": "ACTUAL DEPLOYED MODEL",
         "r2": round(r2, 4),
@@ -287,7 +287,7 @@ def score_deployed_model_2():
     tn, fp, fn, tp = [int(v) for v in confusion_matrix(y_test, y_pred).ravel()]
 
     print(
-        f"  ★ ACTUAL DEPLOYED MODEL (Random Forest)     | AUC: {roc_auc:6.4f} | Recall: {recall:6.4f} | "
+        f"  [*] ACTUAL DEPLOYED MODEL (Random Forest)     | AUC: {roc_auc:6.4f} | Recall: {recall:6.4f} | "
         f"Prec: {precision:6.4f} | F1: {f1:6.4f} | Acc: {acc:6.4f} | TP: {tp} | FN: {fn}"
     )
     return {
@@ -426,11 +426,11 @@ def run_model1_comparison(df: pd.DataFrame):
 
         flag = ""
         if r2 > 0.90:
-            flag = "⚠️ SUSPICIOUS (R² > 0.90)"
+            flag = "[WARNING] SUSPICIOUS (R² > 0.90)"
             print(f"  [WARNING] {name} flagged as SUSPICIOUS: R² = {r2:.4f} > 0.90. Investigate leakage!")
 
         prod_marker = " [CURRENT PRODUCTION]" if is_curr_prod else ""
-        print(f"  ✓ {name:<20s}{prod_marker:<22s} | R²: {r2:7.4f} | RMSE: {rmse:6.4f} | MAE: {mae:6.4f} ({elapsed:4.1f}s) {flag}")
+        print(f"  [OK] {name:<20s}{prod_marker:<22s} | R²: {r2:7.4f} | RMSE: {rmse:6.4f} | MAE: {mae:6.4f} ({elapsed:4.1f}s) {flag}")
 
         results.append({
             "model_name": name,
@@ -658,16 +658,16 @@ def run_model2_comparison(df: pd.DataFrame):
 
         flags = []
         if is_degenerate:
-            flags.append("🚨 DEGENERATE (recall < 0.05 or > 0.95)")
+            flags.append("[DEGENERATE] (recall < 0.05 or > 0.95)")
             print(f"  [FLAG] {name} is DEGENERATE: Recall={recall:.4f}")
         if is_suspicious:
-            flags.append("⚠️ SUSPICIOUS (Accuracy > 0.95)")
+            flags.append("[WARNING] SUSPICIOUS (Accuracy > 0.95)")
             print(f"  [WARNING] {name} is SUSPICIOUS: Accuracy={acc:.4f} > 0.95")
 
         flag_str = " | " + ", ".join(flags) if flags else ""
         prod_marker = " [CURRENT PRODUCTION]" if is_curr_prod else ""
         print(
-            f"  ✓ {name:<20s}{prod_marker:<22s} | AUC: {roc_auc:6.4f} | Recall: {recall:6.4f} | "
+            f"  [OK] {name:<20s}{prod_marker:<22s} | AUC: {roc_auc:6.4f} | Recall: {recall:6.4f} | "
             f"Prec: {precision:6.4f} | F1: {f1:6.4f} | Acc: {acc:6.4f} ({elapsed:4.1f}s){flag_str}"
         )
 
@@ -785,7 +785,7 @@ def generate_consolidated_report(m1_df: pd.DataFrame, m2_df: pd.DataFrame, null_
     for rank, row in enumerate(candidates_m1.itertuples(), 1):
         name_str = f"**{row.model_name}**" if rank == 1 else row.model_name
         prod_badge = "Retrained Candidate" if row.model_name == "Gradient Boosting" else "Candidate"
-        flag_str = "⚠️ SUSPICIOUS ($R^2 > 0.90$)" if row.suspicious else "Nominal"
+        flag_str = "[WARNING] SUSPICIOUS ($R^2 > 0.90$)" if row.suspicious else "Nominal"
         lines.append(
             f"| {rank} | {name_str} | {prod_badge} | {row.r2:.4f} | {row.rmse:.4f} | {row.mae:.4f} | {flag_str} |"
         )
@@ -826,9 +826,9 @@ def generate_consolidated_report(m1_df: pd.DataFrame, m2_df: pd.DataFrame, null_
         prod_badge = "Retrained Candidate" if row.model_name == "Random Forest" else "Candidate"
         flags = []
         if row.is_degenerate:
-            flags.append("🚨 DEGENERATE")
+            flags.append("[DEGENERATE]")
         if row.is_suspicious:
-            flags.append("⚠️ SUSPICIOUS")
+            flags.append("[WARNING] SUSPICIOUS")
         flag_str = ", ".join(flags) if flags else "Nominal"
 
         lines.append(

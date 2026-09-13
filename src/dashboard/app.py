@@ -25,7 +25,6 @@ from src.etl.load import create_warehouse_engine
 
 st.set_page_config(
     page_title="Campus360 | Student Intelligence Warehouse",
-    page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -179,9 +178,9 @@ selected_engine = st.sidebar.radio(
 # Test active engine
 engine_obj, active_engine_type = get_engine(selected_engine)
 if active_engine_type == "postgres":
-    st.sidebar.success("🟢 Active: **PostgreSQL Warehouse**")
+    st.sidebar.success("Active: **PostgreSQL Warehouse**")
 else:
-    st.sidebar.warning("🟡 Active: **SQLite Local Fallback**")
+    st.sidebar.warning("Active: **SQLite Local Fallback**")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
@@ -198,7 +197,7 @@ st.sidebar.markdown(
 # -----------------------------------------------------------------------------
 # Main Header & High-Level KPIs
 # -----------------------------------------------------------------------------
-st.title("🎓 Campus360: Student Intelligence & Warehouse Platform")
+st.title("Campus360: Student Intelligence & Warehouse Platform")
 st.markdown("Multi-source academic, lifestyle, and career readiness analytics powered by a unified Star Schema.")
 
 kpis = load_kpis(selected_engine)
@@ -221,11 +220,11 @@ st.markdown("---")
 # Dashboard Tabs
 # -----------------------------------------------------------------------------
 tab_exec, tab_academics, tab_wellness, tab_career, tab_explorer = st.tabs([
-    "🏛 Executive Overview",
-    "📈 Academic Performance",
-    "🧘 Lifestyle & Mental Wellness",
-    "💼 Placement & Career Readiness",
-    "🔍 Student 360 Explorer",
+    "Executive Overview",
+    "Academic Performance",
+    "Lifestyle & Mental Wellness",
+    "Placement & Career Readiness",
+    "Student 360 Explorer",
 ])
 
 # TAB 1: EXECUTIVE OVERVIEW
@@ -394,9 +393,9 @@ with tab_explorer:
                 st.write(f"- **Gym Frequency:** {life.get('gym_frequency_per_week')} days/week")
                 risk = life.get('lifestyle_risk_flag')
                 if risk == "High Risk":
-                    st.error(f"⚠️ Flagged: **{risk}**")
+                    st.error(f"Flagged: **{risk}**")
                 else:
-                    st.success(f"✅ Status: **{risk}**")
+                    st.success(f"Status: **{risk}**")
 
         with col_bot2:
             st.markdown("### 4. Career Readiness & Placement (`fact_career`)")
