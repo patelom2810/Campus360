@@ -3,13 +3,16 @@
 <table>
   <tr>
     <td align="center" valign="middle" style="border: none; padding: 12px 18px;">
-      <img src="src/dashboard/assets/campus360-logo.png" alt="Campus 360 Logo" width="135" />
+      <img src="src/dashboard/assets/logo-icon.svg" alt="Campus 360 Project Logo" width="105" />
     </td>
     <td align="left" valign="middle" style="border: none; padding: 12px 18px;">
       <h1 style="margin: 0; padding: 0; border-bottom: none;">Campus 360 | By Neural Networks</h1>
       <h3 style="margin: 6px 0 8px 0; padding: 0; border-bottom: none; color: #6c5ce7;">Team ID: 60 &bull; KDAC-3 &bull; Kenexai</h3>
       <p style="margin: 0 0 6px 0; font-size: 15px;"><strong>Student Academic Success, Subject Performance &amp; Career Readiness Analytics Platform</strong></p>
-      <p style="margin: 0; font-size: 13.5px; color: #666;"><strong>Authors:</strong> OM PATEL [Leader] &bull; Rahil Nagariya [Member]</p>
+      <p style="margin: 0; font-size: 13.5px; color: #666;"><strong>Authors:</strong> OM PATEL &bull; Rahil Nagariya</p>
+    </td>
+    <td align="center" valign="middle" style="border: none; padding: 12px 18px;">
+      <img src="src/dashboard/assets/NeuralNexus.png" alt="Neural Networks Team Logo" width="115" />
     </td>
   </tr>
 </table>
@@ -213,14 +216,14 @@ Campus360/
 - **Team Name:** Neural Networks
 - **Team ID:** 60
 - **Team Members:**
-  - OM PATEL [Leader]
-  - Rahil Nagariya [Member]
+  - OM PATEL
+  - Rahil Nagariya
 
 <br />
 
 <div align="center">
 
-  <img src="src/dashboard/assets/campus360-logo.png" alt="Campus360 Official Logo Mark" width="80" />
+  <img src="src/dashboard/assets/NeuralNexus.png" alt="Neural Networks Team Logo" width="90" />
 
   <p><em>Campus 360 | By Neural Networks (Team ID: 60) &bull; Built with precision by OM PATEL & Rahil Nagariya for student academic success and career intelligence.</em></p>
 

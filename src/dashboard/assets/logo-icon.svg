@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="title desc">
-  <title id="title">Campus360</title>
-  <desc id="desc">Three open orbital arcs converge on a central student-data node, representing a complete 360-degree view across academic, lifestyle, and career dimensions.</desc>
+  <title id="title">Campus 360 | By Neural Networks</title>
+  <desc id="desc">Campus 360 | By Neural Networks (Team ID: 60) - Student Academic Success, Subject Performance and Career Readiness Analytics Platform</desc>
   <style>
     :root { --logo-primary:#6C5CE7; --logo-primary-dark:#4B3FA8; }
     .orbit { fill:none; stroke:var(--logo-primary); stroke-linecap:round; }

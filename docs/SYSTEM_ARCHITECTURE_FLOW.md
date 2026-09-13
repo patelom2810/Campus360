@@ -3,7 +3,7 @@
 **Platform:** Campus360 • Student Academic Success, Risk & Career Intelligence  
 **Problem Code:** KDAC-3 (KENEXA AI Hackathon) | **Company:** Kenexai  
 **Team Name:** Neural Networks | **Team ID:** 60  
-**Team Members:** OM PATEL [Leader], Rahil Nagariya [Member]  
+**Team Members:** OM PATEL, Rahil Nagariya  
 **Status:** Production-Ready & Containerized  
 **Zero Emojis Policy:** Strict text tags and vector SVG visual standards enforced  
 
