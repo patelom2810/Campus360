@@ -208,18 +208,10 @@ Campus360/
 ## Team & Authors — Neural Networks
 <a id="team--authors"></a>
 
-**Company:** Kenexai | **Project:** KDAC-3: Student Academic Success, Subject Performance & Career Readiness Analytics Platform  
-**Team Name:** Neural Networks | **Team ID:** 60
-
-| Contributor | Project Role |
-| :--- | :--- |
-| **OM PATEL** | Team Leader & Full-Stack Architect |
-| **Rahil Nagariya** | Team Member & Data Engineer |
-
+- **Project:** KDAC-3 — Student Academic Success, Subject Performance & Career Readiness Analytics Platform
+- **Company:** Kenexai
 - **Team Name:** Neural Networks
 - **Team ID:** 60
-- **Company:** Kenexai
-- **Hackathon:** KDAC-3 — KENEXA AI Hackathon
 - **Team Members:**
   - OM PATEL [Leader]
   - Rahil Nagariya [Member]
