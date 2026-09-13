@@ -142,18 +142,18 @@ For the comprehensive file tree and component breakdown, see [docs/ARCHITECTURE.
 **Company:** Kenexai | **Project:** KDAC-3: Student Academic Success, Subject Performance & Career Readiness Analytics Platform  
 **Team Name:** Neural Nexus | **Team ID:** 60
 
-| Contributor | Project Role | Email Contact |
-| :--- | :--- | :--- |
-| **OM PATEL** | Team Leader & Full-Stack Architect | [202500819010034@glsu.edu.in](mailto:202500819010034@glsu.edu.in) |
-| **Rahil Nagariya** | Team Member & Data Engineer | [202500819010024@glsu.edu.in](mailto:202500819010024@glsu.edu.in) |
+| Contributor | Project Role |
+| :--- | :--- |
+| **OM PATEL** | Team Leader & Full-Stack Architect |
+| **Rahil Nagariya** | Team Member & Data Engineer |
 
 - **Team Name:** Neural Nexus
 - **Team ID:** 60
 - **Company:** Kenexai
 - **Hackathon:** KDAC-3 — KENEXA AI Hackathon
 - **Team Members:**
-  - OM PATEL ([202500819010034@glsu.edu.in](mailto:202500819010034@glsu.edu.in)) [Leader]
-  - Rahil Nagariya ([202500819010024@glsu.edu.in](mailto:202500819010024@glsu.edu.in)) [Member]
+  - OM PATEL [Leader]
+  - Rahil Nagariya [Member]
 
 <br />
 
