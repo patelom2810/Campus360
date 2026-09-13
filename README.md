@@ -1,18 +1,18 @@
 <div align="center">
 
-  <img src="src/dashboard/assets/campus360-logo.png" alt="Campus360 Official Logo" width="180" />
-
-  <br />
-
-  <img src="src/dashboard/assets/logo-full.svg" alt="Campus360 Wordmark" width="320" />
-
-  <br />
-
-  ### Student Academic Success, Subject Performance & Career Readiness Analytics Platform
-
-  **Project: KDAC-3 • Company: Kenexai**  
-  **Team: Neural Nexus • Team ID: 60**  
-  **Authors: Om Patel (Leader) & Rahil Nagariya (Member)**
+<table>
+  <tr>
+    <td align="center" valign="middle" style="border: none; padding: 12px 18px;">
+      <img src="src/dashboard/assets/campus360-logo.png" alt="Campus 360 Logo" width="135" />
+    </td>
+    <td align="left" valign="middle" style="border: none; padding: 12px 18px;">
+      <h1 style="margin: 0; padding: 0; border-bottom: none;">Campus 360 | By Neural Networks</h1>
+      <h3 style="margin: 6px 0 8px 0; padding: 0; border-bottom: none; color: #6c5ce7;">Team ID: 60 &bull; KDAC-3 &bull; Kenexai</h3>
+      <p style="margin: 0 0 6px 0; font-size: 15px;"><strong>Student Academic Success, Subject Performance &amp; Career Readiness Analytics Platform</strong></p>
+      <p style="margin: 0; font-size: 13.5px; color: #666;"><strong>Authors:</strong> OM PATEL [Leader] &bull; Rahil Nagariya [Member]</p>
+    </td>
+  </tr>
+</table>
 
   <p>
     <a href="#what-it-does">Features</a> •
@@ -205,16 +205,18 @@ Campus360/
 
 ---
 
-## Team & Authors — Neural Nexus
+## Team & Authors — Neural Networks
+<a id="team--authors"></a>
+
 **Company:** Kenexai | **Project:** KDAC-3: Student Academic Success, Subject Performance & Career Readiness Analytics Platform  
-**Team Name:** Neural Nexus | **Team ID:** 60
+**Team Name:** Neural Networks | **Team ID:** 60
 
 | Contributor | Project Role |
 | :--- | :--- |
 | **OM PATEL** | Team Leader & Full-Stack Architect |
 | **Rahil Nagariya** | Team Member & Data Engineer |
 
-- **Team Name:** Neural Nexus
+- **Team Name:** Neural Networks
 - **Team ID:** 60
 - **Company:** Kenexai
 - **Hackathon:** KDAC-3 — KENEXA AI Hackathon
@@ -228,6 +230,6 @@ Campus360/
 
   <img src="src/dashboard/assets/campus360-logo.png" alt="Campus360 Official Logo Mark" width="80" />
 
-  <p><em>Campus360 • Built with precision by Om Patel & Rahil Nagariya for student academic success and career intelligence.</em></p>
+  <p><em>Campus 360 | By Neural Networks (Team ID: 60) &bull; Built with precision by OM PATEL & Rahil Nagariya for student academic success and career intelligence.</em></p>
 
 </div>
