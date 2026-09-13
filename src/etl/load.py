@@ -50,19 +50,31 @@ def get_db_url(engine_type: Optional[str] = None) -> str:
     )
 
 
-def create_warehouse_engine(engine_type: Optional[str] = None) -> Tuple[Engine, str]:
+_CACHED_ENGINES = {}
+
+
+def create_warehouse_engine(engine_type: Optional[str] = None, force_refresh: bool = False) -> Tuple[Engine, str]:
     """
     Creates and returns a SQLAlchemy engine along with the active engine name.
     Falls back gracefully to SQLite if PostgreSQL connection fails.
+    Caches the engine for fast reuse across API requests.
     """
     selected_engine = (engine_type or os.getenv("DB_ENGINE", "postgres")).lower()
-    
+
+    if not force_refresh and selected_engine in _CACHED_ENGINES:
+        return _CACHED_ENGINES[selected_engine]
+
     if selected_engine == "postgres":
         pg_url = get_db_url("postgres")
         try:
-            engine = sqlalchemy.create_engine(pg_url, pool_pre_ping=True)
+            engine = sqlalchemy.create_engine(
+                pg_url,
+                pool_pre_ping=True,
+                connect_args={"connect_timeout": 3}
+            )
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1;"))
+            _CACHED_ENGINES["postgres"] = (engine, "postgres")
             return engine, "postgres"
         except Exception as err:
             print(f"[WARNING] PostgreSQL connection failed ({err}). Falling back to SQLite.")
@@ -70,7 +82,9 @@ def create_warehouse_engine(engine_type: Optional[str] = None) -> Tuple[Engine, 
 
     sqlite_url = get_db_url("sqlite")
     engine = sqlalchemy.create_engine(sqlite_url)
+    _CACHED_ENGINES["sqlite"] = (engine, "sqlite")
     return engine, "sqlite"
+
 
 
 def build_dim_student(wide_df: pd.DataFrame) -> pd.DataFrame:

@@ -2392,6 +2392,18 @@ def serve_assess_page():
     return FileResponse(str(assess_file))
 
 
+# ── Architecture Presentation Page Route ──────────────────────────────────────
+@app.api_route("/arch", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/arch.html", methods=["GET", "HEAD"], include_in_schema=False)
+def serve_arch_page():
+    arch_file = DASHBOARD_DIR / "arch.html"
+    if not arch_file.exists():
+        arch_file = BASE_DIR / "Arch.html"
+    if not arch_file.exists():
+        raise HTTPException(status_code=404, detail="arch.html not found")
+    return FileResponse(str(arch_file))
+
+
 # ── Mount Static Files for Dashboard ──────────────────────────────────────────
 if DASHBOARD_DIR.exists():
     app.mount("/dashboard", StaticFiles(directory=str(DASHBOARD_DIR), html=True), name="dashboard")

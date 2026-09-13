@@ -4,9 +4,9 @@
  */
 
 // API Base URL resolution (supports both same-origin and separate dashboard server)
-const API_BASE = (window.location.port === '8501' || window.location.port === '5500' || window.location.port === '3000')
-  ? 'http://localhost:8000'
-  : '';
+const API_BASE = (window.location.port === '8000')
+  ? ''
+  : 'http://localhost:8000';
 
 // Application State
 const state = {
@@ -48,6 +48,8 @@ const VIEW_TITLES = {
   pipeline: 'Data & ETL Pipeline Monitoring',
 };
 
+const VALID_VIEWS = ['overview', 'subjects', 'atrisk', 'predict', 'student', 'career', 'pipeline'];
+
 // ── Initialization ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
@@ -56,8 +58,25 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCareerSearch();
   loadCurrentDate();
 
-  // Initial View Load (Configured to Data & ETL Monitoring)
-  switchView('pipeline');
+  // Restore current view from URL hash or localStorage, fallback to 'overview'
+  const hash = window.location.hash.replace('#', '').trim();
+  let savedView = null;
+  try {
+    savedView = localStorage.getItem('campus360_active_view');
+  } catch (_) {}
+
+  const initialView = VALID_VIEWS.includes(hash)
+    ? hash
+    : (VALID_VIEWS.includes(savedView) ? savedView : 'overview');
+
+  switchView(initialView, false);
+});
+
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.replace('#', '').trim();
+  if (VALID_VIEWS.includes(hash) && hash !== state.currentView) {
+    switchView(hash, false);
+  }
 });
 
 function loadCurrentDate() {
@@ -80,8 +99,19 @@ function setupNavigation() {
   });
 }
 
-function switchView(viewName) {
+function switchView(viewName, updateHistory = true) {
+  if (!VALID_VIEWS.includes(viewName)) {
+    viewName = 'overview';
+  }
+
   state.currentView = viewName;
+
+  try {
+    if (updateHistory) {
+      window.location.hash = viewName;
+    }
+    localStorage.setItem('campus360_active_view', viewName);
+  } catch (_) {}
 
   // Update Top Bar Title
   const titleEl = document.getElementById('page-title');

@@ -1,0 +1,4269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus360 — Architecture & Data Lineage Reference</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #6C5CE7;
+      --primary-dark: #4B3FA8;
+      --primary-light: #EDEBFB;
+      --primary-border: #D8D4F7;
+      --bg: #F6F5FC;
+      --surface: #FFFFFF;
+      --surface-subtle: #FAF9FE;
+      --text: #1E1B2E;
+      --text-secondary: #4E4962;
+      --muted: #8A8797;
+      --border: #E4E1F0;
+      --border-light: #EFEFF7;
+      --success: #4CAF7D;
+      --success-bg: #E7F8EE;
+      --success-border: #B7E8C9;
+      --danger: #E85D75;
+      --danger-bg: #FDEDEF;
+      --danger-border: #F8B4C0;
+      --warning: #D97706;
+      --warning-bg: #FEF3C7;
+      --warning-border: #FCD34D;
+      --info: #3B82F6;
+      --info-bg: #EFF6FF;
+      --info-border: #BFDBFE;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 1px 3px rgba(30, 27, 46, 0.05);
+      --shadow-md: 0 4px 12px rgba(30, 27, 46, 0.08);
+      --shadow-lg: 0 10px 25px rgba(108, 92, 231, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 15px;
+    }
+
+    body.continuous-mode {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5 {
+      font-family: 'Sora', sans-serif;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Container Layout */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Top Presentation Progress Bar */
+    #presentation-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #6C5CE7 0%, #A29BFE 100%);
+      z-index: 1500;
+      transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 9%;
+    }
+
+    /* Left Edge Hover Trigger Hotspot */
+    .sidebar-hover-zone {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 28px;
+      height: 100vh;
+      z-index: 998;
+      background: transparent;
+    }
+
+    /* Left Floating Peek Tab - Glassmorphism */
+    .sidebar-peek-tab {
+      position: fixed;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(108, 92, 231, 0.85);
+      -webkit-backdrop-filter: blur(14px) saturate(180%);
+      backdrop-filter: blur(14px) saturate(180%);
+      color: #FFFFFF;
+      padding: 14px 7px;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-left: none;
+      font-size: 0.68rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      box-shadow: 3px 0 20px rgba(108, 92, 231, 0.45), 0 1px 0 rgba(255, 255, 255, 0.3) inset;
+      z-index: 999;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+
+    .sidebar-peek-tab:hover {
+      background: rgba(108, 92, 231, 0.98);
+      padding-right: 10px;
+      box-shadow: 4px 0 24px rgba(108, 92, 231, 0.6), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+    }
+
+    /* Sidebar Navigation (Slide-out Drawer in Presentation Mode) */
+    .sidebar {
+      width: 300px;
+      background-color: var(--surface);
+      border-right: 1px solid var(--border);
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 18px;
+      z-index: 1100;
+      transform: translateX(-100%);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 12px 0 40px rgba(30, 27, 46, 0.22);
+    }
+
+    /* Open state for sidebar on hover or when pinned */
+    .sidebar.is-hovered,
+    .sidebar:hover,
+    .sidebar.is-pinned {
+      transform: translateX(0);
+    }
+
+    /* When pinned, adjust layout for desktop */
+    body.sidebar-pinned .sidebar {
+      transform: translateX(0);
+    }
+    body.sidebar-pinned .main-content {
+      margin-left: 300px;
+    }
+    body.sidebar-pinned .sidebar-peek-tab {
+      display: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Sora', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 4px 10px rgba(108, 92, 231, 0.35);
+    }
+
+    .brand-text h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .brand-text p {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pin-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .pin-btn:hover {
+      color: var(--primary);
+      border-color: var(--primary-border);
+      background: var(--primary-light);
+    }
+
+    .pin-btn.pinned {
+      background: var(--primary);
+      color: #FFFFFF;
+      border-color: var(--primary);
+    }
+
+    .sidebar-meta {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      font-size: 0.75rem;
+    }
+
+    .sidebar-meta div {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-meta div:last-child {
+      margin-bottom: 0;
+    }
+
+    .sidebar-meta .label {
+      color: var(--muted);
+    }
+
+    .sidebar-meta .value {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .nav-header {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 700;
+      margin: 8px 0 8px 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.83rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .nav-link:hover {
+      background-color: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .nav-link.active {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(108, 92, 231, 0.25);
+    }
+
+    .nav-badge {
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.05);
+      color: inherit;
+      margin-right: 2px;
+    }
+
+    .nav-link.active .nav-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #FFFFFF;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      min-width: 0;
+      padding: 22px 36px 110px 36px;
+      transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .content-wrapper {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    /* Presentation Slide System */
+    .presentation-slide {
+      display: none;
+    }
+
+    .presentation-slide.active-slide {
+      display: block;
+      animation: slideFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Continuous Scroll Mode (When toggled by user) */
+    body.continuous-mode .presentation-slide {
+      display: block !important;
+      margin-bottom: 40px;
+    }
+    body.continuous-mode #presentation-progress {
+      display: none;
+    }
+
+    /* Slide Header Meta Tag */
+    .slide-meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Header Banner - Compact Executive View */
+    .page-header {
+      background: linear-gradient(135deg, #FFFFFF 0%, #FAF9FE 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 22px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary) 0%, #A29BFE 50%, var(--primary-dark) 100%);
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-title-group h1 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .header-title-group p {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--text-secondary);
+      max-width: 780px;
+    }
+
+    .verification-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: #1B5E20;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 rgba(76, 175, 125, 0.4);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(76, 175, 125, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(76, 175, 125, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(76, 175, 125, 0); }
+    }
+
+    .header-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 9px 14px;
+    }
+
+    .stat-card .stat-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-card .stat-val {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2px;
+    }
+
+    .stat-card .stat-desc {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-top: 1px;
+    }
+
+    /* Layer Section Styles */
+    .layer-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 26px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .layer-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-light);
+    }
+
+    .layer-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
+
+    .layer-title-text h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .layer-title-text p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin: 16px 0;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    th {
+      background: var(--surface-subtle);
+      color: var(--text);
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-secondary);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: #FAFAFD;
+    }
+
+    .numeric {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .chip-primary { background: var(--primary-light); color: var(--primary); }
+    .chip-success { background: var(--success-bg); color: #2E7D32; }
+    .chip-warning { background: var(--warning-bg); color: #B45309; }
+    .chip-danger  { background: var(--danger-bg); color: #C2185B; }
+    .chip-gray    { background: #F1F1F5; color: #555; }
+
+    /* Clickable Dataset Name in Layer 1 */
+    .dataset-click-btn {
+      background: transparent;
+      border: none;
+      padding: 4px 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary-dark);
+      font-size: 0.85rem;
+      font-family: inherit;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+
+    .dataset-click-btn:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .dataset-click-btn strong {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+
+    .inspect-tag {
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      padding: 2px 6px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* Cards Grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    .info-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .info-card-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .flow-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+    }
+
+    /* Callouts & Alert Banners */
+    .callout {
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin: 20px 0;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .callout-amber {
+      background: #FFFBEB;
+      border: 1px solid #FCD34D;
+      border-left: 5px solid #F59E0B;
+      color: #92400E;
+    }
+
+    .callout-coral {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-left: 5px solid #EF4444;
+      color: #991B1B;
+    }
+
+    .callout-purple {
+      background: #F5F3FF;
+      border: 1px solid #DDD6FE;
+      border-left: 5px solid #6C5CE7;
+      color: #4C1D95;
+    }
+
+    .callout-icon {
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .callout-content h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: inherit;
+    }
+
+    .callout-content p {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: inherit;
+    }
+
+    /* Collapsible Details */
+    details {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin: 14px 0;
+      overflow: hidden;
+    }
+
+    summary {
+      padding: 12px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+
+    summary:hover {
+      background: #F1F0FA;
+    }
+
+    summary::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted);
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+      display: inline-block;
+      margin-left: 8px;
+    }
+
+    details[open] summary::after {
+      transform: rotate(-135deg);
+    }
+
+    .details-body {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      background: #FFFFFF;
+      font-size: 0.85rem;
+    }
+
+    /* Feature Category Tags */
+    .feature-group {
+      margin-bottom: 16px;
+    }
+
+    .feature-group-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .feature-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .feature-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .feature-tag.engineered {
+      background: var(--primary-light);
+      border-color: var(--primary-border);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .feature-tag.leakage {
+      background: var(--danger-bg);
+      border-color: var(--danger-border);
+      color: var(--danger);
+      text-decoration: line-through;
+    }
+
+    /* 2x2 Confusion Matrix */
+    .cm-wrapper {
+      max-width: 440px;
+      margin: 16px 0;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+    }
+
+    .cm-grid {
+      display: grid;
+      grid-template-columns: 90px 1fr 1fr;
+      grid-template-rows: 32px 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .cm-header-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    .cm-cell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .cm-cell .cm-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .cm-cell .cm-pct {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .cm-cell .cm-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .cm-cell.tn .cm-tag { color: var(--success); }
+    .cm-cell.tp .cm-tag { color: var(--info); }
+    .cm-cell.fp .cm-tag { color: var(--warning); }
+    .cm-cell.fn .cm-tag { color: var(--danger); }
+
+    /* Interactive Overview Flowchart - Structured 3-Tier Architecture */
+    .arch-topology-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 18px 0;
+    }
+
+    .arch-tier {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+
+    .arch-tier:hover {
+      border-color: var(--primary-border);
+      box-shadow: 0 4px 14px rgba(108, 92, 231, 0.08);
+    }
+
+    .arch-tier-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .arch-tier-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+    }
+
+    .arch-tier-meta {
+      font-size: 0.74rem;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .arch-tier-grid {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .arch-tier-grid.four-cols .overview-node {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 10px;
+    }
+
+    .arch-tier-grid.three-cols .overview-node {
+      flex: 1;
+      min-width: 0;
+      padding: 14px 16px;
+    }
+
+    .arch-tier-grid.two-cols {
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .arch-tier-grid.two-cols .overview-node {
+      flex: 1;
+      max-width: 440px;
+      padding: 14px 20px;
+    }
+
+    .tier-flow-h {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .inter-tier-stream {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 0;
+      user-select: none;
+    }
+
+    .inter-stream-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 32px;
+    }
+
+    .inter-stream-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--primary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-top: 2px;
+      text-align: center;
+      background: var(--surface);
+      padding: 2px 12px;
+      border-radius: 12px;
+      border: 1px dashed var(--primary-border);
+    }
+
+    @media (max-width: 860px) {
+      .arch-tier-grid {
+        flex-direction: column;
+        gap: 12px;
+      }
+      .arch-tier-grid .overview-node {
+        width: 100%;
+      }
+      .tier-flow-h {
+        transform: rotate(90deg);
+        margin: 4px 0;
+      }
+    }
+
+    .overview-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .overview-node:hover {
+      border-color: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      background: #FFFFFF;
+    }
+
+    .overview-node:active {
+      transform: scale(0.98);
+    }
+
+    .overview-node .node-layer {
+      font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .overview-node .node-title {
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .overview-node .node-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2px;
+      text-align: center;
+    }
+
+    .overview-arrow {
+      color: var(--primary);
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    /* Animated Flow Streams & Connectors */
+    .dash-stream {
+      stroke-dasharray: 6, 4;
+      animation: dashStreamAnim 1.2s linear infinite;
+    }
+
+    @keyframes dashStreamAnim {
+      from { stroke-dashoffset: 10; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .dash-stream-v {
+      stroke-dasharray: 6, 4;
+      animation: dashStreamVAnim 1.2s linear infinite;
+    }
+
+    @keyframes dashStreamVAnim {
+      from { stroke-dashoffset: 10; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .flow-pipe-h {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--primary);
+      transition: transform 0.2s ease;
+    }
+
+    .flow-pipe-h:hover {
+      transform: scale(1.1);
+    }
+
+    .flow-pipe-v {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 4px auto;
+      color: var(--primary);
+      transition: transform 0.2s ease;
+    }
+
+    .flow-pipe-v:hover {
+      transform: scale(1.1);
+    }
+
+    /* Flow Step Micro-Arrow for Layer 2 & In-Card Transformations */
+    .flow-step-arrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      margin: 0 4px;
+      vertical-align: middle;
+    }
+
+    /* Live Beacon on Interactive Flow Nodes */
+    .node-live-beacon {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 rgba(108, 92, 231, 0.4);
+      animation: beaconPulse 2s infinite;
+    }
+
+    @keyframes beaconPulse {
+      0% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.7); }
+      70% { box-shadow: 0 0 0 7px rgba(108, 92, 231, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0); }
+    }
+
+    /* Animated Flow Ribbons (Layer 2, 5, 6, 7, 8, 9) */
+    .pipeline-flow-ribbon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin: 18px 0;
+      overflow-x: auto;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .flow-ribbon-step {
+      display: flex;
+      flex-direction: column;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      min-width: 160px;
+      flex-shrink: 0;
+      position: relative;
+      transition: all 0.18s ease;
+    }
+
+    .flow-ribbon-step:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(108, 92, 231, 0.12);
+    }
+
+    .flow-ribbon-step.highlight {
+      border-color: var(--primary);
+      background: #FAF9FE;
+    }
+
+    .flow-ribbon-step .step-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .flow-ribbon-step .step-title {
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--text);
+      margin: 3px 0 1px 0;
+    }
+
+    .flow-ribbon-step .step-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    /* Layer 3 Multi-Source Convergence Flow Diagram */
+    .stitching-flow-card {
+      background: linear-gradient(135deg, #FAF9FE 0%, #FFFFFF 100%);
+      border: 1px solid var(--primary-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 22px 0;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stitching-flow-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Sora', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .stitching-flow-grid {
+      display: grid;
+      grid-template-columns: 240px auto 260px;
+      gap: 16px;
+      align-items: center;
+    }
+
+    @media (max-width: 960px) {
+      .stitching-flow-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+    }
+
+    .stitching-sources-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stitch-source-pill {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      transition: all 0.15s ease;
+    }
+
+    .stitch-source-pill:hover {
+      border-color: var(--primary);
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(108, 92, 231, 0.15);
+    }
+
+    .stitch-source-pill.is-anchor {
+      border-left: 4px solid var(--primary);
+      background: #FAF9FE;
+    }
+
+    .stitch-source-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .stitch-source-rows {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .stitching-center-engine {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 0 8px;
+      text-align: center;
+    }
+
+    .engine-core-box {
+      background: #FFFFFF;
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      box-shadow: 0 4px 16px rgba(108, 92, 231, 0.15);
+      width: 100%;
+      max-width: 290px;
+      position: relative;
+    }
+
+    .engine-core-box .box-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .engine-core-box .box-title {
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin: 4px 0 2px 0;
+    }
+
+    .engine-core-box .box-desc {
+      font-size: 0.73rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .engine-filter-badge {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: #92400E;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stitching-dest-card {
+      background: #FFFFFF;
+      border: 2px solid var(--success);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      box-shadow: 0 4px 18px rgba(76, 175, 125, 0.18);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+    }
+
+    .stitching-dest-card .dest-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--success);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stitching-dest-card .dest-filename {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .stitching-dest-card .dest-metrics {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* In-Slide Footer Navigation Bar */
+    .slide-nav-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 36px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .slide-nav-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 11px 18px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.18s ease;
+      box-shadow: var(--shadow-sm);
+      user-select: none;
+    }
+
+    .slide-nav-btn:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      background: var(--surface-subtle);
+    }
+
+    .slide-nav-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .slide-nav-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .slide-nav-progress-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    /* Sidebar Close Button */
+    .sidebar-close-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-close-btn:hover {
+      border-color: var(--danger-border);
+      color: var(--danger);
+      background: var(--danger-bg);
+    }
+
+    /* ER Diagram Visual Layout */
+    .er-diagram-container {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 24px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin: 20px 0;
+    }
+
+    @media (max-width: 860px) {
+      .er-diagram-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .er-entity {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .er-entity:last-child {
+      margin-bottom: 0;
+    }
+
+    .er-entity-header {
+      padding: 10px 14px;
+      background: var(--primary-light);
+      border-bottom: 1px solid var(--primary-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .er-entity-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--primary-dark);
+    }
+
+    .er-entity-rows {
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+    }
+
+    .er-fields {
+      padding: 8px 14px;
+      list-style: none;
+      font-size: 0.78rem;
+    }
+
+    .er-field {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px dashed var(--border-light);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .er-field:last-child {
+      border-bottom: none;
+    }
+
+    .er-field .pk {
+      color: #B45309;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .er-field .fk {
+      color: var(--primary);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .er-connector-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+    }
+
+    /* Weight bars */
+    .weight-item {
+      margin-bottom: 12px;
+    }
+
+    .weight-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .weight-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .weight-bar-bg {
+      height: 8px;
+      background: var(--border-light);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .weight-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+    }
+
+    /* Floating Presenter Toolbar at Bottom - Frosted Glassmorphism */
+    #presenter-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(24, 21, 45, 0.68);
+      -webkit-backdrop-filter: blur(24px) saturate(190%) contrast(105%);
+      backdrop-filter: blur(24px) saturate(190%) contrast(105%);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 44px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 16px 45px rgba(10, 8, 28, 0.45), 
+                  0 0 0 1px rgba(255, 255, 255, 0.1) inset, 
+                  0 1px 0 0 rgba(255, 255, 255, 0.3) inset;
+      z-index: 1200;
+      user-select: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #presenter-bar:hover {
+      background: rgba(24, 21, 45, 0.78);
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow: 0 20px 52px rgba(10, 8, 28, 0.52), 
+                  0 0 0 1px rgba(255, 255, 255, 0.14) inset, 
+                  0 1px 0 0 rgba(255, 255, 255, 0.38) inset;
+    }
+
+    .pres-btn {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      color: #FFFFFF;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 7px 14px;
+      border-radius: 22px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+    }
+
+    .pres-btn:hover:not(:disabled) {
+      background: rgba(108, 92, 231, 0.82);
+      border-color: rgba(162, 155, 254, 0.6);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(108, 92, 231, 0.45), 0 1px 0 rgba(255, 255, 255, 0.28) inset;
+    }
+
+    .pres-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .pres-btn:disabled {
+      opacity: 0.32;
+      cursor: not-allowed;
+    }
+
+    .pres-btn.active-fs {
+      background: rgba(76, 175, 125, 0.38);
+      border-color: rgba(76, 175, 125, 0.65);
+      color: #A3E6B4;
+    }
+
+    .pres-info-pill {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #F3F1FD;
+      font-family: 'Sora', sans-serif;
+      min-width: 250px;
+      text-align: center;
+      padding: 5px 16px;
+      white-space: nowrap;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18) inset;
+    }
+
+    .mode-toggle-btn {
+      background: rgba(108, 92, 231, 0.26);
+      border: 1px solid rgba(162, 155, 254, 0.38);
+      color: #E2DFFC;
+    }
+    .mode-toggle-btn:hover {
+      background: rgba(108, 92, 231, 0.88);
+      border-color: rgba(162, 155, 254, 0.7);
+      color: #FFFFFF;
+    }
+
+    /* Presentation Fullscreen Mode (True or Simulated) */
+    body.presentation-fullscreen {
+      overflow: hidden !important;
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 999999 !important;
+      background: var(--bg) !important;
+    }
+    body.presentation-fullscreen .main-content {
+      height: 100vh !important;
+      overflow-y: auto !important;
+      padding: 24px 36px 100px 36px !important;
+    }
+
+    /* Modal for Dataset Columns */
+    #dataset-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 18, 35, 0.65);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      max-width: 820px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      background: var(--surface-subtle);
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .modal-title-group h3 {
+      font-size: 1.15rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--primary-dark);
+      margin-bottom: 4px;
+    }
+
+    .modal-title-group p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .modal-close-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--muted);
+      transition: all 0.15s ease;
+    }
+
+    .modal-close-btn:hover {
+      color: var(--danger);
+      border-color: var(--danger-border);
+      background: var(--danger-bg);
+    }
+
+    .modal-search-box {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border-light);
+      background: #FFFFFF;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .modal-search-box input {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 14px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .modal-search-box input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.12);
+    }
+
+    .modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      flex: 1;
+      background: #FFFFFF;
+    }
+
+    .cols-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .col-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .col-pill:hover {
+      background: var(--primary-light);
+      border-color: var(--primary-border);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .col-pill .col-idx {
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-weight: 700;
+      background: #FFFFFF;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--border-light);
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      background: var(--surface-subtle);
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .copy-all-btn {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .copy-all-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Toast Notification - Glassmorphism */
+    #toast-msg {
+      position: fixed;
+      bottom: 88px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 22, 50, 0.82);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      backdrop-filter: blur(16px) saturate(180%);
+      color: #FFFFFF;
+      padding: 9px 20px;
+      border-radius: 24px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 10px 30px rgba(10, 8, 28, 0.4), 0 1px 0 rgba(255, 255, 255, 0.2) inset;
+      z-index: 2500;
+      display: none;
+      animation: toastPop 0.2s ease-out;
+    }
+
+    @keyframes toastPop {
+      from { opacity: 0; transform: translate(-50%, 10px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Presentation Progress Bar -->
+<div id="presentation-progress"></div>
+
+<!-- Left Side Hover Zone & Tab -->
+<div id="sidebar-hover-zone" class="sidebar-hover-zone"></div>
+<div id="sidebar-peek-tab" class="sidebar-peek-tab" title="Click or hover to open Slide Navigation">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg><span>NAVIGATION</span>
+</div>
+
+<div class="app-layout">
+  <!-- Sidebar Navigation (Drawer / Hover-out) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-left">
+        <div class="brand-icon" style="background: transparent; box-shadow: none; width: 38px; height: 38px; padding: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="38" height="38" role="img" aria-label="Campus360 Logo">
+            <path fill="none" stroke="#6C5CE7" stroke-linecap="round" stroke-width="8" d="M25 28 A38 38 0 0 1 73 20"/>
+            <path fill="none" stroke="#6C5CE7" stroke-linecap="round" stroke-width="6" d="M78 34 A38 38 0 0 1 70 78"/>
+            <path fill="none" stroke="#4B3FA8" stroke-linecap="round" stroke-width="4.5" d="M61 82 A38 38 0 0 1 22 55"/>
+            <path fill="#4B3FA8" d="M50 31L68 50L50 69L32 50Z"/>
+            <circle cx="50" cy="50" r="6.5" fill="#6C5CE7"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Campus360</h1>
+          <p>Architecture Deck</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button class="pin-btn" id="pin-sidebar-btn" title="Pin sidebar open permanently"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg><span>Pin</span></button>
+        <button class="sidebar-close-btn" id="close-sidebar-btn" onclick="closeSidebarDrawer()" title="Close Navigation Drawer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+    </div>
+
+    <div class="sidebar-meta">
+      <div>
+        <span class="label">Status:</span>
+        <span class="value" style="color: var(--success);">100% Live-Verified</span>
+      </div>
+      <div>
+        <span class="label">Cohort:</span>
+        <span class="value">25,000 Students</span>
+      </div>
+      <div>
+        <span class="label">Warehouse:</span>
+        <span class="value">180,000 Rows</span>
+      </div>
+      <div>
+        <span class="label">Verified At:</span>
+        <span class="value">2026-09-12</span>
+      </div>
+    </div>
+
+    <div class="nav-header">
+      <span>Presentation Pages</span>
+      <span style="font-size: 0.65rem; color: var(--primary);">11 Slides</span>
+    </div>
+
+    <ul class="nav-list" id="nav-list">
+      <li><a class="nav-link active" data-slide="0"><span class="nav-badge">00</span> Overview & Flow</a></li>
+      <li><a class="nav-link" data-slide="1"><span class="nav-badge">L1</span> Raw Data Sources</a></li>
+      <li><a class="nav-link" data-slide="2"><span class="nav-badge">L2</span> Ingestion & Clean</a></li>
+      <li><a class="nav-link" data-slide="3"><span class="nav-badge">L3</span> Data Stitching</a></li>
+      <li><a class="nav-link" data-slide="4"><span class="nav-badge">L4</span> Star Warehouse</a></li>
+      <li><a class="nav-link" data-slide="5"><span class="nav-badge">L5</span> Model 1: Predict</a></li>
+      <li><a class="nav-link" data-slide="6"><span class="nav-badge">L6</span> Model 2: At-Risk</a></li>
+      <li><a class="nav-link" data-slide="7"><span class="nav-badge">L7</span> Career Engine</a></li>
+      <li><a class="nav-link" data-slide="8"><span class="nav-badge">L8</span> GenAI Synthesis</a></li>
+      <li><a class="nav-link" data-slide="9"><span class="nav-badge">L9</span> Dashboard Views</a></li>
+      <li><a class="nav-link" data-slide="10"><span class="nav-badge">L10</span> Known Limitations</a></li>
+    </ul>
+
+    <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-light); font-size: 0.72rem; color: var(--muted); text-align: center;">
+      Use <kbd style="background: var(--surface-subtle); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--border);">◀</kbd> <kbd style="background: var(--surface-subtle); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--border);">▶</kbd> or <kbd style="background: var(--surface-subtle); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--border);">Space</kbd> to change slides
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px;">
+        <a href="index.html" style="padding: 7px 12px; border-radius: 8px; background: var(--primary-light); color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.76rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span>←</span> Analytics Dashboard
+        </a>
+        <a href="assess.html" style="padding: 7px 12px; border-radius: 8px; background: var(--surface-subtle); border: 1px solid var(--border); color: var(--text); text-decoration: none; font-weight: 600; font-size: 0.76rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span>⚡</span> Student Assessment Portal
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content (Presentation Slides Container) -->
+  <main class="main-content" id="main-content">
+    <div class="content-wrapper">
+
+      <!-- SLIDE 0: Executive Overview & Full Flowchart -->
+      <div class="presentation-slide active-slide" id="slide-0" data-title="Overview & End-to-End System Flowchart" data-nav="0">
+        <div class="slide-meta-badge">Slide 01 of 11 &middot; Executive Overview</div>
+
+        <section class="page-header">
+          <div class="header-top">
+            <div class="header-title-group" style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 42px; height: 42px; flex-shrink: 0; background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 4px; box-shadow: 0 4px 10px rgba(108, 92, 231, 0.12);">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34" role="img" aria-label="Campus360 Logo">
+                  <path fill="none" stroke="#6C5CE7" stroke-linecap="round" stroke-width="8" d="M25 28 A38 38 0 0 1 73 20"/>
+                  <path fill="none" stroke="#6C5CE7" stroke-linecap="round" stroke-width="6" d="M78 34 A38 38 0 0 1 70 78"/>
+                  <path fill="none" stroke="#4B3FA8" stroke-linecap="round" stroke-width="4.5" d="M61 82 A38 38 0 0 1 22 55"/>
+                  <path fill="#4B3FA8" d="M50 31L68 50L50 69L32 50Z"/>
+                  <circle cx="50" cy="50" r="6.5" fill="#6C5CE7"/>
+                </svg>
+              </div>
+              <div>
+                <h1>Campus360 System Architecture & Data Lineage <span style="background: rgba(108, 92, 231, 0.12); color: var(--primary); font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--primary-border); margin-left: 8px; vertical-align: middle; letter-spacing: 0.02em;">KDAC-3 &middot; Team 60</span></h1>
+                <p>A rigorous, layer-wise technical specification mapping the lifecycle of educational data from raw multi-institutional CSVs through relational star schema warehouse tables, dual ML pipelines, GenAI reasoning, and interactive analytics dashboards.</p>
+              </div>
+            </div>
+            <div class="verification-chip">
+              <div class="pulse-dot"></div>
+              <span>Audit-Verified: 2026-09-12T13:45:00+05:30</span>
+            </div>
+          </div>
+
+          <div class="header-stats">
+            <div class="stat-card">
+              <div class="stat-label">Raw Ingestion</div>
+              <div class="stat-val">70,000</div>
+              <div class="stat-desc">Records across 6 source CSVs</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Deduplicated Master</div>
+              <div class="stat-val">25,000 &times; 116</div>
+              <div class="stat-desc">Unified wide student table</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Star Schema Volume</div>
+              <div class="stat-val">180,000</div>
+              <div class="stat-desc">PostgreSQL / SQLite relational rows</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">End-to-End Pipeline</div>
+              <div class="stat-val">6.42s</div>
+              <div class="stat-desc">Reproducible automated execution</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LAYER 0: Overview Diagram -->
+        <section id="layer-0" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 0</span>
+            <div class="layer-title-text">
+              <h2>End-to-End System Pipeline Flowchart</h2>
+              <p>Interactive high-level topology — click any pipeline block to jump directly to its complete layer slide.</p>
+            </div>
+          </div>
+
+          <div class="arch-topology-container">
+            <!-- TIER 1: DATA PLATFORM & RELATIONAL WAREHOUSE -->
+            <div class="arch-tier">
+              <div class="arch-tier-header">
+                <span class="arch-tier-pill">Tier 1 · Data Platform & Relational Storage</span>
+                <span class="arch-tier-meta">70,000 raw rows &rarr; 25,000 master cohort &rarr; 180,000 star-schema rows</span>
+              </div>
+              <div class="arch-tier-grid four-cols">
+                <div class="overview-node" onclick="goToSlide(1)">
+                  <span class="node-live-beacon" title="Live Stage"></span>
+                  <span class="node-layer">Layer 1</span>
+                  <span class="node-title">6 Raw Datasets</span>
+                  <span class="node-sub">70k multi-source rows</span>
+                </div>
+                
+                <div class="tier-flow-h" title="Ingestion stream">
+                  <svg width="36" height="20" viewBox="0 0 36 20">
+                    <line x1="2" y1="10" x2="28" y2="10" stroke="#D8D4F7" stroke-width="2.5" class="dash-stream"/>
+                    <circle r="3" fill="#6C5CE7"><animate attributeName="cx" values="4;28;4" dur="1.6s" repeatCount="indefinite" /></circle>
+                    <polygon points="26,6 34,10 26,14" fill="#6C5CE7" />
+                  </svg>
+                </div>
+
+                <div class="overview-node" onclick="goToSlide(2)">
+                  <span class="node-live-beacon" title="Live Stage"></span>
+                  <span class="node-layer">Layer 2</span>
+                  <span class="node-title">Ingestion & Cleaning</span>
+                  <span class="node-sub">Deduplication & normalization</span>
+                </div>
+
+                <div class="tier-flow-h" title="Cleaning stream">
+                  <svg width="36" height="20" viewBox="0 0 36 20">
+                    <line x1="2" y1="10" x2="28" y2="10" stroke="#D8D4F7" stroke-width="2.5" class="dash-stream"/>
+                    <circle r="3" fill="#6C5CE7"><animate attributeName="cx" values="4;28;4" dur="1.6s" repeatCount="indefinite" /></circle>
+                    <polygon points="26,6 34,10 26,14" fill="#6C5CE7" />
+                  </svg>
+                </div>
+
+                <div class="overview-node" onclick="goToSlide(3)">
+                  <span class="node-live-beacon" title="Live Stage"></span>
+                  <span class="node-layer">Layer 3</span>
+                  <span class="node-title">Data Stitching</span>
+                  <span class="node-sub">Attribute tertile alignment</span>
+                </div>
+
+                <div class="tier-flow-h" title="Stitching stream">
+                  <svg width="36" height="20" viewBox="0 0 36 20">
+                    <line x1="2" y1="10" x2="28" y2="10" stroke="#D8D4F7" stroke-width="2.5" class="dash-stream"/>
+                    <circle r="3" fill="#6C5CE7"><animate attributeName="cx" values="4;28;4" dur="1.6s" repeatCount="indefinite" /></circle>
+                    <polygon points="26,6 34,10 26,14" fill="#6C5CE7" />
+                  </svg>
+                </div>
+
+                <div class="overview-node" onclick="goToSlide(4)">
+                  <span class="node-live-beacon" title="Live Stage"></span>
+                  <span class="node-layer">Layer 4</span>
+                  <span class="node-title">Star Warehouse</span>
+                  <span class="node-sub">180,000 relational records</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- INTER-TIER CONNECTOR 1 -> 2 -->
+            <div class="inter-tier-stream">
+              <div class="inter-stream-line">
+                <svg width="40" height="32" viewBox="0 0 40 32">
+                  <line x1="20" y1="2" x2="20" y2="22" stroke="#6C5CE7" stroke-width="2.5" class="dash-stream-v"/>
+                  <circle r="3" fill="#6C5CE7"><animate attributeName="cy" values="4;22;4" dur="1.6s" repeatCount="indefinite" /><animate attributeName="cx" values="20;20;20" dur="1.6s" repeatCount="indefinite" /></circle>
+                  <polygon points="15,20 20,30 25,20" fill="#6C5CE7" />
+                </svg>
+              </div>
+              <span class="inter-stream-label">Star Warehouse Relational Data Feeds ML Feature Matrices & Scoring Engine</span>
+            </div>
+
+            <!-- TIER 2: MACHINE LEARNING & RULE ENGINES -->
+            <div class="arch-tier">
+              <div class="arch-tier-header">
+                <span class="arch-tier-pill" style="background: var(--primary-light); color: var(--primary);">Tier 2 · Parallel Intelligence & Scoring Engines</span>
+                <span class="arch-tier-meta">Simultaneous continuous regression, risk classification, and deterministic career scoring</span>
+              </div>
+              <div class="arch-tier-grid three-cols">
+                <div class="overview-node" onclick="goToSlide(5)">
+                  <span class="node-live-beacon" title="Live Stage"></span>
+                  <span class="node-layer">Layer 5 · ML 1</span>
+                  <span class="node-title">Performance Predictor</span>
+                  <span class="node-sub">GradientBoosting (R² = 0.21)</span>
+                </div>
+
+                <div class="overview-node" onclick="goToSlide(6)">
+                  <span class="node-live-beacon" title="Live Stage"></span>
+                  <span class="node-layer">Layer 6 · ML 2</span>
+                  <span class="node-title">At-Risk Detection</span>
+                  <span class="node-sub">RandomForest (45% Recall)</span>
+                </div>
+
+                <div class="overview-node" onclick="goToSlide(7)">
+                  <span class="node-live-beacon" title="Live Stage"></span>
+                  <span class="node-layer">Layer 7 · Rule Engine</span>
+                  <span class="node-title">Career Guidance</span>
+                  <span class="node-sub">6-Component Readiness Score</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- INTER-TIER CONNECTOR 2 -> 3 -->
+            <div class="inter-tier-stream">
+              <div class="inter-stream-line">
+                <svg width="40" height="32" viewBox="0 0 40 32">
+                  <line x1="20" y1="2" x2="20" y2="22" stroke="#6C5CE7" stroke-width="2.5" class="dash-stream-v"/>
+                  <circle r="3" fill="#6C5CE7"><animate attributeName="cy" values="4;22;4" dur="1.6s" repeatCount="indefinite" /><animate attributeName="cx" values="20;20;20" dur="1.6s" repeatCount="indefinite" /></circle>
+                  <polygon points="15,20 20,30 25,20" fill="#6C5CE7" />
+                </svg>
+              </div>
+              <span class="inter-stream-label">Model Probabilities, Feature Importance & Peer Telemetry Feed AI & Dashboards</span>
+            </div>
+
+            <!-- TIER 3: GENAI SYNTHESIS & INTERACTIVE DASHBOARDS -->
+            <div class="arch-tier" style="border-color: var(--primary);">
+              <div class="arch-tier-header">
+                <span class="arch-tier-pill" style="background: var(--success-bg); color: #1B5E20; border-color: var(--success-border);">Tier 3 · Synthesis & Operational Surfaces</span>
+                <span class="arch-tier-meta">LLM narrative reasoning and 7 responsive dashboard interfaces</span>
+              </div>
+              <div class="arch-tier-grid two-cols">
+                <div class="overview-node" onclick="goToSlide(8)" style="flex: 1;">
+                  <span class="node-live-beacon" title="Live Stage"></span>
+                  <span class="node-layer">Layer 8</span>
+                  <span class="node-title">GenAI Synthesis & Reasoning</span>
+                  <span class="node-sub">Gemini 3.6 Flash & In-Memory LRU Cache</span>
+                </div>
+
+                <div class="tier-flow-h" title="Synthesis to UI stream">
+                  <svg width="44" height="20" viewBox="0 0 44 20">
+                    <line x1="2" y1="10" x2="34" y2="10" stroke="#6C5CE7" stroke-width="2.5" class="dash-stream"/>
+                    <circle r="3" fill="#6C5CE7"><animate attributeName="cx" values="4;34;4" dur="1.6s" repeatCount="indefinite" /></circle>
+                    <polygon points="32,6 40,10 32,14" fill="#6C5CE7" />
+                  </svg>
+                </div>
+
+                <div class="overview-node" onclick="goToSlide(9)" style="flex: 1; background: var(--primary-light); border-color: var(--primary);">
+                  <span class="node-live-beacon" style="background: var(--primary-dark);" title="Live Stage"></span>
+                  <span class="node-layer" style="color: var(--primary-dark);">Layer 9</span>
+                  <span class="node-title" style="color: var(--primary-dark);">Dashboard UI Surfaces</span>
+                  <span class="node-sub" style="color: var(--primary);">7 Operational Views (ETL, 360°, Heatmap, Predict, Career)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 1: Layer 1 Raw Data Sources -->
+      <div class="presentation-slide" id="slide-1" data-title="Layer 1: Raw Data Sources" data-nav="1">
+        <div class="slide-meta-badge">Slide 02 of 11 &middot; Layer 1</div>
+
+        <section id="layer-1" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 1</span>
+            <div class="layer-title-text">
+              <h2>Raw Multi-Institutional Data Sources</h2>
+              <p>Physical inspection of canonical input files stored in <code class="chip chip-gray">data/raw/</code>. <strong>Click on any dataset name</strong> to view all of its columns.</p>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset File Name (Click to View Columns)</th>
+                  <th>Rows</th>
+                  <th>Columns</th>
+                  <th>Role in Architecture</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <button class="dataset-click-btn" onclick="openDatasetModal('shambhuraje')">
+                      <strong>shambhuraje_placement_career_2026.csv</strong>
+                      <span class="inspect-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 3px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>44 Columns</span></span>
+                    </button>
+                  </td>
+                  <td class="numeric">25,000</td>
+                  <td class="numeric">44</td>
+                  <td><span class="chip chip-primary">Master Anchor</span> Academics, Lifestyle, Demographics & Placement</td>
+                </tr>
+                <tr>
+                  <td>
+                    <button class="dataset-click-btn" onclick="openDatasetModal('kundan')">
+                      <strong>kundan_student_performance.csv</strong>
+                      <span class="inspect-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 3px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>16 Columns</span></span>
+                    </button>
+                  </td>
+                  <td class="numeric">25,000</td>
+                  <td class="numeric">16</td>
+                  <td><span class="chip chip-gray">Secondary</span> Subject Marks (Math, Science, English), Attendance & Study Habits</td>
+                </tr>
+                <tr>
+                  <td>
+                    <button class="dataset-click-btn" onclick="openDatasetModal('sakharebharat')">
+                      <strong>sakharebharat_indian_placement_2025.csv</strong>
+                      <span class="inspect-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 3px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>16 Columns</span></span>
+                    </button>
+                  </td>
+                  <td class="numeric">12,000</td>
+                  <td class="numeric">16</td>
+                  <td><span class="chip chip-gray">Secondary</span> Coding Skills, Aptitude Scores, Degree Stream & Package</td>
+                </tr>
+                <tr>
+                  <td>
+                    <button class="dataset-click-btn" onclick="openDatasetModal('suvidya')">
+                      <strong>suvidya_student_performance.csv</strong>
+                      <span class="inspect-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 3px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>16 Columns</span></span>
+                    </button>
+                  </td>
+                  <td class="numeric">5,000</td>
+                  <td class="numeric">16</td>
+                  <td><span class="chip chip-gray">Secondary</span> Standardized Subject Exam Scores, Percentage & Pass/Fail</td>
+                </tr>
+                <tr>
+                  <td>
+                    <button class="dataset-click-btn" onclick="openDatasetModal('sehaj')">
+                      <strong>sehaj_student_lifestyle.csv</strong>
+                      <span class="inspect-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 3px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>8 Columns</span></span>
+                    </button>
+                  </td>
+                  <td class="numeric">2,000</td>
+                  <td class="numeric">8</td>
+                  <td><span class="chip chip-gray">Secondary</span> Physical Activity, Sleep, Extracurriculars & GPA</td>
+                </tr>
+                <tr>
+                  <td>
+                    <button class="dataset-click-btn" onclick="openDatasetModal('navinpatidar')">
+                      <strong>navinpatidar_indian_placement.csv</strong>
+                      <span class="inspect-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 3px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>10 Columns</span></span>
+                    </button>
+                  </td>
+                  <td class="numeric">1,000</td>
+                  <td class="numeric">10</td>
+                  <td><span class="chip chip-gray">Secondary</span> Graduate Package Details, Tier Demographics & Company Roles</td>
+                </tr>
+                <tr style="background: var(--surface-subtle); font-weight: 600;">
+                  <td>Total Ingested Volume</td>
+                  <td class="numeric">70,000</td>
+                  <td class="numeric">—</td>
+                  <td>6 Multi-Institution Cohorts Ingested Direct from Disk (~7.86 MB uncompressed)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 2: Layer 2 Ingestion & Cleaning -->
+      <div class="presentation-slide" id="slide-2" data-title="Layer 2: Ingestion & Cleaning" data-nav="2">
+        <div class="slide-meta-badge">Slide 03 of 11 &middot; Layer 2</div>
+
+        <section id="layer-2" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 2</span>
+            <div class="layer-title-text">
+              <h2>Data Ingestion & Cleaning Transformations</h2>
+              <p>Individual table cleaning, deduplication, and standardization saved to <code class="chip chip-gray">data/interim/*_clean.csv</code>.</p>
+            </div>
+          </div>
+
+          <div class="cards-grid">
+            <!-- Kundan -->
+            <div class="info-card" style="border-left: 4px solid var(--danger);">
+              <div class="info-card-header">
+                <span class="info-card-title">Kundan Dataset (Deduplication Focus)</span>
+                <span class="chip chip-danger">-10,000 Duplicates</span>
+              </div>
+              <div class="flow-badge">
+                <span>25,000 raw</span>
+                <span class="flow-step-arrow" title="Deduplication stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#E85D75" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#E85D75"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#E85D75"/></svg></span>
+                <span style="color: var(--danger); font-weight: 700;">10k exact duplicates pruned</span>
+                <span class="flow-step-arrow" title="Cleaned stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#4CAF7D" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#4CAF7D"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#4CAF7D"/></svg></span>
+                <span style="font-weight: 700; color: var(--success);">15,000 clean rows</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                Represents the clearest transformation-with-row-count-change in the pipeline. Identical student entries were pruned, scores clipped to [0, 100], and gender standardized to Title Case.
+              </p>
+            </div>
+
+            <!-- Shambhuraje -->
+            <div class="info-card" style="border-left: 4px solid var(--primary);">
+              <div class="info-card-header">
+                <span class="info-card-title">Shambhuraje Master Anchor</span>
+                <span class="chip chip-primary">25,000 Clean Rows</span>
+              </div>
+              <div class="flow-badge">
+                <span>25,000 raw</span>
+                <span class="flow-step-arrow" title="Imputation stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#6C5CE7"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#6C5CE7"/></svg></span>
+                <span>Median null imputation & clipping</span>
+                <span class="flow-step-arrow" title="Cleaned stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#6C5CE7"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#6C5CE7"/></svg></span>
+                <span style="font-weight: 700; color: var(--primary);">25,000 clean rows</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                Imputed specific missing values in <code>github_repos</code>, <code>mock_interview_score</code>, and <code>sleep_hours</code> using medians. Filled unplaced company types with 'Not Placed'.
+              </p>
+            </div>
+
+            <!-- Sakharebharat -->
+            <div class="info-card">
+              <div class="info-card-header">
+                <span class="info-card-title">Sakharebharat Coding Skills</span>
+                <span class="chip chip-success">12,000 Clean Rows</span>
+              </div>
+              <div class="flow-badge">
+                <span>12,000 raw</span>
+                <span class="flow-step-arrow" title="Standardization stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#6C5CE7"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#6C5CE7"/></svg></span>
+                <span>Unplaced company fix & clipping</span>
+                <span class="flow-step-arrow" title="Cleaned stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#4CAF7D" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#4CAF7D"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#4CAF7D"/></svg></span>
+                <span style="font-weight: 700; color: var(--success);">12,000 clean rows</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                Assigned <code>company_type = 'Not Placed'</code> for students where <code>placed == 0</code>. Clipped CGPA to [0, 10] and skill scores to [0, 100].
+              </p>
+            </div>
+
+            <!-- Suvidya -->
+            <div class="info-card">
+              <div class="info-card-header">
+                <span class="info-card-title">Suvidya Intermediate Marks</span>
+                <span class="chip chip-success">5,000 Clean Rows</span>
+              </div>
+              <div class="flow-badge">
+                <span>5,000 raw</span>
+                <span class="flow-step-arrow" title="Keyword collision stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#6C5CE7"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#6C5CE7"/></svg></span>
+                <span>Keyword collision rename</span>
+                <span class="flow-step-arrow" title="Cleaned stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#4CAF7D" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#4CAF7D"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#4CAF7D"/></svg></span>
+                <span style="font-weight: 700; color: var(--success);">5,000 clean rows</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                Renamed reserved Python keyword <code>class</code> to <code>academic_class</code>. Clipped attendance and subject scores to [0.0, 100.0]. Imputed nulls with column medians.
+              </p>
+            </div>
+
+            <!-- Sehaj -->
+            <div class="info-card">
+              <div class="info-card-header">
+                <span class="info-card-title">Sehaj Lifestyle & Wellness</span>
+                <span class="chip chip-success">2,000 Clean Rows</span>
+              </div>
+              <div class="flow-badge">
+                <span>2,000 raw</span>
+                <span class="flow-step-arrow" title="Boundary clipping stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#6C5CE7"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#6C5CE7"/></svg></span>
+                <span>4.0 GPA & hours clipping</span>
+                <span class="flow-step-arrow" title="Cleaned stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#4CAF7D" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#4CAF7D"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#4CAF7D"/></svg></span>
+                <span style="font-weight: 700; color: var(--success);">2,000 clean rows</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                Clipped 0.0–4.0 scale GPA to legal boundaries. Bounded daily activity/sleep hours to [0, 24]. Standardized categorical stress levels to Title Case.
+              </p>
+            </div>
+
+            <!-- Navinpatidar -->
+            <div class="info-card">
+              <div class="info-card-header">
+                <span class="info-card-title">Navinpatidar Placement</span>
+                <span class="chip chip-success">1,000 Clean Rows</span>
+              </div>
+              <div class="flow-badge">
+                <span>1,000 raw</span>
+                <span class="flow-step-arrow" title="LPA derivation stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#6C5CE7"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#6C5CE7"/></svg></span>
+                <span>Currency LPA derivation</span>
+                <span class="flow-step-arrow" title="Cleaned stream"><svg width="18" height="12" viewBox="0 0 18 12"><line x1="1" y1="6" x2="12" y2="6" stroke="#4CAF7D" stroke-width="2" class="dash-stream"/><circle r="1.8" fill="#4CAF7D"><animate attributeName="cx" values="2;12;2" dur="1.4s" repeatCount="indefinite"/><animate attributeName="cy" values="6;6;6" dur="1.4s" repeatCount="indefinite"/></circle><polygon points="11,2 17,6 11,10" fill="#4CAF7D"/></svg></span>
+                <span style="font-weight: 700; color: var(--success);">1,000 clean rows</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                Calculated <code>salary_lpa = salary_inr / 100,000</code>. Verified placement status. Flagged raw columns <code>Name</code> and <code>Email</code> for downstream PII scrubbing.
+              </p>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px; background: var(--surface-subtle); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <h4 style="font-size: 0.9rem; margin-bottom: 8px; font-weight: 700;">Core Transformation Rules Applied Across Ingestion:</h4>
+            <ul style="padding-left: 20px; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+              <li><strong>Identifier Standardization:</strong> Converted all arbitrary column names (mixed CamelCase, PascalCase, whitespace, symbols) to uniform lowercase <code>snake_case</code> identifiers via regex.</li>
+              <li><strong>DataType Enforcement:</strong> Cast numeric scores, percentages, and hours explicitly to <code>float64</code> or <code>int64</code> with strict invalid-character coercion.</li>
+              <li><strong>Scale & Domain Boundary Clipping:</strong> Enforced domain truth: Attendance &isin; [0, 100]%, CGPA &isin; [0, 10] (or [0, 4] for Sehaj), daily hours &isin; [0, 24].</li>
+              <li><strong>PII Neutralization Plan:</strong> Isolated student names and emails from raw placement records, verifying 0 PII leakages in downstream analytical representations.</li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 3: Layer 3 Data Stitching -->
+      <div class="presentation-slide" id="slide-3" data-title="Layer 3: Data Stitching & Confound Analysis" data-nav="3">
+        <div class="slide-meta-badge">Slide 04 of 11 &middot; Layer 3</div>
+
+        <section id="layer-3" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 3</span>
+            <div class="layer-title-text">
+              <h2>Attribute-Based Similarity Stitching</h2>
+              <p>Unified wide master cohort construction implemented in <code class="chip chip-gray">src/etl/stitch.py</code>.</p>
+            </div>
+          </div>
+
+          <!-- Animated Multi-Source Stitching Flow -->
+          <div class="stitching-flow-card">
+            <div class="stitching-flow-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+              <span>Multi-Source Ingestion & Identity Resolution Flow</span>
+            </div>
+
+            <div class="stitching-flow-grid">
+              <!-- Left: 6 Clean Input Sources -->
+              <div class="stitching-sources-list">
+                <div class="stitch-source-pill is-anchor">
+                  <div>
+                    <span style="font-size: 0.65rem; background: var(--primary); color: white; padding: 1px 5px; border-radius: 3px; font-weight: 700; margin-right: 4px;">ANCHOR</span>
+                    <span class="stitch-source-name">shambhuraje</span>
+                  </div>
+                  <span class="stitch-source-rows">25k rows &middot; 44 cols</span>
+                </div>
+                <div class="stitch-source-pill">
+                  <span class="stitch-source-name">kundan</span>
+                  <span class="stitch-source-rows">15k clean &middot; 60%</span>
+                </div>
+                <div class="stitch-source-pill">
+                  <span class="stitch-source-name">sakharebharat</span>
+                  <span class="stitch-source-rows">12k clean &middot; 48%</span>
+                </div>
+                <div class="stitch-source-pill">
+                  <span class="stitch-source-name">suvidya</span>
+                  <span class="stitch-source-rows">5k clean &middot; 20%</span>
+                </div>
+                <div class="stitch-source-pill">
+                  <span class="stitch-source-name">sehaj</span>
+                  <span class="stitch-source-rows">2k clean &middot; 8%</span>
+                </div>
+                <div class="stitch-source-pill">
+                  <span class="stitch-source-name">navinpatidar</span>
+                  <span class="stitch-source-rows">1k clean &middot; 4%</span>
+                </div>
+              </div>
+
+              <!-- Center: Animated Convergence Engine -->
+              <div class="stitching-center-engine">
+                <div class="flow-pipe-h" style="width: 100%; justify-content: space-around;">
+                  <svg width="80" height="26" viewBox="0 0 80 26">
+                    <line x1="2" y1="13" x2="68" y2="13" stroke="#6C5CE7" stroke-width="2.5" class="dash-stream"/>
+                    <circle r="3" fill="#6C5CE7"><animate attributeName="cx" values="4;68;4" dur="1.8s" repeatCount="indefinite" /><animate attributeName="cy" values="13;13;13" dur="1.8s" repeatCount="indefinite" /></circle>
+                    <polygon points="66,8 76,13 66,18" fill="#6C5CE7" />
+                  </svg>
+                </div>
+
+                <div class="engine-core-box">
+                  <span class="box-tag">Similarity Engine</span>
+                  <div class="box-title">Attribute Tertile Matcher</div>
+                  <div class="box-desc">Partitions anchor & secondary into 3 performance tertiles via <code>pd.qcut(q=3)</code>. Merges on branch clusters without replacement.</div>
+                </div>
+
+                <div class="flow-pipe-v" style="margin: 2px 0;">
+                  <svg width="20" height="28" viewBox="0 0 20 28">
+                    <line x1="10" y1="2" x2="10" y2="20" stroke="#D97706" stroke-width="2.5" class="dash-stream-v"/>
+                    <circle r="2.5" fill="#D97706"><animate attributeName="cy" values="3;19;3" dur="1.5s" repeatCount="indefinite" /><animate attributeName="cx" values="10;10;10" dur="1.5s" repeatCount="indefinite" /></circle>
+                    <polygon points="6,18 10,26 14,18" fill="#D97706" />
+                  </svg>
+                </div>
+
+                <div class="engine-filter-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  <span>PII Neutralization (Names & Emails Scrubbed &middot; 0 Row Loss)</span>
+                </div>
+              </div>
+
+              <!-- Right: Master Unified Table -->
+              <div>
+                <div class="stitching-dest-card">
+                  <div class="dest-tag">
+                    <span class="pulse-dot" style="width: 7px; height: 7px;"></span>
+                    <span>Consolidated Master</span>
+                  </div>
+                  <div class="dest-filename">student_master_wide.csv</div>
+                  <div class="dest-metrics">
+                    <strong style="color: var(--text); font-family: 'JetBrains Mono', monospace;">25,000 rows &times; 116 columns</strong>
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--muted); margin-top: 2px;">
+                    Immutable Keys: <code>STU00001–STU25000</code><br>Lineage Flags: <code>has_*_match</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">1. Anchor Selection Rationale</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
+            The Shambhuraje dataset was selected as the <strong>master anchor (25,000 students)</strong> because it provides an unbroken, 100% complete population baseline covering core demographics (branch, gender, state, tier), multi-term academic behaviors, 44 detailed skill attributes, and verified placement outcomes. Anchor records were assigned immutable synthetic IDs: <code class="chip chip-gray">STU00001</code> through <code class="chip chip-gray">STU25000</code>.
+          </p>
+
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">2. Tertile & Demographic Matching Methodology</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
+            Because independent institutional datasets lack a shared universal identifier (such as an SSN or national roll number), the stitching engine executes <strong>attribute-based similarity matching without replacement</strong>. The anchor cohort and secondary tables are partitioned into performance tertiles (<em>Low</em>, <em>Medium</em>, <em>High</em>) using continuous distribution quantiles (<code class="chip chip-gray">pd.qcut(..., q=3)</code>). Within each performance band, records are joined on overlapping demographic attributes (gender and engineering branch clusters: <em>Tech</em> vs. <em>Core Engineering</em>). Matched records are sampled randomly without replacement, ensuring every secondary row joins to at most one anchor student and preserves genuine behavioral correlations.
+          </p>
+
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">3. Master Cohort Match Coverage</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Secondary Dataset Source</th>
+                  <th>Clean Rows Ingested</th>
+                  <th>Matched to Anchor Cohort</th>
+                  <th>Cohort Coverage %</th>
+                  <th>Lineage Flag Column</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Kundan Student Performance</strong></td>
+                  <td class="numeric">15,000</td>
+                  <td class="numeric">15,000</td>
+                  <td><span class="chip chip-primary">60.00%</span></td>
+                  <td><code>has_kundan_match</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Sakharebharat Placement</strong></td>
+                  <td class="numeric">12,000</td>
+                  <td class="numeric">12,000</td>
+                  <td><span class="chip chip-primary">48.00%</span></td>
+                  <td><code>has_sakhare_match</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Suvidya Academic Performance</strong></td>
+                  <td class="numeric">5,000</td>
+                  <td class="numeric">5,000</td>
+                  <td><span class="chip chip-primary">20.00%</span></td>
+                  <td><code>has_suvidya_match</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Sehaj Student Lifestyle</strong></td>
+                  <td class="numeric">2,000</td>
+                  <td class="numeric">2,000</td>
+                  <td><span class="chip chip-primary">8.00%</span></td>
+                  <td><code>has_sehaj_match</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Navinpatidar Placement</strong></td>
+                  <td class="numeric">1,000</td>
+                  <td class="numeric">1,000</td>
+                  <td><span class="chip chip-primary">4.00%</span></td>
+                  <td><code>has_navin_match</code></td>
+                </tr>
+                <tr style="background: var(--surface-subtle); font-weight: 600;">
+                  <td>Unified Master Wide Table</td>
+                  <td class="numeric">25,000 rows</td>
+                  <td class="numeric">116 columns</td>
+                  <td>100% Secondary Retention</td>
+                  <td><code>student_master_wide.csv</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin: 16px 0; font-size: 0.85rem; color: var(--text-secondary); background: #F4FBF7; border: 1px solid #D1E7DD; padding: 12px 16px; border-radius: var(--radius-sm);">
+            <strong>PII Scrubbing Verification:</strong> During final preparation (<code class="chip chip-gray">fix_and_prepare.py</code>), the personal identifier columns <code>navin_name</code> and <code>navin_email</code> were dropped from the master wide table. Net student row loss was exactly <strong>0 rows</strong> (100% population preservation), verified by zero remaining 'name' or 'email' substrings across all 116 columns.
+          </div>
+
+          <!-- Amber Confound Box -->
+          <div class="callout callout-amber">
+            <div class="callout-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+            <div class="callout-content">
+              <h4>Stitching-Induced Correlation Confound (The Suvidya Ceiling Test Finding)</h4>
+              <p>
+                During evaluation of an external risk proxy (<code>suvidya_pass_fail</code> on 5,000 matched students), testing an academic-enhanced model (Model B) against a lifestyle-only model (Model A) showed an apparent dramatic leap in <strong>ROC AUC from 0.6065 to 0.8728 (&Delta; = +0.2663)</strong>.
+              </p>
+              <p style="margin-top: 6px;">
+                <strong>Honest Methodological Finding:</strong> Feature importance analysis revealed that <strong>59.32% of Model B's predictive power was driven exclusively by <code>anchor_cgpa</code></strong>. Because anchor CGPA tertiles were used as the primary similarity key during data stitching, secondary academic features inherit an artificially amplified synthetic relationship with the anchor target. This finding is transparently disclosed to ensure reviewers understand that synthetic attribute alignment can introduce subtle confounding into downstream ML models.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 4: Layer 4 Star Schema Warehouse -->
+      <div class="presentation-slide" id="slide-4" data-title="Layer 4: Star Schema Data Warehouse" data-nav="4">
+        <div class="slide-meta-badge">Slide 05 of 11 &middot; Layer 4</div>
+
+        <section id="layer-4" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 4</span>
+            <div class="layer-title-text">
+              <h2>Star Schema Data Warehouse</h2>
+              <p>Normalized relational modeling in PostgreSQL 16 with automatic SQLite fallback (<code class="chip chip-gray">data/processed/warehouse.db</code>).</p>
+            </div>
+          </div>
+
+          <!-- Animated Warehouse Star Schema Flow -->
+          <div class="pipeline-flow-ribbon">
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 1 · Source</span>
+              <div class="step-title">Master Wide CSV</div>
+              <div class="step-sub">25,000 &times; 116 denormalized table</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step highlight">
+              <span class="step-badge">Stage 2 · ETL Engine</span>
+              <div class="step-title">src/etl/load.py</div>
+              <div class="step-sub">PostgreSQL DDL & FK Constraints</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 3 · Star Tables</span>
+              <div class="step-title">1 Dim + 4 Facts</div>
+              <div class="step-sub">180,000 verified rows loaded</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge" style="color: var(--success);">Stage 4 · Resilience</span>
+              <div class="step-title">SQLite Fallback</div>
+              <div class="step-sub">data/processed/warehouse.db</div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin-bottom: 12px;">Relational Star Schema Model</h3>
+          <div class="er-diagram-container">
+            <!-- Central Dimension -->
+            <div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 8px;">Central Dimension Table</div>
+              <div class="er-entity" style="border: 2px solid var(--primary-border);">
+                <div class="er-entity-header">
+                  <span class="er-entity-name">dim_student</span>
+                  <span class="er-entity-rows">25,000 rows</span>
+                </div>
+                <ul class="er-fields">
+                  <li class="er-field"><span class="pk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="m21 2-2 2m-1.5 1.5L16 7l-1.5-1.5L13 7l1.5 1.5L13 10l-1.5-1.5L10 10l1.5 1.5L10 13l-1.5-1.5L7 13l1.5 1.5-4.24 4.24a3 3 0 0 0 4.24 4.24L17 14.5l1.5 1.5L20 14.5 18.5 13 20 11.5l-1.5-1.5L20 8.5 18.5 7 20 5.5l-1.5-1.5L20 2.5 18.5 1Z"></path><circle cx="7.5" cy="16.5" r="1.5"></circle></svg>student_id</span><span>VARCHAR(16) [PK]</span></li>
+                  <li class="er-field"><span>gender</span><span>VARCHAR(16)</span></li>
+                  <li class="er-field"><span>age</span><span>INTEGER</span></li>
+                  <li class="er-field"><span>stream_branch</span><span>VARCHAR(64)</span></li>
+                  <li class="er-field"><span>degree</span><span>VARCHAR(32)</span></li>
+                  <li class="er-field"><span>college_tier</span><span>INTEGER</span></li>
+                  <li class="er-field"><span>city_tier</span><span>INTEGER</span></li>
+                  <li class="er-field"><span>state</span><span>VARCHAR(64)</span></li>
+                  <li class="er-field"><span>family_income_lpa</span><span>FLOAT</span></li>
+                </ul>
+              </div>
+
+              <div class="er-connector-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; flex-shrink: 0;"><polyline points="9 10 4 15 9 20"></polyline><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg>
+                <span>All 3 Fact tables enforce strict <code>FOREIGN KEY (student_id) REFERENCES dim_student(student_id) ON DELETE CASCADE</code> at the database engine level.</span>
+              </div>
+            </div>
+
+            <!-- Fact Tables -->
+            <div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 8px;">Normalized Fact Tables</div>
+              
+              <!-- fact_performance -->
+              <div class="er-entity">
+                <div class="er-entity-header">
+                  <span class="er-entity-name">fact_performance</span>
+                  <span class="er-entity-rows">105,000 rows (Long Format)</span>
+                </div>
+                <ul class="er-fields">
+                  <li class="er-field"><span class="fk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>student_id</span><span>VARCHAR(16) [FK]</span></li>
+                  <li class="er-field"><span>source</span><span>VARCHAR(64) (Suvidya, Kundan, Anchor)</span></li>
+                  <li class="er-field"><span>assessment_term</span><span>VARCHAR(64)</span></li>
+                  <li class="er-field"><span>subject</span><span>VARCHAR(64) (Math, Science, English, etc.)</span></li>
+                  <li class="er-field"><span>marks / max_marks</span><span>FLOAT / FLOAT</span></li>
+                  <li class="er-field"><span>attendance_pct</span><span>FLOAT</span></li>
+                  <li class="er-field"><span>grade_or_status</span><span>VARCHAR(32)</span></li>
+                </ul>
+              </div>
+
+              <!-- fact_lifestyle -->
+              <div class="er-entity">
+                <div class="er-entity-header">
+                  <span class="er-entity-name">fact_lifestyle</span>
+                  <span class="er-entity-rows">25,000 rows</span>
+                </div>
+                <ul class="er-fields">
+                  <li class="er-field"><span class="fk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>student_id</span><span>VARCHAR(16) [FK]</span></li>
+                  <li class="er-field"><span>sleep_hours / screen_time_hours</span><span>FLOAT / FLOAT</span></li>
+                  <li class="er-field"><span>gaming_hours / study_hours_daily</span><span>FLOAT / FLOAT</span></li>
+                  <li class="er-field"><span>stress_level / burnout_score</span><span>INTEGER / INTEGER (0-10)</span></li>
+                  <li class="er-field"><span>gym_frequency / motivation_level</span><span>INTEGER / INTEGER</span></li>
+                  <li class="er-field"><span>lifestyle_risk_flag</span><span>VARCHAR(32)</span></li>
+                </ul>
+              </div>
+
+              <!-- fact_career -->
+              <div class="er-entity">
+                <div class="er-entity-header">
+                  <span class="er-entity-name">fact_career</span>
+                  <span class="er-entity-rows">25,000 rows</span>
+                </div>
+                <ul class="er-fields">
+                  <li class="er-field"><span class="fk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>student_id</span><span>VARCHAR(16) [FK]</span></li>
+                  <li class="er-field"><span>cgpa / backlogs</span><span>FLOAT / INTEGER</span></li>
+                  <li class="er-field"><span>internships / dsa_problems_solved</span><span>INTEGER / INTEGER</span></li>
+                  <li class="er-field"><span>communication / aptitude / mock_interview</span><span>INTEGER / INTEGER / INTEGER</span></li>
+                  <li class="er-field"><span>placement_status / company_type</span><span>VARCHAR(32) / VARCHAR(32)</span></li>
+                  <li class="er-field"><span>salary_lpa / offer_count</span><span>FLOAT / INTEGER</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin: 20px 0 8px 0;">Warehouse Table Inventory & Row Counts</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Table Name</th>
+                  <th>Row Count</th>
+                  <th>Column Count</th>
+                  <th>Primary / Foreign Key Constraints</th>
+                  <th>Sub-Cohort Origins</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>dim_student</strong></td>
+                  <td class="numeric">25,000</td>
+                  <td class="numeric">9</td>
+                  <td><code class="chip chip-warning">PRIMARY KEY (student_id)</code></td>
+                  <td>Master Demographic Anchor (Shambhuraje)</td>
+                </tr>
+                <tr>
+                  <td><strong>fact_performance</strong></td>
+                  <td class="numeric">105,000</td>
+                  <td class="numeric">8</td>
+                  <td><code class="chip chip-primary">FOREIGN KEY (student_id)</code></td>
+                  <td>20k Suvidya (4 subjs) + 60k Kundan (4 subjs) + 25k Master CGPA</td>
+                </tr>
+                <tr>
+                  <td><strong>fact_lifestyle</strong></td>
+                  <td class="numeric">25,000</td>
+                  <td class="numeric">12</td>
+                  <td><code class="chip chip-primary">FOREIGN KEY (student_id)</code></td>
+                  <td>Habits, Screen, Sleep, Stress & Sehaj Physical Activity</td>
+                </tr>
+                <tr>
+                  <td><strong>fact_career</strong></td>
+                  <td class="numeric">25,000</td>
+                  <td class="numeric">16</td>
+                  <td><code class="chip chip-primary">FOREIGN KEY (student_id)</code></td>
+                  <td>DSA, Github, Aptitude, Mock Interviews & Placement Records</td>
+                </tr>
+                <tr style="background: var(--surface-subtle); font-weight: 700;">
+                  <td>Total Star-Schema Records</td>
+                  <td class="numeric">180,000</td>
+                  <td class="numeric">45 total</td>
+                  <td>Enforced FK Constraints Active</td>
+                  <td>PostgreSQL 16 Primary / SQLite Fallback</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="font-size: 0.85rem; color: var(--text-secondary); background: var(--surface-subtle); border: 1px solid var(--border); padding: 14px 18px; border-radius: var(--radius-sm); margin-top: 14px;">
+            <strong>Docker Auto-ETL & Fallback Architecture:</strong> When orchestrated via <code>docker compose up</code>, the container entrypoint (<code class="chip chip-gray">docker/entrypoint.sh</code>) probes PostgreSQL for schema tables. If empty or absent, it automatically triggers <code class="chip chip-gray">src/etl/load.py</code> to build the star schema and enforce foreign keys before launching the FastAPI server. If PostgreSQL is stopped, the backend automatically fails over to <code class="chip chip-gray">data/processed/warehouse.db</code> without user intervention.
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 5: Layer 5 Model 1 — Performance Prediction -->
+      <div class="presentation-slide" id="slide-5" data-title="Layer 5: Model 1 — Performance Predictor" data-nav="5">
+        <div class="slide-meta-badge">Slide 06 of 11 &middot; Layer 5</div>
+
+        <section id="layer-5" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 5</span>
+            <div class="layer-title-text">
+              <h2>Model 1: Academic Performance Predictor</h2>
+              <p>Supervised continuous regression for student GPA trajectory modeling (<code class="chip chip-gray">models/model1_performance_predictor.joblib</code>).</p>
+            </div>
+          </div>
+
+          <!-- Animated Model 1 Pipeline Flow -->
+          <div class="pipeline-flow-ribbon">
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 1 · Input Matrix</span>
+              <div class="step-title">28 Features Matrix</div>
+              <div class="step-sub">13 raw + 11 anchor + 4 formulas</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 2 · Train Split</span>
+              <div class="step-title">80 / 20 Partition</div>
+              <div class="step-sub">20,000 train / 5,000 test</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step highlight">
+              <span class="step-badge">Stage 3 · Regressor</span>
+              <div class="step-title">GradientBoosting</div>
+              <div class="step-sub">200 estimators &middot; lr=0.05</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge" style="color: var(--success);">Stage 4 · Advisory Deliverable</span>
+              <div class="step-title">Interactive Simulator</div>
+              <div class="step-sub">R² = 0.2096 &middot; Dashboard View 4</div>
+            </div>
+          </div>
+
+          <div class="cards-grid">
+            <div class="info-card">
+              <span class="info-card-title">Model Specifications</span>
+              <ul style="list-style: none; font-size: 0.82rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px; margin-top: 6px;">
+                <li><strong>Algorithm:</strong> <code>GradientBoostingRegressor</code></li>
+                <li><strong>Hyperparameters:</strong> <code>n_estimators=200, max_depth=3, lr=0.05, min_samples_leaf=5, max_features='sqrt'</code></li>
+                <li><strong>Target Variable:</strong> <code>anchor_cgpa</code> (0.0–10.0 scale)</li>
+                <li><strong>Train / Test Split:</strong> 20,000 train / 5,000 test (80/20, random_state=42)</li>
+                <li><strong>Feature Matrix:</strong> 28 features (13 original + 11 anchor + 4 engineered)</li>
+              </ul>
+            </div>
+
+            <div class="info-card">
+              <span class="info-card-title">Live-Verified Test Metrics</span>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; text-align: center;">
+                <div style="background: white; border: 1px solid var(--border); padding: 8px; border-radius: var(--radius-sm);">
+                  <div style="font-size: 0.7rem; color: var(--muted);">RMSE</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--text);">0.7581</div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); padding: 8px; border-radius: var(--radius-sm);">
+                  <div style="font-size: 0.7rem; color: var(--muted);">MAE</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--text);">0.6022</div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); padding: 8px; border-radius: var(--radius-sm);">
+                  <div style="font-size: 0.7rem; color: var(--muted);">R² Score</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--primary);">0.2096</div>
+                </div>
+              </div>
+              <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">
+                Model accounts for ~21% of variance in student CGPA, serving as an interactive trajectory guide.
+              </p>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin: 20px 0 8px 0;">Engineered Interaction Features (4 Formulas)</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Engineered Feature Name</th>
+                  <th>Mathematical / Transformation Formula</th>
+                  <th>Behavioral Rationale</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>effort_score</code></td>
+                  <td><code>anchor_study_hours_daily + anchor_self_learning_hours</code></td>
+                  <td>Captures combined total self-directed and structured daily learning dedication.</td>
+                </tr>
+                <tr>
+                  <td><code>screen_to_study_ratio</code></td>
+                  <td><code>anchor_screen_time / (anchor_study_hours_daily + 1)</code></td>
+                  <td>Quantifies leisure and recreational distraction relative to active study investment.</td>
+                </tr>
+                <tr>
+                  <td><code>wellness_score</code></td>
+                  <td><code>anchor_sleep_hours - (stress / 10.0) - (burnout / 10.0)</code></td>
+                  <td>Holistic wellness index balancing restorative sleep against academic distress.</td>
+                </tr>
+                <tr>
+                  <td><code>project_activity</code></td>
+                  <td><code>development_projects + ai_ml_projects + hackathons</code></td>
+                  <td>Aggregates experiential technical learning and real-world practical application.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Collapsible 28 Features -->
+          <details open>
+            <summary>View Complete 28-Feature Input Matrix Categorization</summary>
+            <div class="details-body">
+              <div class="feature-group">
+                <div class="feature-group-title">1. Academic Effort & Engagement (5 Features)</div>
+                <div class="feature-tags">
+                  <span class="feature-tag">anchor_attendance_percentage</span>
+                  <span class="feature-tag">anchor_study_hours_daily</span>
+                  <span class="feature-tag">anchor_self_learning_hours</span>
+                  <span class="feature-tag">anchor_backlog_history</span>
+                  <span class="feature-tag engineered">effort_score [ENG]</span>
+                </div>
+              </div>
+
+              <div class="feature-group">
+                <div class="feature-group-title">2. Lifestyle, Habits & Wellness (7 Features)</div>
+                <div class="feature-tags">
+                  <span class="feature-tag">anchor_sleep_hours</span>
+                  <span class="feature-tag">anchor_screen_time</span>
+                  <span class="feature-tag">anchor_gaming_hours</span>
+                  <span class="feature-tag">anchor_stress_level</span>
+                  <span class="feature-tag">anchor_burnout_score</span>
+                  <span class="feature-tag engineered">screen_to_study_ratio [ENG]</span>
+                  <span class="feature-tag engineered">wellness_score [ENG]</span>
+                </div>
+              </div>
+
+              <div class="feature-group">
+                <div class="feature-group-title">3. Technical Skills & Project Portfolio (11 Features)</div>
+                <div class="feature-tags">
+                  <span class="feature-tag">anchor_dsa_problems_solved (Top Importance: 30.1%)</span>
+                  <span class="feature-tag">anchor_internships_completed</span>
+                  <span class="feature-tag">anchor_resume_score</span>
+                  <span class="feature-tag">anchor_communication_skills</span>
+                  <span class="feature-tag">anchor_aptitude_score</span>
+                  <span class="feature-tag">anchor_mock_interview_score</span>
+                  <span class="feature-tag">anchor_hackathons_participated</span>
+                  <span class="feature-tag">anchor_development_projects_count</span>
+                  <span class="feature-tag">anchor_ai_ml_projects</span>
+                  <span class="feature-tag">anchor_git_hub_repos</span>
+                  <span class="feature-tag engineered">project_activity [ENG]</span>
+                </div>
+              </div>
+
+              <div class="feature-group">
+                <div class="feature-group-title">4. Contextual & Behavioral Adaptability (5 Features)</div>
+                <div class="feature-tags">
+                  <span class="feature-tag">anchor_motivation_level</span>
+                  <span class="feature-tag">anchor_family_income_lpa</span>
+                  <span class="feature-tag">anchor_ai_tool_usage_frequency</span>
+                  <span class="feature-tag">anchor_prompt_engineering_skill</span>
+                  <span class="feature-tag">anchor_adaptability_score</span>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <!-- Model 1 Callout -->
+          <div class="callout callout-purple">
+            <div class="callout-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"></line><line x1="10" y1="22" x2="14" y2="22"></line><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg></div>
+            <div class="callout-content">
+              <h4>Honest Performance Assessment: Directional Guidance Only (R² = 0.2096)</h4>
+              <p>
+                Academic performance in college has significant natural variance influenced by unmeasured exams, teaching disparities, and personal events. Explaining ~21% of variance with behavioral and skill telemetry alone represents genuine, non-overfit academic signal. Model 1 is integrated into <code>POST /api/models/predict-performance</code> and Dashboard View 4 strictly as an interactive slider simulator for advisors, not a deterministic grading oracle.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 6: Layer 6 Model 2 — At-Risk Detection -->
+      <div class="presentation-slide" id="slide-6" data-title="Layer 6: Model 2 — At-Risk Classifier" data-nav="6">
+        <div class="slide-meta-badge">Slide 07 of 11 &middot; Layer 6</div>
+
+        <section id="layer-6" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 6</span>
+            <div class="layer-title-text">
+              <h2>Model 2: Early-Warning At-Risk Classifier</h2>
+              <p>Early behavioral risk screening classifier (<code class="chip chip-gray">models/model2_atrisk_classifier.joblib</code>).</p>
+            </div>
+          </div>
+
+          <!-- Animated Model 2 Pipeline Flow -->
+          <div class="pipeline-flow-ribbon">
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 1 · Composite Label</span>
+              <div class="step-title">Risk Formulation</div>
+              <div class="step-sub">31.9% at-risk / 68.1% safe balance</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#E85D75" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#E85D75"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#E85D75" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 2 · Isolation</span>
+              <div class="step-title">Leakage Scrubbing</div>
+              <div class="step-sub">CGPA, backlogs & att removed</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#E85D75" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#E85D75"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#E85D75" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step highlight">
+              <span class="step-badge">Stage 3 · Classifier</span>
+              <div class="step-title">RandomForest</div>
+              <div class="step-sub">100 estimators &middot; depth=5</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#D97706" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#D97706"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#D97706" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge" style="color: var(--warning);">Stage 4 · Early Warning</span>
+              <div class="step-title">Calibrated Screening</div>
+              <div class="step-sub">45% Recall &middot; Amber Disclosure</div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">1. Ground-Truth Target Label Formulation</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+            To overcome severe target imbalance in raw placement status (98.4% placed), an operational composite academic risk label was formulated across all 25,000 students:
+          </p>
+
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-left: 4px solid var(--primary); padding: 12px 18px; border-radius: var(--radius-sm); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-bottom: 16px;">
+            at_risk_flag = 1 if (anchor_backlog_history &ge; 1 OR anchor_attendance_percentage &lt; 55 OR anchor_cgpa &lt; 5.5) else 0
+          </div>
+
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
+            Resulting Population Balance: <strong>68.1% Safe (17,025 students) / 31.9% At-Risk (7,975 students)</strong>. On the 5,000 held-out test split: 3,405 Safe / 1,595 At-Risk.
+          </p>
+
+          <!-- Red Leakage Callout Box -->
+          <div class="callout callout-coral">
+            <div class="callout-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
+            <div class="callout-content">
+              <h4>Strict Label Leakage Elimination: Why 3 Features Were Explicitly Excluded</h4>
+              <p>
+                When an ML model predicts <code>at_risk_flag</code> while including <code>anchor_backlog_history</code>, <code>anchor_attendance_percentage</code>, or <code>anchor_cgpa</code>, its test accuracy trivially exceeds 99%. However, this is <strong>mathematical circularity (target leakage)</strong> — the model is merely discovering the definition of the label rather than discovering early predictive signals.
+              </p>
+              <div style="display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
+                <div style="background: #FFFFFF; border: 1px solid var(--danger-border); padding: 8px 14px; border-radius: var(--radius-sm);">
+                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--danger);">EXCLUDED COLUMNS (LEAKAGE):</span>
+                  <div style="margin-top: 4px;" class="feature-tags">
+                    <span class="feature-tag leakage">anchor_backlog_history</span>
+                    <span class="feature-tag leakage">anchor_attendance_percentage</span>
+                    <span class="feature-tag leakage">anchor_cgpa</span>
+                  </div>
+                </div>
+                <div style="background: #FFFFFF; border: 1px solid var(--success-border); padding: 8px 14px; border-radius: var(--radius-sm);">
+                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--success);">INCLUDED MATRIX (23 FEATURES):</span>
+                  <span style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-top: 4px;">Exclusively Lifestyle, Study Hours, Motivation, Wellness & Skills.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin: 20px 0 8px 0;">2. Live-Verified Test Evaluation & 2x2 Confusion Matrix</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; align-items: center;">
+            
+            <!-- Metrics Table -->
+            <div class="table-container" style="margin: 0;">
+              <table>
+                <thead>
+                  <tr><th>Metric Name</th><th>Verified Score</th><th>Interpretation</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><strong>ROC AUC</strong></td><td class="numeric">0.5044</td><td>Near-random separation with lifestyle alone</td></tr>
+                  <tr><td><strong>Recall (Class 1)</strong></td><td class="numeric">0.4514 (45.14%)</td><td>Captures 45% of genuine at-risk students</td></tr>
+                  <tr><td><strong>Precision (Class 1)</strong></td><td class="numeric">0.3230 (32.30%)</td><td>~1 in 3 flags is a true at-risk case</td></tr>
+                  <tr><td><strong>Accuracy</strong></td><td class="numeric">0.5232 (52.32%)</td><td>Overall accuracy on 5,000 test cohort</td></tr>
+                  <tr><td><strong>Algorithm</strong></td><td colspan="2"><code>RandomForest (n_est=600, depth=6, balanced)</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 2x2 Confusion Matrix -->
+            <div class="cm-wrapper">
+              <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text);">Held-Out Test Confusion Matrix (N = 5,000)</div>
+              <div class="cm-grid">
+                <div></div>
+                <div class="cm-header-cell">Pred Safe</div>
+                <div class="cm-header-cell">Pred At-Risk</div>
+
+                <div class="cm-header-cell" style="writing-mode: vertical-rl; transform: rotate(180deg); margin: auto;">Actual Safe</div>
+                <div class="cm-cell tn">
+                  <span class="cm-tag">True Neg</span>
+                  <span class="cm-val">1,896</span>
+                  <span class="cm-pct">37.9% of total</span>
+                </div>
+                <div class="cm-cell fp">
+                  <span class="cm-tag">False Pos</span>
+                  <span class="cm-val">1,509</span>
+                  <span class="cm-pct">30.2% of total</span>
+                </div>
+
+                <div class="cm-header-cell" style="writing-mode: vertical-rl; transform: rotate(180deg); margin: auto;">Actual Risk</div>
+                <div class="cm-cell fn">
+                  <span class="cm-tag">False Neg</span>
+                  <span class="cm-val">875</span>
+                  <span class="cm-pct">17.5% of total</span>
+                </div>
+                <div class="cm-cell tp">
+                  <span class="cm-tag">True Pos</span>
+                  <span class="cm-val">720</span>
+                  <span class="cm-pct">14.4% of total</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout callout-amber" style="margin-top: 20px;">
+            <div class="callout-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+            <div class="callout-content">
+              <h4>Advisory Screening Filter, Not an Automated Disciplinary Trigger</h4>
+              <p>
+                Because academic telemetry was deliberately removed to prevent leakage, lifestyle variables alone achieve Recall = 45% and AUC = 0.50. Approximately 2 in 3 flagged students are false alarms. The platform explicitly embeds this calibration caveat directly into the Dashboard View 3 alert banner and GenAI prompts: advisors use this roster as a conversation starter for check-ins, never for automated penalties.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 7: Layer 7 Career Guidance Engine -->
+      <div class="presentation-slide" id="slide-7" data-title="Layer 7: Career Guidance Engine" data-nav="7">
+        <div class="slide-meta-badge">Slide 08 of 11 &middot; Layer 7</div>
+
+        <section id="layer-7" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 7</span>
+            <div class="layer-title-text">
+              <h2>Career Guidance & Readiness Engine</h2>
+              <p>Deterministic weighted composite and peer benchmarking service (<code class="chip chip-gray">src/api/main.py</code>).</p>
+            </div>
+          </div>
+
+          <!-- Animated Career Engine Flow -->
+          <div class="pipeline-flow-ribbon">
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 1 · 6 Components</span>
+              <div class="step-title">Raw Telemetry</div>
+              <div class="step-sub">DSA, Internships, Aptitude, Comm, etc.</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 2 · Scaling</span>
+              <div class="step-title">Min-Max Normalization</div>
+              <div class="step-sub">Scaled & clipped to [0.0, 100.0]</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step highlight">
+              <span class="step-badge">Stage 3 · Composite</span>
+              <div class="step-title">Weighted Sum (100%)</div>
+              <div class="step-sub">Deterministic non-ML rule scoring</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge" style="color: var(--success);">Stage 4 · Benchmarking</span>
+              <div class="step-title">Branch Peer Rank</div>
+              <div class="step-sub">Percentile gaps & focus triage</div>
+            </div>
+          </div>
+
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); padding: 14px 18px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 0.85rem; color: var(--text-secondary);">
+            <strong>Rule-Based Design Architecture:</strong> Career readiness scoring is deliberately <strong>NOT an ML model</strong> (<code>src/models/train_career_model.py</code> is an intentional 0-byte stub). Instead, career readiness is a domain-calibrated, deterministic weighted composite designed to provide predictable, transparent skill feedback.
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin-bottom: 12px;">1. Component Weights Breakdown (6 Skills = 100%)</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="info-card">
+              <div class="weight-item">
+                <div class="weight-header"><span>DSA Problem Solving</span><span>25%</span></div>
+                <div class="weight-bar-bg"><div class="weight-bar-fill" style="width: 25%;"></div></div>
+              </div>
+              <div class="weight-item">
+                <div class="weight-header"><span>Industry Internships</span><span>20%</span></div>
+                <div class="weight-bar-bg"><div class="weight-bar-fill" style="width: 20%;"></div></div>
+              </div>
+              <div class="weight-item">
+                <div class="weight-header"><span>Communication Skills</span><span>15%</span></div>
+                <div class="weight-bar-bg"><div class="weight-bar-fill" style="width: 15%;"></div></div>
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="weight-item">
+                <div class="weight-header"><span>Aptitude Score</span><span>15%</span></div>
+                <div class="weight-bar-bg"><div class="weight-bar-fill" style="width: 15%;"></div></div>
+              </div>
+              <div class="weight-item">
+                <div class="weight-header"><span>Development & AI Projects</span><span>15%</span></div>
+                <div class="weight-bar-bg"><div class="weight-bar-fill" style="width: 15%;"></div></div>
+              </div>
+              <div class="weight-item">
+                <div class="weight-header"><span>Mock Interview Score</span><span>10%</span></div>
+                <div class="weight-bar-bg"><div class="weight-bar-fill" style="width: 10%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">2. Normalization & Peer Benchmarking Mechanics</h3>
+          <ul style="padding-left: 20px; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
+            <li><strong>Population Normalization:</strong> Each component value is normalized against the full 25,000 student population minimum and maximum: <code>norm = (raw - min) / (max - min) * 100.0</code>, clipped safely to [0.0, 100.0]. (Projects combines <code>anchor_development_projects_count</code> + <code>anchor_ai_ml_projects</code>).</li>
+            <li><strong>Branch & Tier Peer Subgroup:</strong> Students are benchmarked against peers enrolled in their exact same branch and college tier (e.g., Computer Science &middot; Tier 2).</li>
+            <li><strong>Skill Gap Ranking:</strong> The student's empirical percentile rank within their branch is calculated for each of the 6 components. The lowest percentile component is surfaced as the <strong>Suggested Focus Area</strong> with rule-based recommendations.</li>
+            <li><strong>Progressive Band-Widening Fallback for Placement Reference:</strong> To query historical placement rate and average salary for peers with similar readiness scores, the engine searches within progressive score bands: <strong>&plusmn;10 pts &rarr; &plusmn;15 pts &rarr; &plusmn;20 pts</strong> requiring a minimum sample size of <strong>N &ge; 30 peers</strong>. If still under 30, it falls back to the coarse branch+tier subgroup; if still under 30, it flags <code>insufficient_peer_data: true</code> to avoid publishing unreliable small-sample stats.</li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- SLIDE 8: Layer 8 GenAI Synthesis Layer -->
+      <div class="presentation-slide" id="slide-8" data-title="Layer 8: GenAI Synthesis Layer" data-nav="8">
+        <div class="slide-meta-badge">Slide 09 of 11 &middot; Layer 8</div>
+
+        <section id="layer-8" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 8</span>
+            <div class="layer-title-text">
+              <h2>GenAI Synthesis & Reasoning Layer</h2>
+              <p>Non-hallucinatory narrative generation using Google Gemini (<code class="chip chip-gray">src/genai/insights.py</code>).</p>
+            </div>
+          </div>
+
+          <!-- Animated GenAI Pipeline Flow -->
+          <div class="pipeline-flow-ribbon">
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 1 · Signals</span>
+              <div class="step-title">Student Telemetry</div>
+              <div class="step-sub">Model outputs & lifestyle drivers</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 2 · Cache Gate</span>
+              <div class="step-title">SHA-256 Digest</div>
+              <div class="step-sub">In-memory cache bypasses LLM</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step highlight">
+              <span class="step-badge">Stage 3 · Generation</span>
+              <div class="step-title">gemini-3.6-flash</div>
+              <div class="step-sub">Zero-hallucination prompt bounds</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge" style="color: var(--success);">Stage 4 · Reliability</span>
+              <div class="step-title">Fallback Guarantee</div>
+              <div class="step-sub">Zero-downtime template on 429/503</div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+            <div class="stat-card" style="flex: 1; min-width: 220px;">
+              <div class="stat-label">Active Gemini Model</div>
+              <div class="stat-val" style="font-size: 1.15rem; color: var(--primary);">gemini-3.6-flash</div>
+              <div class="stat-desc">Configured in insights.py with flash fallback list</div>
+            </div>
+            <div class="stat-card" style="flex: 1; min-width: 220px;">
+              <div class="stat-label">In-Memory Caching Key</div>
+              <div class="stat-val" style="font-size: 1.05rem; font-family: 'JetBrains Mono', monospace;">func:sid:sha256[:16]</div>
+              <div class="stat-desc">Keyed on student ID + payload digest</div>
+            </div>
+            <div class="stat-card" style="flex: 1; min-width: 220px;">
+              <div class="stat-label">Zero-Downtime Fallback</div>
+              <div class="stat-val" style="font-size: 1.15rem; color: var(--success);">Deterministic</div>
+              <div class="stat-desc">Activates on 503, 429, or missing API key</div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.05rem; margin-bottom: 12px;">The 3 Production GenAI Functions</h3>
+          <div class="cards-grid">
+            <!-- Func 1 -->
+            <div class="info-card">
+              <span class="info-card-title">1. At-Risk Mentor Brief</span>
+              <div style="font-size: 0.75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;">GET /api/genai/atrisk-brief/{student_id}</div>
+              <ul style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; padding-left: 16px; display: flex; flex-direction: column; gap: 4px;">
+                <li><strong>Input Data:</strong> Model 2 probability, risk label, top contributing lifestyle factor with z-score deviation.</li>
+                <li><strong>Instructions:</strong> Draft 3-4 sentence faculty brief explaining the top factor, citing the exact model reliability calibration (45% recall, 32% precision), and proposing a 10-minute check-in.</li>
+                <li><strong>Prohibitions:</strong> Must NOT invent clinical diagnoses or speculate on personal reasons.</li>
+              </ul>
+            </div>
+
+            <!-- Func 2 -->
+            <div class="info-card">
+              <span class="info-card-title">2. Performance Trajectory Summary</span>
+              <div style="font-size: 0.75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;">GET /api/genai/performance-summary/{student_id}</div>
+              <ul style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; padding-left: 16px; display: flex; flex-direction: column; gap: 4px;">
+                <li><strong>Input Data:</strong> Current CGPA, Model 1 predicted CGPA, top 3 feature importances (DSA, Study Hours, Communication).</li>
+                <li><strong>Instructions:</strong> Explain direction (improving, stable, declining) and primary driver, with explicit note that R²=0.21 is a rough directional signal.</li>
+                <li><strong>Prohibitions:</strong> Must NOT present predicted CGPA as a guaranteed grade.</li>
+              </ul>
+            </div>
+
+            <!-- Func 3 -->
+            <div class="info-card">
+              <span class="info-card-title">3. Student Career Guidance Narrative</span>
+              <div style="font-size: 0.75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;">GET /api/genai/career-guidance/{student_id}</div>
+              <ul style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; padding-left: 16px; display: flex; flex-direction: column; gap: 4px;">
+                <li><strong>Input Data:</strong> Career Readiness Score, peer average, skill gap percentiles, rule-based suggestion, historical placement stats.</li>
+                <li><strong>Instructions:</strong> Generate warm, actionable mentorship narrative citing peer stats as encouraging context.</li>
+                <li><strong>Prohibitions:</strong> Must NOT promise job offers, specific salary packages, or guarantees.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 9: Layer 9 Dashboard Consumption -->
+      <div class="presentation-slide" id="slide-9" data-title="Layer 9: Dashboard Views & Consumption" data-nav="9">
+        <div class="slide-meta-badge">Slide 10 of 11 &middot; Layer 9</div>
+
+        <section id="layer-9" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 9</span>
+            <div class="layer-title-text">
+              <h2>Dashboard Analytics Views & Lineage Map</h2>
+              <p>Closing the loop from raw CSV data to pixels rendered in the 7 dashboard interfaces (<code class="chip chip-gray">src/dashboard/app.js</code>).</p>
+            </div>
+          </div>
+
+          <!-- Animated Dashboard Data Flow -->
+          <div class="pipeline-flow-ribbon">
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 1 · Storage</span>
+              <div class="step-title">Star Warehouse</div>
+              <div class="step-sub">PostgreSQL 16 / SQLite fallback</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge">Stage 2 · Backend</span>
+              <div class="step-title">FastAPI REST</div>
+              <div class="step-sub">7 dedicated JSON analytics endpoints</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step highlight">
+              <span class="step-badge">Stage 3 · Client Sync</span>
+              <div class="step-title">Reactive Router</div>
+              <div class="step-sub">Tab switches & interactive charts</div>
+            </div>
+            <div class="flow-pipe-h">
+              <svg width="36" height="18" viewBox="0 0 36 18">
+                <line x1="2" y1="9" x2="28" y2="9" stroke="#6C5CE7" stroke-width="2" class="dash-stream"/>
+                <circle r="2.2" fill="#6C5CE7"><animate attributeName="cx" values="3;27;3" dur="1.4s" repeatCount="indefinite" /></circle>
+                <polygon points="26,5 34,9 26,13" fill="#6C5CE7" />
+              </svg>
+            </div>
+            <div class="flow-ribbon-step">
+              <span class="step-badge" style="color: var(--success);">Stage 4 · UI Pixels</span>
+              <div class="step-title">7 Operational Views</div>
+              <div class="step-sub">From monitoring to career advisory</div>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>View Name & Switch Key</th>
+                  <th>Upstream Data Warehouse Sources</th>
+                  <th>Underlying Models & API Endpoints</th>
+                  <th>Core Analytical Deliverable</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>View 7: Data & ETL Monitoring</strong><br><code class="chip chip-primary">data-view="pipeline"</code> (Default)</td>
+                  <td>Pipeline state, interim counts, <code>warehouse.db</code> metadata</td>
+                  <td><code>GET /api/analytics/pipeline-status</code><br><code>GET /health</code></td>
+                  <td>Live 7-stage pipeline topology, duplicate pruning metrics (-10k), star schema row count verification (180,000).</td>
+                </tr>
+                <tr>
+                  <td><strong>View 1: Executive Overview</strong><br><code class="chip chip-gray">data-view="overview"</code></td>
+                  <td><code>dim_student</code>, <code>fact_performance</code>, <code>fact_career</code></td>
+                  <td><code>GET /api/analytics/overview</code></td>
+                  <td>Institutional KPIs (25k students, 7.46 CGPA, 98.38% placement), 5-bin CGPA distribution histogram, at-risk quicklist.</td>
+                </tr>
+                <tr>
+                  <td><strong>View 2: Subject Gaps Heatmap</strong><br><code class="chip chip-gray">data-view="subjects"</code></td>
+                  <td><code>fact_performance</code> (Suvidya, Kundan, Anchor records)</td>
+                  <td><code>GET /api/analytics/subjects</code></td>
+                  <td>Normalized 0–100% subject score averages, 6x6 branch-by-subject gap severity heatmap, lowest subject triage cards.</td>
+                </tr>
+                <tr>
+                  <td><strong>View 3: At-Risk Detection</strong><br><code class="chip chip-gray">data-view="atrisk"</code></td>
+                  <td><code>fact_lifestyle</code>, <code>student_master_wide.csv</code></td>
+                  <td><code>RandomForestClassifier</code><br><code>GET /api/analytics/at-risk-students</code></td>
+                  <td>Amber calibration disclosure banner (45% recall / 32% precision), lifestyle driving factors, searchable/sortable at-risk roster.</td>
+                </tr>
+                <tr>
+                  <td><strong>View 4: Trajectory Predictor</strong><br><code class="chip chip-gray">data-view="predict"</code></td>
+                  <td>Model 1 feature matrix (Study hours, sleep, DSA, etc.)</td>
+                  <td><code>GradientBoostingRegressor</code><br><code>POST /api/models/predict-performance</code></td>
+                  <td>Interactive telemetry sliders, live projected CGPA updating in real-time, R²=0.21 directional advisory note, AI mentor summary.</td>
+                </tr>
+                <tr>
+                  <td><strong>View 5: Student 360° Profile</strong><br><code class="chip chip-gray">data-view="student"</code></td>
+                  <td>All 4 star tables: <code>dim_student</code>, <code>fact_*</code></td>
+                  <td><code>GET /api/students/{id}</code><br><code>GET /api/genai/atrisk-brief/{id}</code></td>
+                  <td>Comprehensive dossier: demographics, multi-term academic trends, lifestyle habits, matched secondary source chips, AI brief modal.</td>
+                </tr>
+                <tr>
+                  <td><strong>View 6: Career Guidance</strong><br><code class="chip chip-gray">data-view="career"</code></td>
+                  <td><code>fact_career</code>, <code>dim_student</code>, wide table</td>
+                  <td>Career Rule Engine<br><code>GET /api/students/{id}/career-guidance</code></td>
+                  <td>Readiness gauge (0-100), branch+tier peer benchmark, 6-component skill gap percentiles, suggested focus area, personalized AI narrative.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- SLIDE 10: Layer 10 Known Limitations -->
+      <div class="presentation-slide" id="slide-10" data-title="Layer 10: Known Limitations Index" data-nav="10">
+        <div class="slide-meta-badge">Slide 11 of 11 &middot; Layer 10</div>
+
+        <section id="layer-10" class="layer-section">
+          <div class="layer-header">
+            <span class="layer-badge">LAYER 10</span>
+            <div class="layer-title-text">
+              <h2>Consolidated Known Limitations Index</h2>
+              <p>Every engineering and machine learning limitation mapped directly back to its originating pipeline layer.</p>
+            </div>
+          </div>
+
+          <div class="cards-grid">
+            <div class="info-card" style="border-top: 3px solid var(--warning);">
+              <span class="info-card-title">1. Model 1 Weak Explanatory Power (R² = 0.2096)</span>
+              <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Originates in: <a href="javascript:void(0)" onclick="goToSlide(5)" style="color: inherit; text-decoration: underline;">Layer 5 (Model 1 Regression)</a></div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
+                Continuous grade prediction based on habits and skill scores captures ~21% of variance. It provides directional sensitivity rather than exact grade forecasts.
+              </p>
+            </div>
+
+            <div class="info-card" style="border-top: 3px solid var(--danger);">
+              <span class="info-card-title">2. Model 2 Early-Stage Screening Recall (45.14%)</span>
+              <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Originates in: <a href="javascript:void(0)" onclick="goToSlide(6)" style="color: inherit; text-decoration: underline;">Layer 6 (Model 2 At-Risk)</a></div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
+                Academic metrics were eliminated to prevent circular target leakage. Lifestyle variables alone provide weak predictive power (AUC = 0.5044), so ~2 in 3 flags are false alarms.
+              </p>
+            </div>
+
+            <div class="info-card" style="border-top: 3px solid var(--warning);">
+              <span class="info-card-title">3. Stitching-Induced Confound (Suvidya Ceiling)</span>
+              <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Originates in: <a href="javascript:void(0)" onclick="goToSlide(3)" style="color: inherit; text-decoration: underline;">Layer 3 (Data Stitching)</a></div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
+                Adding academic telemetry lifted Suvidya pass/fail AUC from 0.6065 to 0.8728, but 59.32% of importance came from anchor CGPA, which was the stitching similarity key.
+              </p>
+            </div>
+
+            <div class="info-card" style="border-top: 3px solid var(--primary);">
+              <span class="info-card-title">4. Secondary Cohort Match Sparsity</span>
+              <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Originates in: <a href="javascript:void(0)" onclick="goToSlide(3)" style="color: inherit; text-decoration: underline;">Layer 3 (Coverage Table)</a></div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
+                Secondary datasets cover sub-cohorts (Navin 4%, Sehaj 8%, Suvidya 20%, Sakhare 48%, Kundan 60%). Core ML models rely strictly on 100% complete anchor attributes.
+              </p>
+            </div>
+
+            <div class="info-card" style="border-top: 3px solid var(--info);">
+              <span class="info-card-title">5. Career Readiness Model is Rule-Based Heuristic</span>
+              <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Originates in: <a href="javascript:void(0)" onclick="goToSlide(7)" style="color: inherit; text-decoration: underline;">Layer 7 (Career Engine)</a></div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
+                Career Readiness Scoring (0–100) and percentile gap rankings are computed via calibrated domain weights, not an autonomous ML model (training script is an intentional stub).
+              </p>
+            </div>
+
+            <div class="info-card" style="border-top: 3px solid var(--success);">
+              <span class="info-card-title">6. GenAI External Network Dependency</span>
+              <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Originates in: <a href="javascript:void(0)" onclick="goToSlide(8)" style="color: inherit; text-decoration: underline;">Layer 8 (GenAI Synthesis)</a></div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
+                External API calls can experience upstream latency or transient outages. Campus360 handles this via in-memory caching and deterministic template fallbacks.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Floating Presenter Control Bar -->
+<div id="presenter-bar">
+  <button class="pres-btn" id="toc-toggle-btn" onclick="toggleSidebarDrawer()" title="View Table of Contents / All Slides (M)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg> <span>Slides</span></button>
+  <button class="pres-btn" id="pres-prev-btn" onclick="prevSlide()" title="Previous Slide (Arrow Left)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> <span>Prev</span></button>
+  <div class="pres-info-pill" id="pres-slide-info">Slide 1 of 11: Overview</div>
+  <button class="pres-btn" id="pres-next-btn" onclick="nextSlide()" title="Next Slide (Arrow Right / Space)"><span>Next</span> <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+  <button class="pres-btn mode-toggle-btn" id="mode-toggle-btn" onclick="toggleViewMode()" title="Toggle between presentation slides and continuous scroll"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg> <span>Continuous View</span></button>
+  <button class="pres-btn" id="fullscreen-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen (F)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> <span>Fullscreen</span></button>
+</div>
+
+<!-- Modal for Inspecting Dataset Columns -->
+<div id="dataset-modal" onclick="onModalBackdropClick(event)">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h3 id="modal-dataset-name">dataset_name.csv</h3>
+        <p id="modal-dataset-sub">Loading schema...</p>
+      </div>
+      <button class="modal-close-btn" onclick="closeDatasetModal()" title="Close (Esc)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="modal-search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="modal-column-search" placeholder="Search columns in this dataset (e.g. cgpa, score, hours)..." oninput="filterModalColumns()" />
+      <span id="modal-col-count-badge" style="font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: var(--muted); white-space: nowrap;">0 cols</span>
+    </div>
+    <div class="modal-body">
+      <div class="cols-grid" id="modal-cols-container">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="copy-all-btn" onclick="copyAllColumns()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy All Column Names</span></button>
+      <button class="pres-btn" style="background: var(--primary); color: white;" onclick="closeDatasetModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Message Notification -->
+<div id="toast-msg"></div>
+
+<script>
+  // Complete Live-Verified Dataset Schemas
+  const DATASET_SCHEMAS = {
+    shambhuraje: {
+      filename: 'shambhuraje_placement_career_2026.csv',
+      role: 'Master Anchor Cohort (Academics, Demographics, Outcomes)',
+      rows: '25,000 rows',
+      cols: 44,
+      columns: [
+        'student_id', 'age', 'gender', 'state', 'city_tier', 'college_tier', 'branch', 'degree',
+        'cgpa', 'backlog_history', 'attendance_percentage', 'primary_language', 'DSA_problems_solved',
+        'GitHub_repos', 'hackathons_participated', 'development_projects_count', 'AI_ML_projects',
+        'internships_completed', 'resume_score', 'communication_skills', 'aptitude_score',
+        'mock_interview_score', 'sleep_hours', 'screen_time', 'gaming_hours', 'study_hours_daily',
+        'stress_level', 'burnout_score', 'gym_frequency', 'family_income_lpa', 'self_learning_hours',
+        'motivation_level', 'placement_status', 'company_type', 'work_mode', 'salary_lpa',
+        'interview_rounds_cleared', 'offer_count', 'joining_delay_months', 'layoffs_risk_score',
+        'AI_tool_usage_frequency', 'prompt_engineering_skill', 'AI_fear_score', 'adaptability_score'
+      ]
+    },
+    kundan: {
+      filename: 'kundan_student_performance.csv',
+      role: 'Secondary Subject Marks, Attendance & Study Habits',
+      rows: '25,000 raw (15,000 clean after duplicate pruning)',
+      cols: 16,
+      columns: [
+        'student_id', 'age', 'gender', 'school_type', 'parent_education', 'study_hours',
+        'attendance_percentage', 'internet_access', 'travel_time', 'extra_activities',
+        'study_method', 'math_score', 'science_score', 'english_score', 'overall_score', 'final_grade'
+      ]
+    },
+    sakharebharat: {
+      filename: 'sakharebharat_indian_placement_2025.csv',
+      role: 'Technical & Coding Skill Profiles',
+      rows: '12,000 rows',
+      cols: 16,
+      columns: [
+        'student_id', 'gender', 'age', 'degree', 'branch', 'cgpa', 'backlogs', 'internships',
+        'certifications', 'coding_skills', 'communication_skills', 'aptitude_score', 'projects',
+        'placed', 'company_type', 'package_lpa'
+      ]
+    },
+    suvidya: {
+      filename: 'suvidya_student_performance.csv',
+      role: 'Intermediate Exam Marks & Attendance Records',
+      rows: '5,000 rows',
+      cols: 16,
+      columns: [
+        'Student_ID', 'Age', 'Gender', 'Class', 'Study_Hours_Per_Day', 'Attendance_Percentage',
+        'Parental_Education', 'Internet_Access', 'Extracurricular_Activities', 'Math_Score',
+        'Science_Score', 'English_Score', 'Previous_Year_Score', 'Final_Percentage',
+        'Performance_Level', 'Pass_Fail'
+      ]
+    },
+    sehaj: {
+      filename: 'sehaj_student_lifestyle.csv',
+      role: 'Lifestyle, Sleep & Physical Wellness',
+      rows: '2,000 rows',
+      cols: 8,
+      columns: [
+        'Student_ID', 'Study_Hours_Per_Day', 'Extracurricular_Hours_Per_Day', 'Sleep_Hours_Per_Day',
+        'Social_Hours_Per_Day', 'Physical_Activity_Hours_Per_Day', 'GPA', 'Stress_Level'
+      ]
+    },
+    navinpatidar: {
+      filename: 'navinpatidar_indian_placement.csv',
+      role: 'Placement Package & Tier Background',
+      rows: '1,000 rows',
+      cols: 10,
+      columns: [
+        'Name', 'Email', 'Course', 'Branch', 'Graduation Year', 'Company', 'Job Role',
+        'Salary (INR)', 'Location', 'Placement Date'
+      ]
+    }
+  };
+
+  // State
+  let currentSlide = 0;
+  const totalSlides = 11;
+  let isContinuousMode = false;
+  let isSidebarPinned = false;
+  let currentModalDatasetKey = null;
+
+  const slides = Array.from(document.querySelectorAll('.presentation-slide'));
+  const navLinks = Array.from(document.querySelectorAll('.nav-link'));
+  const sidebar = document.getElementById('sidebar');
+  const hoverZone = document.getElementById('sidebar-hover-zone');
+  const peekTab = document.getElementById('sidebar-peek-tab');
+  const pinBtn = document.getElementById('pin-sidebar-btn');
+  const progressBar = document.getElementById('presentation-progress');
+  const prevBtn = document.getElementById('pres-prev-btn');
+  const nextBtn = document.getElementById('pres-next-btn');
+  const slideInfo = document.getElementById('pres-slide-info');
+  const modeToggleBtn = document.getElementById('mode-toggle-btn');
+  const toastEl = document.getElementById('toast-msg');
+
+  // Slide navigation
+  function goToSlide(index) {
+    if (index < 0 || index >= totalSlides) return;
+    currentSlide = index;
+
+    if (!isContinuousMode) {
+      slides.forEach((slide, idx) => {
+        if (idx === index) {
+          slide.classList.add('active-slide');
+        } else {
+          slide.classList.remove('active-slide');
+        }
+      });
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    } else {
+      const targetSec = document.getElementById(`slide-${index}`);
+      if (targetSec) {
+        targetSec.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // Update Progress Bar
+    const pct = ((index + 1) / totalSlides) * 100;
+    progressBar.style.width = `${pct}%`;
+
+    // Update Nav Link Active state
+    navLinks.forEach((link, idx) => {
+      if (idx === index) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
+
+    // Update Presenter Bar Info
+    const curTitle = slides[index].getAttribute('data-title') || `Slide ${index + 1}`;
+    slideInfo.textContent = `Slide ${index + 1} / ${totalSlides}: ${curTitle}`;
+    prevBtn.disabled = (index === 0);
+    nextBtn.disabled = (index === totalSlides - 1);
+
+    // If sidebar is open on hover and not pinned, tuck it away after click
+    if (!isSidebarPinned) {
+      sidebar.classList.remove('is-hovered');
+    }
+  }
+
+  function nextSlide() {
+    if (currentSlide < totalSlides - 1) {
+      goToSlide(currentSlide + 1);
+    }
+  }
+
+  function prevSlide() {
+    if (currentSlide > 0) {
+      goToSlide(currentSlide - 1);
+    }
+  }
+
+  // View Mode Toggle (Slide Presentation vs Continuous Scroll)
+  function toggleViewMode() {
+    isContinuousMode = !isContinuousMode;
+    if (isContinuousMode) {
+      document.body.classList.add('continuous-mode');
+      modeToggleBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> <span>Presentation View</span>';
+      modeToggleBtn.style.background = 'var(--primary)';
+      modeToggleBtn.style.color = '#FFFFFF';
+      showToast('Switched to Continuous Scroll Mode');
+    } else {
+      document.body.classList.remove('continuous-mode');
+      modeToggleBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg> <span>Continuous View</span>';
+      modeToggleBtn.style.background = '';
+      modeToggleBtn.style.color = '';
+      goToSlide(currentSlide);
+      showToast('Switched to Presentation Slide Mode');
+    }
+  }
+
+  // Fullscreen State & Dual Native / Simulated Fullscreen Engine
+  function isCurrentlyFullscreen() {
+    const doc = document;
+    return !!(doc.fullscreenElement || 
+              doc.webkitFullscreenElement || 
+              doc.mozFullScreenElement || 
+              doc.msFullscreenElement || 
+              document.body.classList.contains('presentation-fullscreen'));
+  }
+
+  function updateFullscreenUI(active) {
+    const btn = document.getElementById('fullscreen-btn');
+    if (!btn) return;
+    if (active) {
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg> <span>Exit Fullscreen</span>`;
+      btn.title = "Exit Fullscreen (F / Esc)";
+      btn.classList.add('active-fs');
+    } else {
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> <span>Fullscreen</span>`;
+      btn.title = "Toggle Fullscreen (F)";
+      btn.classList.remove('active-fs');
+    }
+  }
+
+  function enterSimulatedFullscreen() {
+    document.body.classList.add('presentation-fullscreen');
+    updateFullscreenUI(true);
+    showToast('Presentation Fullscreen Mode');
+  }
+
+  function exitSimulatedFullscreen() {
+    document.body.classList.remove('presentation-fullscreen');
+    updateFullscreenUI(false);
+    showToast('Exited Fullscreen');
+  }
+
+  function toggleFullscreen() {
+    const doc = document;
+    const docEl = document.documentElement;
+
+    if (!isCurrentlyFullscreen()) {
+      // Try native fullscreen first
+      const req = docEl.requestFullscreen || 
+                  docEl.webkitRequestFullscreen || 
+                  docEl.webkitRequestFullScreen || 
+                  docEl.mozRequestFullScreen || 
+                  docEl.msRequestFullscreen;
+
+      if (req) {
+        try {
+          const res = req.call(docEl);
+          if (res && typeof res.then === 'function') {
+            res.then(() => {
+              updateFullscreenUI(true);
+              showToast('Entered Fullscreen Mode');
+            }).catch((err) => {
+              console.warn('Native requestFullscreen denied, activating simulated fullscreen mode:', err);
+              enterSimulatedFullscreen();
+            });
+          } else {
+            // WebKit Safari synchronous return
+            updateFullscreenUI(true);
+            showToast('Entered Fullscreen Mode');
+          }
+        } catch (err) {
+          console.warn('Native requestFullscreen threw error, activating simulated fullscreen mode:', err);
+          enterSimulatedFullscreen();
+        }
+      } else {
+        enterSimulatedFullscreen();
+      }
+    } else {
+      // Exit fullscreen
+      if (document.body.classList.contains('presentation-fullscreen')) {
+        exitSimulatedFullscreen();
+        return;
+      }
+
+      const exit = doc.exitFullscreen || 
+                   doc.webkitExitFullscreen || 
+                   doc.webkitCancelFullScreen || 
+                   doc.mozCancelFullScreen || 
+                   doc.msExitFullscreen;
+
+      if (exit) {
+        try {
+          const res = exit.call(doc);
+          if (res && typeof res.then === 'function') {
+            res.then(() => {
+              updateFullscreenUI(false);
+              showToast('Exited Fullscreen');
+            }).catch(() => {
+              exitSimulatedFullscreen();
+            });
+          } else {
+            updateFullscreenUI(false);
+            showToast('Exited Fullscreen');
+          }
+        } catch (err) {
+          exitSimulatedFullscreen();
+        }
+      } else {
+        exitSimulatedFullscreen();
+      }
+    }
+  }
+
+  // Bind native browser fullscreen change events
+  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+    document.addEventListener(evt, () => {
+      const active = !!(document.fullscreenElement || 
+                        document.webkitFullscreenElement || 
+                        document.mozFullScreenElement || 
+                        document.msFullscreenElement);
+      if (!active && !document.body.classList.contains('presentation-fullscreen')) {
+        updateFullscreenUI(false);
+      } else if (active) {
+        updateFullscreenUI(true);
+      }
+    });
+  });
+
+  // Sidebar Drawer Open/Close/Toggle Logic
+  let hoverTimeout = null;
+
+  function showSidebar() {
+    clearTimeout(hoverTimeout);
+    sidebar.classList.add('is-hovered');
+  }
+
+  function hideSidebar() {
+    if (isSidebarPinned) return;
+    hoverTimeout = setTimeout(() => {
+      sidebar.classList.remove('is-hovered');
+    }, 220);
+  }
+
+  function toggleSidebarDrawer() {
+    if (isSidebarPinned) return;
+    clearTimeout(hoverTimeout);
+    sidebar.classList.toggle('is-hovered');
+  }
+
+  function closeSidebarDrawer() {
+    if (isSidebarPinned) return;
+    clearTimeout(hoverTimeout);
+    sidebar.classList.remove('is-hovered');
+  }
+
+  hoverZone.addEventListener('mouseenter', showSidebar);
+  hoverZone.addEventListener('mouseleave', hideSidebar);
+  peekTab.addEventListener('mouseenter', showSidebar);
+  peekTab.addEventListener('mouseleave', hideSidebar);
+  sidebar.addEventListener('mouseenter', showSidebar);
+  sidebar.addEventListener('mouseleave', hideSidebar);
+
+  // Peek Tab Click Handler (Fix for click action)
+  peekTab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSidebarDrawer();
+  });
+
+  // Dismiss unpinned sidebar when clicking outside on main content
+  document.addEventListener('click', (e) => {
+    if (isSidebarPinned) return;
+    const tocBtn = document.getElementById('toc-toggle-btn');
+    if (sidebar.contains(e.target) || peekTab.contains(e.target) || (tocBtn && tocBtn.contains(e.target))) {
+      return;
+    }
+    sidebar.classList.remove('is-hovered');
+  });
+
+  // Pin Sidebar
+  pinBtn.addEventListener('click', () => {
+    isSidebarPinned = !isSidebarPinned;
+    if (isSidebarPinned) {
+      document.body.classList.add('sidebar-pinned');
+      pinBtn.classList.add('pinned');
+      pinBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg><span>Pinned</span>';
+      showToast('Sidebar Pinned Open');
+    } else {
+      document.body.classList.remove('sidebar-pinned');
+      pinBtn.classList.remove('pinned');
+      pinBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg><span>Pin</span>';
+      sidebar.classList.remove('is-hovered');
+      showToast('Sidebar Auto-Hide on Hover');
+    }
+  });
+
+  // Sidebar Navigation click handler
+  navLinks.forEach((link, idx) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      goToSlide(idx);
+    });
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    // If modal is open
+    const modal = document.getElementById('dataset-modal');
+    if (modal.style.display === 'flex') {
+      if (e.key === 'Escape') closeDatasetModal();
+      return;
+    }
+
+    // Handle Escape for fullscreen
+    if (e.key === 'Escape') {
+      if (document.body.classList.contains('presentation-fullscreen')) {
+        exitSimulatedFullscreen();
+        return;
+      }
+    }
+
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      // Don't trigger if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      e.preventDefault();
+      nextSlide();
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      e.preventDefault();
+      prevSlide();
+    } else if (e.key === 'f' || e.key === 'F') {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      toggleFullscreen();
+    } else if (e.key === 'm' || e.key === 'M') {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      toggleViewMode();
+    } else if (e.key === 't' || e.key === 'T') {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      toggleSidebarDrawer();
+    }
+  });
+
+  // Dataset Modal Functions
+  function openDatasetModal(datasetKey) {
+    const data = DATASET_SCHEMAS[datasetKey];
+    if (!data) return;
+    currentModalDatasetKey = datasetKey;
+
+    document.getElementById('modal-dataset-name').textContent = data.filename;
+    document.getElementById('modal-dataset-sub').textContent = `${data.rows} · ${data.cols} Total Columns · ${data.role}`;
+    document.getElementById('modal-column-search').value = '';
+    renderModalColumns(data.columns);
+
+    const modal = document.getElementById('dataset-modal');
+    modal.style.display = 'flex';
+    document.getElementById('modal-column-search').focus();
+  }
+
+  function closeDatasetModal() {
+    const modal = document.getElementById('dataset-modal');
+    modal.style.display = 'none';
+  }
+
+  function onModalBackdropClick(e) {
+    if (e.target.id === 'dataset-modal') {
+      closeDatasetModal();
+    }
+  }
+
+  function renderModalColumns(columnsList) {
+    const container = document.getElementById('modal-cols-container');
+    container.innerHTML = '';
+    document.getElementById('modal-col-count-badge').textContent = `${columnsList.length} cols`;
+
+    if (columnsList.length === 0) {
+      container.innerHTML = '<div style="color: var(--muted); font-size: 0.85rem; padding: 12px 0;">No matching columns found.</div>';
+      return;
+    }
+
+    columnsList.forEach((col, i) => {
+      const pill = document.createElement('div');
+      pill.className = 'col-pill';
+      pill.title = 'Click to copy column name';
+      pill.innerHTML = `<span class="col-idx">${i + 1}</span> <span>${col}</span>`;
+      pill.onclick = () => copyColName(col);
+      container.appendChild(pill);
+    });
+  }
+
+  function filterModalColumns() {
+    if (!currentModalDatasetKey) return;
+    const query = document.getElementById('modal-column-search').value.toLowerCase().trim();
+    const allCols = DATASET_SCHEMAS[currentModalDatasetKey].columns;
+    const filtered = allCols.filter(col => col.toLowerCase().includes(query));
+    renderModalColumns(filtered);
+  }
+
+  // Robust Clipboard Copy Function with textarea fallback for file:/// URLs
+  function copyToClipboard(text, successMsg) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(successMsg);
+      }).catch(() => {
+        fallbackCopyText(text, successMsg);
+      });
+    } else {
+      fallbackCopyText(text, successMsg);
+    }
+  }
+
+  function fallbackCopyText(text, successMsg) {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        showToast(successMsg);
+      } else {
+        showToast(`Copied: ${text.slice(0, 30)}...`);
+      }
+    } catch (err) {
+      showToast(`Selected: ${text.slice(0, 30)}...`);
+    }
+  }
+
+  function copyColName(colName) {
+    copyToClipboard(colName, `Copied column: "${colName}"`);
+  }
+
+  function copyAllColumns() {
+    if (!currentModalDatasetKey) return;
+    const allCols = DATASET_SCHEMAS[currentModalDatasetKey].columns.join(', ');
+    copyToClipboard(allCols, `Copied all ${DATASET_SCHEMAS[currentModalDatasetKey].cols} column names!`);
+  }
+
+  // Toast notification
+  let toastTimer = null;
+  function showToast(msg) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.style.display = 'block';
+    toastTimer = setTimeout(() => {
+      toastEl.style.display = 'none';
+    }, 2400);
+  }
+
+  // Flowchart Nodes Accessibility & Keyboard support
+  document.querySelectorAll('.overview-node').forEach(node => {
+    node.setAttribute('tabindex', '0');
+    node.setAttribute('role', 'button');
+    node.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        node.click();
+      }
+    });
+  });
+
+  // Inject In-Slide Bottom Footer Navigation on each slide
+  const slideTitles = [
+    "Overview & Flowchart",
+    "Layer 1: Raw Sources",
+    "Layer 2: Ingestion & Clean",
+    "Layer 3: Data Stitching",
+    "Layer 4: Star Warehouse",
+    "Layer 5: Model 1 Predict",
+    "Layer 6: Model 2 At-Risk",
+    "Layer 7: Career Engine",
+    "Layer 8: GenAI Synthesis",
+    "Layer 9: Dashboard Views",
+    "Layer 10: Limitations"
+  ];
+
+  slides.forEach((slide, idx) => {
+    const footer = document.createElement('div');
+    footer.className = 'slide-nav-footer';
+    const prevTitle = idx > 0 ? slideTitles[idx - 1] : '';
+    const nextTitle = idx < totalSlides - 1 ? slideTitles[idx + 1] : '';
+
+    footer.innerHTML = `
+      <button class="slide-nav-btn" onclick="prevSlide()" ${idx === 0 ? 'disabled' : ''} title="Go to previous slide">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        <span>${idx === 0 ? 'Start of Deck' : 'Prev: ' + prevTitle}</span>
+      </button>
+      <div class="slide-nav-progress-text">Slide ${idx + 1} of ${totalSlides}</div>
+      <button class="slide-nav-btn" onclick="nextSlide()" ${idx === totalSlides - 1 ? 'disabled' : ''} title="Go to next slide">
+        <span>${idx === totalSlides - 1 ? 'End of Deck' : 'Next: ' + nextTitle}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+    `;
+    const target = slide.querySelector('.layer-section') || slide;
+    target.appendChild(footer);
+  });
+
+  // URL Hash Routing and Deep-Linking
+  function parseHashSlide() {
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return 0;
+    if (hash.startsWith('slide-')) {
+      const num = parseInt(hash.replace('slide-', ''), 10);
+      if (!isNaN(num) && num >= 0 && num < totalSlides) return num;
+    }
+    if (hash.startsWith('layer-')) {
+      const num = parseInt(hash.replace('layer-', ''), 10);
+      if (!isNaN(num) && num >= 0 && num < totalSlides) return num;
+    }
+    return 0;
+  }
+
+  // Disable automatic browser scroll restoration to prevent landing halfway down on reload
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+
+  window.addEventListener('DOMContentLoaded', () => {
+    goToSlide(parseHashSlide());
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  });
+
+  window.addEventListener('load', () => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  });
+
+  window.addEventListener('hashchange', () => {
+    goToSlide(parseHashSlide());
+  });
+</script>
+
+</body>
+</html>
