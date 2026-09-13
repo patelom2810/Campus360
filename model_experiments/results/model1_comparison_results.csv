@@ -1,0 +1,14 @@
+model_name,r2,rmse,mae,is_current_production
+Linear Regression,0.2183,0.7539,0.5987,False
+Ridge,0.2183,0.7539,0.5987,False
+Lasso,0.2161,0.755,0.5996,False
+ElasticNet,0.2172,0.7544,0.5992,False
+KNN Regressor,0.0857,0.8154,0.6489,False
+SVR (RBF),0.1574,0.7827,0.6193,False
+MLP Regressor,0.0323,0.8388,0.6607,False
+Random Forest,0.1979,0.7637,0.6065,False
+Extra Trees,0.2027,0.7614,0.605,False
+AdaBoost,0.1605,0.7813,0.6216,False
+Gradient Boosting,0.2096,0.7581,0.6022,True
+XGBoost,0.2133,0.7563,0.6015,False
+LightGBM,0.2122,0.7569,0.6018,False
