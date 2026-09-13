@@ -15,10 +15,10 @@ Scope:
   Evaluated strictly on the ~5,000 students where has_suvidya_match == 1.
   NOT wired into the deployed dashboard/API — for presentation and methodological validation only.
 
-Outputs:
-  - models/suvidya_ceiling_test_lifestyle_only.joblib
-  - models/suvidya_ceiling_test_with_academic.joblib
-  - models/suvidya_ceiling_test_comparison.json
+Output:
+  - models/research_archive/suvidya_ceiling_test_lifestyle_only.joblib
+  - models/research_archive/suvidya_ceiling_test_with_academic.joblib
+  - models/research_archive/suvidya_ceiling_test_comparison.json
 """
 
 import json
@@ -241,10 +241,12 @@ def run_ceiling_test():
     print(finding)
     print("-" * 80)
 
-    # Save artifacts
-    model_a_path = MODELS_DIR / "suvidya_ceiling_test_lifestyle_only.joblib"
-    model_b_path = MODELS_DIR / "suvidya_ceiling_test_with_academic.joblib"
-    comparison_path = MODELS_DIR / "suvidya_ceiling_test_comparison.json"
+    # Save artifacts into research_archive/
+    archive_dir = MODELS_DIR / "research_archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    model_a_path = archive_dir / "suvidya_ceiling_test_lifestyle_only.joblib"
+    model_b_path = archive_dir / "suvidya_ceiling_test_with_academic.joblib"
+    comparison_path = archive_dir / "suvidya_ceiling_test_comparison.json"
 
     joblib.dump(model_A, model_a_path)
     joblib.dump(model_B, model_b_path)

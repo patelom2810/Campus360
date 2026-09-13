@@ -658,38 +658,38 @@ If any of these three features were permitted in the training matrix, a decision
 - **Distribution:** Train: 13,620 Safe / 6,380 At-Risk (31.90%) | Test: 3,405 Safe / 1,595 At-Risk (31.90%)
 
 #### Live Re-Scored Performance Metrics (Held-Out Test Set: 5,000 Rows, Threshold = 0.50)
-- **ROC Area Under Curve (ROC AUC):** **0.5044**
-- **Overall Accuracy:** **0.5232** (52.32%)
-- **Precision (Class 1 / At-Risk):** **0.3230** (32.30%)
-- **Recall (Class 1 / At-Risk):** **0.4514** (45.14%)
-- **F1-Score (Class 1 / At-Risk):** **0.3766**
+- **ROC Area Under Curve (ROC AUC):** **0.5190**
+- **Overall Accuracy:** **0.5226** (52.26%)
+- **Precision (Class 1 / At-Risk):** **0.3346** (33.46%)
+- **Recall (Class 1 / At-Risk):** **0.5022** (50.22%)
+- **F1-Score (Class 1 / At-Risk):** **0.4016**
 
 #### Live Confusion Matrix (2x2 Grid)
 $$\begin{array}{c|cc}
 & \textbf{Predicted Safe (0)} & \textbf{Predicted At-Risk (1)} \\
 \hline
-\textbf{Actual Safe (0)} & 1,896 \text{ (True Negatives)} & 1,509 \text{ (False Positives)} \\
-\textbf{Actual At-Risk (1)} & 875 \text{ (False Negatives)} & 720 \text{ (True Positives)} \\
+\textbf{Actual Safe (0)} & 1,812 \text{ (True Negatives)} & 1,593 \text{ (False Positives)} \\
+\textbf{Actual At-Risk (1)} & 794 \text{ (False Negatives)} & 801 \text{ (True Positives)} \\
 \end{array}$$
 
-*Total Held-Out Test Instances:* $1,896 + 1,509 + 875 + 720 = \mathbf{5,000}$.
+*Total Held-Out Test Instances:* $1,812 + 1,593 + 794 + 801 = \mathbf{5,000}$.
 
 #### Top 10 Feature Importances (Live Object)
 | Rank | Feature Name | Importance | Percentage | Cumulative |
 |:---:|---|:---:|:---:|:---:|
-| 1 | `screen_to_study_ratio` | 0.0629 | 6.29% | 6.29% |
-| 2 | `anchor_family_income_lpa` | 0.0625 | 6.25% | 12.54% |
-| 3 | `anchor_communication_skills` | 0.0611 | 6.11% | 18.65% |
-| 4 | `anchor_screen_time` | 0.0568 | 5.68% | 24.33% |
-| 5 | `anchor_adaptability_score` | 0.0545 | 5.45% | 29.78% |
-| 6 | `anchor_prompt_engineering_skill` | 0.0518 | 5.18% | 34.96% |
-| 7 | `wellness_score` | 0.0504 | 5.04% | 40.00% |
-| 8 | `anchor_stress_level` | 0.0503 | 5.03% | 45.03% |
-| 9 | `anchor_study_hours_daily` | 0.0494 | 4.94% | 49.97% |
-| 10 | `anchor_self_learning_hours` | 0.0487 | 4.87% | 54.84% |
+| 1 | `anchor_gym_frequency` | 0.0163 | 17.47% | 17.47% |
+| 2 | `anchor_self_learning_hours` | 0.0150 | 16.08% | 33.55% |
+| 3 | `anchor_gaming_hours` | 0.0100 | 10.72% | 44.27% |
+| 4 | `anchor_development_projects_count` | 0.0076 | 8.15% | 52.41% |
+| 5 | `anchor_sleep_hours` | 0.0055 | 5.90% | 58.31% |
+| 6 | `wellness_score` | 0.0055 | 5.90% | 64.20% |
+| 7 | `screen_to_study_ratio` | 0.0050 | 5.36% | 69.56% |
+| 8 | `anchor_communication_skills` | 0.0044 | 4.72% | 74.28% |
+| 9 | `anchor_study_hours_daily` | 0.0043 | 4.61% | 78.89% |
+| 10 | `anchor_screen_time` | 0.0036 | 3.86% | 82.74% |
 
 #### Plain-Language Technical Interpretation
-Model 2 reflects an honest empirical machine learning finding: when direct academic outcome leakage (`backlogs`, `attendance`, `CGPA`) is eliminated, synthetic lifestyle and self-reported wellness features alone possess limited discriminative correlation with extreme academic failure thresholds (ROC AUC **0.5044**). Operating at the standard 0.50 decision boundary, the classifier captures **45.14% of truly at-risk students** (720 TP vs 875 FN) with **32.30% precision** (1,509 FP vs 720 TP). This means approximately two out of every three flagged students represent false positives. Rather than concealing this limitation, Campus360 embeds these exact calibration figures directly into every API response, UI warning badge, and GenAI mentor brief. Mentors are advised that flags represent early conversational prompts rather than definitive clinical diagnoses.
+Model 2 reflects an honest empirical machine learning finding: when direct academic outcome leakage (`backlogs`, `attendance`, `CGPA`) is eliminated, synthetic lifestyle and self-reported wellness features alone possess limited discriminative correlation with extreme academic failure thresholds (ROC AUC **0.5190**). Operating at the standard 0.50 decision boundary, the classifier captures **50.22% of truly at-risk students** (801 TP vs 794 FN) with **33.46% precision** (1,593 FP vs 801 TP). This means approximately two out of every three flagged students represent false positives, while the model successfully captures just over half of students needing early screening support. Rather than concealing this limitation, Campus360 embeds these exact calibration figures directly into every API response, UI warning badge, and GenAI mentor brief. Mentors are advised that flags represent early conversational prompts rather than definitive clinical diagnoses.
 
 ---
 
@@ -770,7 +770,7 @@ flowchart TD
 
     subgraph S4 [Analytical & Modeling Layer]
         M1["Model 1\nGradientBoosting\n(anchor_cgpa, R²=0.21)"]
-        M2["Model 2\nRandomForest\n(at_risk_flag, Recall=45%)"]
+        M2["Model 2\nLogisticRegression\n(at_risk_flag, Recall=50.22%)"]
         M3["Career Guidance Engine\nRule-Based Composite\n(0-100 Benchmark)"]
     end
 
@@ -815,7 +815,7 @@ Verified from `src/dashboard/app.js` and `src/dashboard/index.html`.
 |---|---|---|---|
 | **Executive Overview** (`overview`) | High-level institutional KPI tracking and demographic breakdown | `GET /api/analytics/overview`<br>`GET /api/analytics/at-risk-students?limit=6`<br>`GET /api/analytics/subjects` | Institutional aggregates (25k students, 7.50 avg CGPA, 31.9% at-risk, 81.3% placement, 15.5 LPA avg salary); Top at-risk candidate preview cards; Subject pass-rate distribution |
 | **Subject Learning Gaps** (`subjects`) | Identifying curriculum bottlenecks and subject failure clusters | `GET /api/analytics/subjects`<br>`GET /api/analytics/departments` | Average marks, pass percentages, and failure rates per subject across Kundan and Suvidya records; Departmental CGPA and backlog distributions |
-| **At-Risk Detection** (`atrisk`) | Early-warning identification with calibrated reliability bounds | `GET /api/models/atrisk-metadata`<br>`GET /api/analytics/atrisk-table?limit=40&search={q}`<br>`GET /api/genai/atrisk-brief/{student_id}` | Model 2 metadata (ROC AUC=0.5044, Recall=45.14%, Precision=32.30%, Confusion Matrix); Paginated table of at-risk students with calculated risk probabilities and top factors; GenAI synthesized mentor brief |
+| **At-Risk Detection** (`atrisk`) | Early-warning identification with calibrated reliability bounds | `GET /api/models/atrisk-metadata`<br>`GET /api/analytics/atrisk-table?limit=40&search={q}`<br>`GET /api/genai/atrisk-brief/{student_id}` | Model 2 metadata (ROC AUC=0.5190, Recall=50.22%, Precision=33.46%, Confusion Matrix); Paginated table of at-risk students with calculated risk probabilities and top factors; GenAI synthesized mentor brief |
 | **CGPA Predictor** (`predict`) | Interactive scenario modeling and study habit forecasting | `POST /api/models/predict-performance` | Real-time Model 1 regression inference: returns predicted CGPA, confidence range, top driving factors, and limitation badge ($R^2=0.2096$) |
 | **Student 360° Profile** (`student`) | Comprehensive holistic inspection of an individual student | `GET /api/students/{student_id}`<br>`GET /api/genai/atrisk-brief/{student_id}`<br>`GET /api/genai/performance-summary/{student_id}` | Complete multi-table profile across demographics, marks history, lifestyle metrics, and career preparation; GenAI early-warning brief; GenAI academic trajectory narrative |
 | **Career Guidance** (`career`) | Actionable skill benchmarking and placement forecasting | `GET /api/students/{student_id}/career-guidance`<br>`GET /api/genai/career-guidance/{student_id}` | 0–100 Career Readiness Score; Peer branch/tier benchmark; 6-component skill gap percentile breakdown; Rule-based focus area; GenAI career coaching note |
@@ -860,7 +860,7 @@ Campus360 uses **Google Gemini (`gemini-3.6-flash`)** as an explanatory synthesi
   - `student_id`, `branch`, `college_tier` from `dim_student`
   - Model 2 output: `at_risk_label` (`At-Risk` vs `Safe`), `probability` (e.g. 54.2%)
   - Top contributing factor: calculated via population Z-score deviation (e.g. *"Elevated Burnout (84/100 vs 50/100 pop avg)"*)
-  - Hardcoded model calibration: **45% Recall, 32% Precision (~2 in 3 flags are false alarms)**
+  - Hardcoded model calibration: **50.22% Recall, 33.46% Precision (~2 in 3 flags are false alarms)**
 - **Prompt Structure:**
   ```text
   You are writing a brief for a college mentor about one student.
@@ -869,13 +869,12 @@ Campus360 uses **Google Gemini (`gemini-3.6-flash`)** as an explanatory synthesi
   Student: {student_id}, {branch}, Tier {college_tier}
   Model prediction: {at_risk_label} (probability: {prob:.1%})
   Top contributing factor: {top_factor} (student: {stu_val}, pop avg: {pop_avg})
-  Model reliability: This model correctly identifies about 45% of genuinely at-risk students 
-  and has a 32% precision rate — meaning roughly 2 in 3 flags are false alarms, and more 
-  than half of actual at-risk students go unflagged.
+  Model reliability: This model correctly identifies about 50% of genuinely at-risk students 
+  (catches just over half) and has a 33% precision rate — meaning roughly 2 in 3 flags are false alarms.
 
   Write a 3-4 sentence brief for the mentor covering:
   1. What the model flagged and why (the top contributing factor)
-  2. An explicit caveat citing the model's exact reliability calibration (45% recall, 32% precision)
+  2. An explicit caveat citing the model's exact reliability calibration (50% recall, 33% precision)
   3. One concrete, low-effort next step the mentor could take (an informal check-in conversation)
   Keep it factual and calm. Do not use clinical/diagnostic language.
   ```
@@ -926,12 +925,12 @@ Use this dense reference table for rapid fact lookup during presentations and ju
 | **Model 1: Input Feature Count** | **28 features** (13 original anchor + 11 added anchor + 4 engineered interaction features) |
 | **Model 1: Live Re-Scored Accuracy** | **RMSE = 0.7581**, **MAE = 0.6022**, **$R^2 = 0.2096$** (evaluated live on 5,000 test rows) |
 | **Model 1: Top 3 Features** | `anchor_dsa_problems_solved` (30.06%), `anchor_study_hours_daily` (21.92%), `anchor_communication_skills` (16.34%) |
-| **Model 2: Algorithm & Hyperparameters** | **`RandomForestClassifier`** (`n_estimators=600`, `max_depth=6`, `min_samples_leaf=3`, `max_features='sqrt'`, `class_weight='balanced'`, `random_state=42`) |
+| **Model 2: Algorithm & Hyperparameters** | **`LogisticRegression`** (`C=1.0`, `penalty='l2'`, `solver='liblinear'`, `class_weight='balanced'`) |
 | **Model 2: Target & Formulation** | **`at_risk_flag`**: `1 if (backlogs >= 1 OR attendance < 55% OR cgpa < 5.5) else 0` (Population: 68.10% Safe, 31.90% At-Risk) |
 | **Model 2: Input Feature Count** | **23 features** (Strictly lifestyle, wellness, study habits, and soft skills) |
 | **Model 2: Deliberately Excluded** | **`anchor_backlog_history`**, **`anchor_attendance_percentage`**, **`anchor_cgpa`** (Strict anti-leakage isolation) |
-| **Model 2: Live Re-Scored Accuracy** | **ROC AUC = 0.5044**, **Accuracy = 0.5232**, **Precision = 0.3230**, **Recall = 0.4514**, **F1 = 0.3766** |
-| **Model 2: Live Confusion Matrix** | **TN = 1,896**, **FP = 1,509**, **FN = 875**, **TP = 720** (Test cohort: 5,000 students) |
+| **Model 2: Live Re-Scored Accuracy** | **ROC AUC = 0.5190**, **Accuracy = 0.5226**, **Precision = 0.3346**, **Recall = 0.5022**, **F1 = 0.4016** |
+| **Model 2: Live Confusion Matrix** | **TN = 1,812**, **FP = 1,593**, **FN = 794**, **TP = 801** (Test cohort: 5,000 students) |
 | **Career Guidance Engine Type** | **Rule-based composite index** (Non-ML): 6 components (DSA 25%, Internships 20%, Comm 15%, Aptitude 15%, Projects 15%, Mock 10%) |
 | **GenAI Foundation Model** | **`gemini-3.6-flash`** (Google Gemini API via official SDK, with modern flash fallback cascade and deterministic offline templates) |
 | **GenAI Functional Scope** | 3 mentor briefs: At-Risk Brief (`generate_atrisk_brief`), Performance Trajectory (`generate_performance_summary`), Career Guidance (`generate_career_guidance_narrative`) |

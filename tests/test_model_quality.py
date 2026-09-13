@@ -376,8 +376,18 @@ def run_verification():
             print(f"\n  [WARNING] Feature importances are nearly uniform (range={imp_range:.4f})")
             print(f"    This suggests no single feature has strong predictive power for {m2_target}")
             issues.append("Model 2 feature importances are nearly uniform — no strong signal")
+    elif hasattr(m2_model, "coef_"):
+        m2_coef = sorted(
+            zip(m2_features, m2_model.coef_[0]),
+            key=lambda x: abs(x[1]),
+            reverse=True,
+        )
+        print(f"\n  Model 2 (LogisticRegression) — Top 5 features by coefficient magnitude:")
+        for i, (feat, coef) in enumerate(m2_coef[:5], 1):
+            direction = "INCREASES RISK" if coef > 0 else "DECREASES RISK"
+            print(f"    {i}. {feat:42s} {coef:+.4f} ({direction})")
     else:
-        print("  Model 2 does not expose feature_importances_")
+        print("  Model 2 does not expose feature_importances_ or coef_")
 
     # Plausibility check
     print(f"\n  Plausibility notes:")

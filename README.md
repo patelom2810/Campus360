@@ -12,7 +12,7 @@
       <p style="margin: 0; font-size: 13.5px; color: #666;"><strong>Authors:</strong> OM PATEL &bull; Rahil Nagariya</p>
     </td>
     <td align="center" valign="middle" style="border: none; padding: 12px 18px;">
-      <img src="src/dashboard/assets/NeuralNexus.png" alt="Neural Networks Team Logo" width="115" />
+      <img src="src/dashboard/assets/team-logo.png" alt="Neural Networks Team Logo" width="115" />
     </td>
   </tr>
 </table>
@@ -88,7 +88,7 @@ Once running, access the platform services:
 1. **View 7: Data & ETL Monitoring (`data-view="pipeline"`) — Default Landing View:** Live vertical flow status of the entire 7-stage data pipeline, displaying operational integrity progress (100%), 30s auto-refresh polling ticker, raw file table, interim duplicate pruning metrics (-10k rows), star-schema row counts (180,000), and model limitation disclosures.
 2. **View 1: Executive Overview (`data-view="overview"`):** Institutional KPI metric cards (25,000 students, 7.46 avg CGPA, 98.38% placement rate, 31.9% at-risk baseline), 5-bin CGPA histogram distribution, and prioritized at-risk student quicklist.
 3. **View 2: Subject Performance & Gaps (`data-view="subjects"`):** Standardized 0–100% subject score averages, 6x6 branch-by-subject gap severity heatmap, and branch-wise lowest subject gap action cards.
-4. **View 3: At-Risk Detection (`data-view="atrisk"`):** Prominent amber model calibration banner (45% recall / 32% precision), top 5 lifestyle driving factors, and interactive searchable, sortable at-risk roster with direct 360° profile jump links.
+4. **View 3: At-Risk Detection (`data-view="atrisk"`):** Prominent amber model calibration banner (50.22% recall / 33.46% precision), top 5 lifestyle driving factors, and interactive searchable, sortable at-risk roster with direct 360° profile jump links.
 5. **View 4: Trajectory Predictor (`data-view="predict"`):** Interactive student trajectory simulator powered by Model 1 with real-time sliders for study hours, sleep, attendance, and DSA problem counts.
 6. **View 5: Student 360° Profile (`data-view="student"`):** Multi-dimensional individual dossier detailing demographics, multi-semester academic trends, wellness metrics, matched secondary source chips, and modal trigger for AI Mentor Briefs.
 7. **View 6: Career Guidance (`data-view="career"`):** Career readiness index (0–100), branch peer benchmark, 6-component skill gap percentiles, suggested focus area recommendations, peer placement references, and personalized AI narrative.
@@ -100,16 +100,16 @@ Once running, access the platform services:
 | Model | Metric | Result | Assessment |
 | :--- | :--- | :---: | :--- |
 | **Performance Prediction (CGPA)** | R² | 0.2096 | Weak — directional signal only |
-| **At-Risk Detection** | Recall / AUC | 45.14% / 0.5044 | Weak — screening tool, not a diagnostic trigger |
+| **At-Risk Detection** | Recall / AUC | 50.22% / 0.5190 | Screening tool (catches just over half of at-risk students), not a diagnostic trigger |
 
-We report these honestly rather than hide them — see [docs/FINAL_SUBMISSION_AUDIT.md](docs/FINAL_SUBMISSION_AUDIT.md) for the full methodology, leakage checks, and why these numbers are what they are.
+We report these honestly rather than hide them — see [docs/SUBMISSION_GATE_CHECK.md](docs/SUBMISSION_GATE_CHECK.md) for the full methodology, leakage checks, and why these numbers are what they are.
 
 ---
 
 ## Known Limitations
 
 - **Model 1 Low Variance Explained ($R^2 = 0.2096$, $\text{RMSE} = 0.7581$):** Lifestyle and aptitude metrics explain ~21% of CGPA variance; the model offers directional guidance rather than deterministic grade forecasting.
-- **Model 2 Early-Stage Screening Quality ($\text{Recall} = 45.14\%$, $\text{Precision} = 32.30\%$, $\text{AUC} = 0.5044$):** Academic defining features (CGPA, backlogs, attendance) were strictly excluded to avoid circular target leakage, leaving lifestyle signals with weak separation (~2 in 3 flags are false alarms).
+- **Model 2 Early-Stage Screening Quality ($\text{Recall} = 50.22\%$, $\text{Precision} = 33.46\%$, $\text{AUC} = 0.5190$):** Academic defining features (CGPA, backlogs, attendance) were strictly excluded to avoid circular target leakage; the classifier catches just over half of truly at-risk students (50.22%), leaving lifestyle signals with modest separation (~2 in 3 flags are false alarms).
 - **Suvidya Ceiling Test Confound ($\Delta\text{AUC} = +0.2663$):** Adding academic features lifted AUC from 0.6065 to 0.8728 on `suvidya_pass_fail`, but the lift is confounded because `anchor_cgpa` was the similarity key used in data stitching.
 - **GenAI External Latency & Fallbacks:** Google Gemini API calls can encounter upstream latency or `503` errors; in-memory caching and deterministic rule-based template fallbacks guarantee continuous operation.
 - **Cross-Cohort Secondary Sparsity:** Secondary datasets cover between 1,000 and 15,000 students of the 25,000 anchor cohort, requiring ML models to rely strictly on complete anchor attributes.
@@ -126,12 +126,13 @@ Campus360/
 │   └── entrypoint.sh                   # Auto-initialization entrypoint (database setup & ETL loader)
 ├── docker-compose.yml                  # Multi-service orchestration (Postgres, API, Dashboard)
 ├── docs/                               # Comprehensive technical documentation & audits
-│   ├── SYSTEM_ARCHITECTURE_FLOW.md     # Interactive system architecture & 7 Mermaid data flows
-│   ├── ARCHITECTURE.md                 # Data engineering, stitching methodology & star schema specs
+│   ├── ARCHITECTURE.md                 # System architecture, 6-dataset stitching & 180k-row star schema
 │   ├── DEPLOYMENT.md                   # Multi-container Docker deployment & SQLite fallback guide
 │   ├── DOCKER_VERIFICATION.md          # Clean-state verification audit & recovery test logs
-│   ├── FINAL_SUBMISSION_AUDIT.md       # Ground-truth submission audit, metrics & rubric verification
-│   └── TECHNICAL_DEEP_DIVE.md          # In-depth algorithmic, statistical & leakage analysis
+│   ├── SUBMISSION_GATE_CHECK.md        # Problem statement compliance matrix, gate checks & live API evidence
+│   ├── TECHNICAL_DEEP_DIVE.md          # In-depth algorithmic, statistical & leakage analysis
+│   ├── PROJECT_STATE_FINAL.md          # Final verified system state & reproducibility audit
+│   └── docker_first_run.log            # Unattended scratch build log and timing traces
 ├── data/                               # Data storage across raw, interim, and warehouse tiers
 │   ├── raw/                            # 6 untouched original datasets (70k total raw rows)
 │   │   ├── shambhuraje_placement_career_2026.csv   # Master anchor spine (25k rows)
@@ -199,12 +200,12 @@ Campus360/
 
 ## Documentation
 
-- [docs/SYSTEM_ARCHITECTURE_FLOW.md](docs/SYSTEM_ARCHITECTURE_FLOW.md) — Comprehensive end-to-end system architecture with 7 interactive Mermaid data flow diagrams.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture, 6-dataset stitching methodology, 180k-row star schema, and data lineage.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture, 6-dataset stitching methodology, 180k-row star schema, data lineage, and Mermaid data flows.
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Multi-container Docker deployment guide, PostgreSQL migration, and SQLite fallback mechanism.
 - [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md) — Independent verification log of clean-state Docker execution, auto-ETL timing, and failure-recovery tests.
-- [docs/FINAL_SUBMISSION_AUDIT.md](docs/FINAL_SUBMISSION_AUDIT.md) — Source of truth audit report verifying live row counts, model evaluations, leakage checks, and submission rubric coverage.
+- [docs/SUBMISSION_GATE_CHECK.md](docs/SUBMISSION_GATE_CHECK.md) — Pre-submission compliance matrix, adversarial judge Q&A, and granular live API & database evidence.
 - [docs/TECHNICAL_DEEP_DIVE.md](docs/TECHNICAL_DEEP_DIVE.md) — In-depth algorithmic, statistical, and leakage prevention analysis.
+- [docs/PROJECT_STATE_FINAL.md](docs/PROJECT_STATE_FINAL.md) — Final verified system state, file deduplication, and pipeline reproducibility record.
 
 ---
 
@@ -223,7 +224,7 @@ Campus360/
 
 <div align="center">
 
-  <img src="src/dashboard/assets/NeuralNexus.png" alt="Neural Networks Team Logo" width="90" />
+  <img src="src/dashboard/assets/team-logo.png" alt="Neural Networks Team Logo" width="90" />
 
   <p><em>Campus 360 | By Neural Networks (Team ID: 60) &bull; Built with precision by OM PATEL & Rahil Nagariya for student academic success and career intelligence.</em></p>
 

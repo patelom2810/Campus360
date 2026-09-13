@@ -31,7 +31,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+import logging
 from sqlalchemy import text
+
+logger = logging.getLogger("api")
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 if str(BASE_DIR) not in sys.path:
@@ -59,6 +62,21 @@ INTERIM_DIR = BASE_DIR / "data" / "interim"
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 MODELS_DIR = BASE_DIR / "models"
 DASHBOARD_DIR = BASE_DIR / "src" / "dashboard"
+
+@app.on_event("startup")
+def prewarm_models_and_caches():
+    """Pre-warms machine learning models, population dataframes, and feature medians at startup."""
+    try:
+        get_model1()
+        get_model2()
+        from src.api.assessment_engine import _get_model1, _get_model2, _get_population, _get_all_medians
+        _get_model1()
+        _get_model2()
+        _get_population()
+        _get_all_medians()
+        logger.info("[startup] All models and assessment engine caches pre-warmed.")
+    except Exception as e:
+        logger.warning("[startup] Cache pre-warming notice: %s", e)
 
 # ── Model & Data Cache ────────────────────────────────────────────────────────
 _MODEL1 = None
@@ -578,13 +596,13 @@ def get_atrisk_metadata():
     ]
 
     return {
-        "model_name": metrics.get("model", "RandomForestClassifier"),
+        "model_name": metrics.get("model", "LogisticRegression"),
         "target": metrics.get("target", "at_risk_flag"),
         "decision_threshold": float(metrics.get("decision_threshold", 0.50)),
-        "recall": float(metrics.get("test_recall_class1", 0.4514)),
-        "precision": float(metrics.get("test_precision_class1", 0.323)),
-        "accuracy": float(metrics.get("test_accuracy", 0.5232)),
-        "roc_auc": float(metrics.get("roc_auc", 0.5044)),
+        "recall": float(metrics.get("test_recall_class1", 0.5022)),
+        "precision": float(metrics.get("test_precision_class1", 0.3346)),
+        "accuracy": float(metrics.get("test_accuracy", 0.5226)),
+        "roc_auc": float(metrics.get("roc_auc", 0.5190)),
         "population_split": {
             "at_risk_pct": 31.9,
             "safe_pct": 68.1,
@@ -594,7 +612,7 @@ def get_atrisk_metadata():
         },
         "top_5_features": top_5,
         "disclosure_text": (
-            "This model correctly identifies ~45% of at-risk students (recall 0.45) "
+            "This model correctly identifies ~50% of at-risk students (recall 0.50) "
             "using lifestyle and behavioral data alone. Absence of a flag does not rule out risk."
         ),
     }
@@ -1037,7 +1055,7 @@ from src.genai.insights import (
 def get_atrisk_brief_endpoint(student_id: str):
     """
     Generates a faculty/mentor-facing brief explaining Model 2's at-risk flag,
-    the top contributing factor, calibrated model reliability caveats (45% recall, 32% precision),
+    the top contributing factor, calibrated model reliability caveats (50% recall, 33% precision),
     and low-effort next steps.
     """
     try:
@@ -1446,10 +1464,11 @@ def get_pipeline_status():
     m1_loaded = m1_path.exists()
     m2_loaded = m2_path.exists()
 
-    m1_r2 = 0.2117
-    m2_recall = 0.4506
-    m2_precision = 0.3204
-    m2_auc = 0.5312
+    m1_r2 = 0.2096
+    m2_recall = 0.5022
+    m2_precision = 0.3346
+    m2_auc = 0.5190
+    m2_model_name = "LogisticRegression"
 
     if m1_meta.exists():
         try:
@@ -1466,6 +1485,7 @@ def get_pipeline_status():
                 m2_recall = d.get("test_recall_class1", m2_recall)
                 m2_precision = d.get("test_precision_class1", m2_precision)
                 m2_auc = d.get("roc_auc", m2_auc)
+                m2_model_name = d.get("model", m2_model_name)
         except Exception:
             pass
 
@@ -1510,12 +1530,12 @@ def get_pipeline_status():
                 "limitation_badge": "Directional Signal Only (R²≈0.21 explains ~21% variance)",
             },
             "model2_atrisk": {
-                "name": "RandomForestClassifier (at_risk_flag)",
+                "name": f"{m2_model_name} (at_risk_flag)",
                 "status": "LOADED" if m2_loaded else "MISSING",
                 "recall_class1": round(m2_recall, 4),
                 "precision_class1": round(m2_precision, 4),
                 "roc_auc": round(m2_auc, 4),
-                "limitation_badge": "Lifestyle Early Warning (45% Recall, 32% Precision — ~2 in 3 false alarms)",
+                "limitation_badge": "Lifestyle Early Warning (50% Recall, 33% Precision — ~2 in 3 false alarms)",
             },
             "genai_status": {
                 "connectivity": genai_status,
@@ -2405,11 +2425,11 @@ def serve_assess_page():
 @app.api_route("/arch", methods=["GET", "HEAD"], include_in_schema=False)
 @app.api_route("/arch.html", methods=["GET", "HEAD"], include_in_schema=False)
 def serve_arch_page():
-    arch_file = DASHBOARD_DIR / "arch.html"
+    arch_file = BASE_DIR / "Arch.html"
     if not arch_file.exists():
-        arch_file = BASE_DIR / "Arch.html"
+        arch_file = DASHBOARD_DIR / "arch.html"
     if not arch_file.exists():
-        raise HTTPException(status_code=404, detail="arch.html not found")
+        raise HTTPException(status_code=404, detail="Arch.html not found")
     return FileResponse(str(arch_file))
 
 

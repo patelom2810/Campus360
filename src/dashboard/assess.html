@@ -388,7 +388,7 @@
         <span class="text-campus-muted text-sm hidden sm:block">/ Bring Your Own Data</span>
       </div>
       <div class="flex items-center gap-2">
-        <a href="arch.html" class="text-sm font-medium text-slate-600 hover:text-campus-primary transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-campus-primary/30">
+        <a href="http://localhost:8000/arch.html" target="_blank" class="text-sm font-medium text-slate-600 hover:text-campus-primary transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-campus-primary/30">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
@@ -880,11 +880,35 @@
   </main>
 
   <!-- ── Footer ────────────────────────────────────────────────────────── -->
-  <footer class="border-t border-campus-lavender mt-16 py-6">
-    <div class="max-w-7xl mx-auto px-6 text-center">
-      <p class="text-xs text-campus-muted">
-        Campus360 Assessment · Results are directional signals, not guaranteed predictions.
-      </p>
+  <footer class="border-t border-campus-lavender mt-16 py-6 bg-white/70 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Campus 360 Brand & Logo -->
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-campus-lavender flex items-center justify-center p-1.5 shadow-2xs">
+          <img src="assets/logo-icon.svg" alt="Campus360 Logo" class="w-full h-full object-contain" />
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="sora font-bold text-sm text-campus-text">Campus360</span>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-campus-lavender text-campus-primary">Assessment Portal</span>
+          </div>
+          <p class="text-[11px] text-campus-muted">Results are directional signals from calibrated predictive models.</p>
+        </div>
+      </div>
+
+      <!-- Team Neural Networks Details & Logo -->
+      <div class="flex items-center space-x-3.5">
+        <div class="text-center md:text-right">
+          <div class="flex items-center justify-center md:justify-end space-x-1.5">
+            <span class="text-xs font-semibold text-campus-text">Neural Networks</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-campus-lavender text-campus-primary">Team ID: 60</span>
+          </div>
+          <p class="text-[11px] text-campus-muted mt-0.5">Om Patel &bull; Rahil Nagariya &bull; KDAC-3</p>
+        </div>
+        <div class="w-9 h-9 rounded-xl bg-white border border-[#EDEBFB] p-1 shadow-2xs flex items-center justify-center flex-shrink-0">
+          <img src="assets/team-logo.png" alt="Neural Networks Team 60 Logo" class="w-full h-full object-contain rounded-lg" />
+        </div>
+      </div>
     </div>
   </footer>
 

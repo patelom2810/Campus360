@@ -9,7 +9,7 @@ Features:
   2. generate_performance_summary(student_id) -> dict
   3. generate_career_guidance_narrative(student_id) -> dict
   - Strict grounding in pre-computed facts & metrics
-  - Exact model calibrations (recall=0.45, precision=0.32, R²=0.21) included inline in all prompts
+  - Exact model calibrations (recall=0.50, precision=0.33, R²=0.21) included inline in all prompts
   - In-memory caching keyed by student_id and data digest
   - Robust deterministic template fallbacks on API failure or missing/invalid key
   - File logging of prompts and responses to logs/genai_prompts.log
@@ -17,6 +17,7 @@ Features:
 
 import os
 import sys
+import time
 import json
 import hashlib
 import concurrent.futures
@@ -48,7 +49,7 @@ _STUDENT_WIDE_CACHE: Optional[pd.DataFrame] = None
 _MODEL1_CACHE: Optional[Tuple[Any, dict, dict]] = None
 _MODEL2_CACHE: Optional[Tuple[Any, dict]] = None
 
-GEMINI_MODEL = "gemini-3.6-flash"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 
 def _get_wide_data() -> pd.DataFrame:
@@ -136,13 +137,22 @@ def is_gemini_token_available() -> Tuple[bool, str]:
     return True, "Gemini token available."
 
 
-def _call_gemini(prompt: str, timeout_sec: float = 4.0) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+# Circuit breaker for quota exhaustion (prevents blocking subsequent requests when rate limited)
+_QUOTA_CIRCUIT_BREAKER_UNTIL = 0.0
+
+
+def _call_gemini(prompt: str, timeout_sec: float = 7.0) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
-    Attempts to call Google Gemini API with gemini-3.6-flash or other modern flash models.
-    Enforces a strict timeout (default 4.0s) per model call so the system never hangs.
+    Attempts to call Google Gemini API with gemini-3.5-flash-lite or other modern flash models.
+    Enforces a strict timeout (default 7.0s) per model call so the system never hangs.
     Returns (generated_text, model_name, fallback_reason) if successful (fallback_reason=None),
     or (None, None, fallback_reason) on timeout/failure/missing token.
     """
+    global _QUOTA_CIRCUIT_BREAKER_UNTIL
+    now = time.time()
+    if now < _QUOTA_CIRCUIT_BREAKER_UNTIL:
+        return None, None, "Gemini API quota exhausted (cooling off 60s). Fast fallback activated."
+
     token_ok, token_msg = is_gemini_token_available()
     if not token_ok:
         return None, None, token_msg
@@ -150,7 +160,7 @@ def _call_gemini(prompt: str, timeout_sec: float = 4.0) -> Tuple[Optional[str], 
     try:
         from google import genai
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY", "").strip())
-        candidate_models = [GEMINI_MODEL, "gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash"]
+        candidate_models = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.7-flash"]
 
         def _do_call(m_name: str):
             return client.models.generate_content(
@@ -180,8 +190,9 @@ def _call_gemini(prompt: str, timeout_sec: float = 4.0) -> Tuple[Optional[str], 
                     last_reason = "Gemini service temporarily unavailable (503)."
                     return None, None, last_reason
                 if "429" in err_str or "quota" in err_str.lower() or "resource_exhausted" in err_str.lower():
-                    print(f"[genai] Gemini quota exhausted. Activating fallback.", file=sys.stderr)
-                    last_reason = "Gemini API quota exhausted (429 rate limit)."
+                    _QUOTA_CIRCUIT_BREAKER_UNTIL = time.time() + 60.0
+                    print(f"[genai] Gemini quota exhausted. Activating 60s circuit-breaker fast fallback.", file=sys.stderr)
+                    last_reason = "Gemini API quota exhausted (429 rate limit). Cooling off for 60s."
                     return None, None, last_reason
                 if "404" in err_str or "not found" in err_str.lower() or "no longer available" in err_str.lower():
                     continue
@@ -208,7 +219,7 @@ def generate_atrisk_brief(student_id: str) -> dict:
     """
     Generates a 3-4 sentence faculty/mentor brief for an at-risk student.
     Grounded strictly in Model 2 output and student demographics/lifestyle data.
-    Inline calibration: Recall=0.45, Precision=0.32.
+    Inline calibration: Recall=0.50, Precision=0.33.
     """
     sid = student_id.strip().upper()
     wide = _get_wide_data()
@@ -227,48 +238,131 @@ def generate_atrisk_brief(student_id: str) -> dict:
     threshold = float(meta2.get("decision_threshold", 0.50))
     at_risk_label = "At-Risk" if prob >= threshold else "Safe"
 
-    # Compute top contributing factor via deviation from population
-    pos_risk_cols = {
-        "anchor_burnout_score": ("Elevated Burnout", "/10"),
-        "anchor_stress_level": ("High Academic Stress", "/10"),
-        "anchor_screen_time": ("Excessive Screen Time", " hrs/day"),
-        "anchor_gaming_hours": ("Excessive Gaming", " hrs/day"),
-        "screen_to_study_ratio": ("Screen-to-Study Imbalance", " ratio"),
-    }
-    neg_risk_cols = {
-        "anchor_sleep_hours": ("Chronic Sleep Deprivation", " hrs/night"),
-        "anchor_study_hours_daily": ("Low Daily Study Hours", " hrs/day"),
-        "anchor_self_learning_hours": ("Low Self-Learning Effort", " hrs/day"),
-        "anchor_motivation_level": ("Low Motivation Level", "/10"),
-        "anchor_adaptability_score": ("Low Adaptability Score", "/10"),
-        "wellness_score": ("Depleted Wellness Index", " pts"),
+    # Compute top contributing risk factor using Logistic Regression signed coefficients (.coef_)
+    # A positive coefficient increases risk (higher value than average -> higher risk)
+    # A negative coefficient decreases risk (lower value than average -> higher risk)
+    coef_map = {}
+    if hasattr(model2, "coef_"):
+        coef_map = dict(zip(features2, [float(c) for c in model2.coef_[0]]))
+    elif "feature_coefficients" in meta2:
+        coef_map = {k: float(v) for k, v in meta2["feature_coefficients"].items()}
+    else:
+        coef_map = {f: 1.0 for f in features2}
+
+    factor_descriptions = {
+        "anchor_gym_frequency": {
+            "pos": ("Elevated Gym Frequency", " days/wk"),
+            "neg": ("Low Gym / Fitness Activity", " days/wk"),
+        },
+        "anchor_self_learning_hours": {
+            "pos": ("High Self-Learning Effort", " hrs/day"),
+            "neg": ("Low Self-Learning Effort", " hrs/day"),
+        },
+        "anchor_gaming_hours": {
+            "pos": ("Excessive Gaming Hours", " hrs/day"),
+            "neg": ("Minimal Gaming Hours", " hrs/day"),
+        },
+        "anchor_development_projects_count": {
+            "pos": ("High Project Output", " projects"),
+            "neg": ("Low Development Project Activity", " projects"),
+        },
+        "anchor_sleep_hours": {
+            "pos": ("Elevated Sleep Duration", " hrs/night"),
+            "neg": ("Chronic Sleep Deprivation", " hrs/night"),
+        },
+        "wellness_score": {
+            "pos": ("Elevated Wellness Index", " pts"),
+            "neg": ("Depleted Wellness Index", " pts"),
+        },
+        "screen_to_study_ratio": {
+            "pos": ("Screen-to-Study Imbalance", " ratio"),
+            "neg": ("Low Screen-to-Study Ratio", " ratio"),
+        },
+        "anchor_communication_skills": {
+            "pos": ("High Communication Skills", " pts"),
+            "neg": ("Low Communication Skills Score", " pts"),
+        },
+        "anchor_study_hours_daily": {
+            "pos": ("High Daily Study Hours", " hrs/day"),
+            "neg": ("Low Daily Study Hours", " hrs/day"),
+        },
+        "anchor_screen_time": {
+            "pos": ("Excessive Screen Time", " hrs/day"),
+            "neg": ("Low Daily Screen Time", " hrs/day"),
+        },
+        "anchor_stress_level": {
+            "pos": ("High Academic Stress", "/10"),
+            "neg": ("Low Academic Stress", "/10"),
+        },
+        "anchor_burnout_score": {
+            "pos": ("Elevated Burnout", "/10"),
+            "neg": ("Low Burnout Score", "/10"),
+        },
+        "anchor_ai_tool_usage_frequency": {
+            "pos": ("High AI Tool Reliance", " freq"),
+            "neg": ("Low AI Tool Utilization", " freq"),
+        },
+        "anchor_mock_interview_score": {
+            "pos": ("High Mock Interview Score", "/100"),
+            "neg": ("Low Mock Interview Preparation", "/100"),
+        },
+        "anchor_hackathons_participated": {
+            "pos": ("High Hackathon Engagement", " events"),
+            "neg": ("Low Hackathon Participation", " events"),
+        },
+        "anchor_aptitude_score": {
+            "pos": ("High Aptitude Score", "/100"),
+            "neg": ("Low Aptitude Score", "/100"),
+        },
+        "anchor_prompt_engineering_skill": {
+            "pos": ("High Prompt Engineering Skills", "/10"),
+            "neg": ("Low Prompt Engineering Skills", "/10"),
+        },
+        "anchor_family_income_lpa": {
+            "pos": ("Higher Family Income Tier", " LPA"),
+            "neg": ("Financial Strain (Low Family Income)", " LPA"),
+        },
+        "anchor_motivation_level": {
+            "pos": ("High Motivation Level", "/10"),
+            "neg": ("Low Motivation Level", "/10"),
+        },
+        "anchor_adaptability_score": {
+            "pos": ("High Adaptability Score", "/10"),
+            "neg": ("Low Adaptability Score", "/10"),
+        },
+        "anchor_git_hub_repos": {
+            "pos": ("High GitHub Activity", " repos"),
+            "neg": ("Low GitHub Code Activity", " repos"),
+        },
+        "anchor_ai_ml_projects": {
+            "pos": ("High AI/ML Projects", " projects"),
+            "neg": ("Low AI/ML Project Count", " projects"),
+        },
+        "anchor_resume_score": {
+            "pos": ("High Resume Evaluation Score", "/100"),
+            "neg": ("Low Resume Evaluation Score", "/100"),
+        },
     }
 
-    max_z = -999.0
+    best_push = -9999.0
     top_factor = "Academic Workload Imbalance"
     stu_val_str = "N/A"
     pop_avg_str = "N/A"
 
-    for col, (desc, unit) in pos_risk_cols.items():
+    for col in features2:
         if col in wide.columns:
             m = float(wide[col].mean())
             s = float(wide[col].std()) or 1.0
             val = float(stu[col]) if pd.notna(stu[col]) else m
             z = (val - m) / s
-            if z > max_z:
-                max_z = z
-                top_factor = desc
-                stu_val_str = f"{val:.1f}{unit}"
-                pop_avg_str = f"{m:.1f}{unit}"
+            c = coef_map.get(col, 0.0)
+            risk_push = c * z
 
-    for col, (desc, unit) in neg_risk_cols.items():
-        if col in wide.columns:
-            m = float(wide[col].mean())
-            s = float(wide[col].std()) or 1.0
-            val = float(stu[col]) if pd.notna(stu[col]) else m
-            z = (m - val) / s
-            if z > max_z:
-                max_z = z
+            if risk_push > best_push:
+                best_push = risk_push
+                meta_info = factor_descriptions.get(col, {})
+                dir_key = "pos" if z >= 0 else "neg"
+                desc, unit = meta_info.get(dir_key, (col.replace("anchor_", "").replace("_", " ").title(), ""))
                 top_factor = desc
                 stu_val_str = f"{val:.1f}{unit}"
                 pop_avg_str = f"{m:.1f}{unit}"
@@ -289,17 +383,20 @@ def generate_atrisk_brief(student_id: str) -> dict:
     if ck in _GENAI_CACHE:
         return _GENAI_CACHE[ck]
 
+    rec_pct = int(round(float(meta2.get("test_recall_class1", 0.50)) * 100))
+    prec_pct = int(round(float(meta2.get("test_precision_class1", 0.33)) * 100))
+
     prompt = f"""You are writing a brief for a college mentor about one student.
 Use only the facts given below. Do not invent additional facts, causes, or recommendations not grounded in this data.
 
 Student: {sid}, {branch}, Tier {tier}
 Model prediction: {at_risk_label} (probability: {prob:.1%})
 Top contributing factor: {top_factor} (this student's value: {stu_val_str}, population average: {pop_avg_str})
-Model reliability: This model correctly identifies about 45% of genuinely at-risk students and has a 32% precision rate — meaning roughly 2 in 3 flags are false alarms, and more than half of actual at-risk students go unflagged.
+Model reliability: This model correctly identifies about {rec_pct}% of genuinely at-risk students (catches just over half) and has a {prec_pct}% precision rate — meaning roughly 2 in 3 flags are false alarms.
 
 Write a 3-4 sentence brief for the mentor covering:
 1. What the model flagged and why (the top contributing factor)
-2. An explicit caveat citing the model's exact reliability calibration (explicitly stating its 45% recall and 32% precision rate, meaning roughly 2 in 3 flags are false alarms)
+2. An explicit caveat citing the model's exact reliability calibration (explicitly stating its {rec_pct}% recall and {prec_pct}% precision rate, meaning roughly 2 in 3 flags are false alarms)
 3. One concrete, low-effort next step the mentor could take (a check-in conversation, not a diagnosis)
 
 Keep it factual and calm. Do not use clinical/diagnostic language about the student. Do not claim certainty the data doesn't support."""
@@ -308,8 +405,8 @@ Keep it factual and calm. Do not use clinical/diagnostic language about the stud
     fallback_brief = (
         f"The early-warning model flagged {sid} ({branch}, Tier {tier}) as {at_risk_label} with an estimated risk probability of {prob:.1%}, "
         f"primarily attributed to {top_factor} ({stu_val_str} vs. population average of {pop_avg_str}). "
-        f"Notably, this model has an established calibration of 45% recall and 32% precision — meaning approximately two out of three flags are false alarms, "
-        f"while over half of genuinely at-risk students remain unflagged. "
+        f"Notably, this model has an established calibration of {rec_pct}% recall and {prec_pct}% precision — meaning approximately two out of three flags are false alarms, "
+        f"while catching just over half ({rec_pct}%) of genuinely at-risk students. "
         f"As a constructive next step, consider scheduling an informal 10-minute check-in to ask how their current schedule and coursework load are feeling."
     )
 
@@ -712,12 +809,12 @@ Use only the facts given below. Do not invent additional facts, causes, or recom
 Student: {sid}, {branch}, Tier {tier}
 Model prediction: {at_risk_label} (probability: {prob:.1%})
 Top contributing factor: {top_factor} (this student's value: {stu_val_str}, population average: {pop_avg_str})
-Model reliability: This model correctly identifies about 45% of genuinely at-risk students and has a 32% precision rate — meaning roughly 2 in 3 flags are false alarms, and more than half of actual at-risk students go unflagged.
+Model reliability: This model correctly identifies about 50% of genuinely at-risk students (catches just over half) and has a 33% precision rate — meaning roughly 2 in 3 flags are false alarms.
 Note: This assessment was run on user-supplied data (Bring Your Own Data flow), not from an existing warehouse record.
 
 Write a 3-4 sentence brief for the mentor covering:
 1. What the model flagged and why (the top contributing factor)
-2. An explicit caveat citing the model's exact reliability calibration (explicitly stating its 45% recall and 32% precision rate, meaning roughly 2 in 3 flags are false alarms)
+2. An explicit caveat citing the model's exact reliability calibration (explicitly stating its 50% recall and 33% precision rate, meaning roughly 2 in 3 flags are false alarms)
 3. One concrete, low-effort next step the mentor could take (a check-in conversation, not a diagnosis)
 
 Keep it factual and calm. Do not use clinical/diagnostic language about the student. Do not claim certainty the data doesn't support."""
@@ -726,9 +823,9 @@ Keep it factual and calm. Do not use clinical/diagnostic language about the stud
         f"The early-warning model flagged {sid} ({branch}, Tier {tier}) as {at_risk_label} "
         f"with an estimated risk probability of {prob:.1%}, primarily attributed to "
         f"{top_factor} ({stu_val_str} vs. population average of {pop_avg_str}). "
-        f"This model has an established calibration of 45% recall and 32% precision — "
-        f"meaning approximately two out of three flags are false alarms, while over half "
-        f"of genuinely at-risk students remain unflagged. "
+        f"This model has an established calibration of 50% recall and 33% precision — "
+        f"meaning approximately two out of three flags are false alarms, while catching "
+        f"just over half (50%) of genuinely at-risk students. "
         f"As a constructive next step, consider scheduling an informal 10-minute check-in "
         f"to ask how their current schedule and coursework load are feeling."
     )

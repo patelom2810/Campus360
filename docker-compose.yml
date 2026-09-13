@@ -35,6 +35,7 @@ services:
       - ./models:/app/models
       - ./tests:/app/tests
       - ./logs:/app/logs
+      - ./Arch.html:/app/Arch.html:ro
     ports:
       - "8000:8000"
     depends_on:

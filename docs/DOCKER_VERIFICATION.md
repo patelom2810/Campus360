@@ -79,7 +79,7 @@ $ curl -s http://localhost:8000/api/analytics/overview | python3 -m json.tool
 Dashboard served by the API container's FastAPI `StaticFiles` mount at `/dashboard` (port 8000).  
 Also independently available at `http://localhost:8501` via the dashboard container.
 
-Open `http://localhost:8000/dashboard` in a browser — all 5 views load real data from the API.
+Open `http://localhost:8000/dashboard` in a browser — all 7 views load real data from the API.
 
 ---
 

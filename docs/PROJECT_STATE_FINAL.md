@@ -48,7 +48,7 @@
   - Updated `src/genai/insights.py` to prioritize `gemini-3.6-flash` and modern flash fallbacks (`gemini-flash-latest`, `gemini-3.5-flash`).
 - **Live Endpoint Execution:**
   - Tested `generate_atrisk_brief`, `generate_performance_summary`, and `generate_career_guidance_narrative` across multiple student records (`STU00001`, `STU00002`, `STU00042`).
-  - **45% Recall Caveat:** Confirmed that every generated at-risk brief explicitly cites the model's reliability calibration ("45% recall and 32% precision rate — meaning roughly 2 in 3 flags are false alarms, and more than half of actual at-risk students go unflagged").
+  - **50% Recall Caveat:** Confirmed that every generated at-risk brief explicitly cites the model's reliability calibration ("50% recall and 33% precision rate — meaning roughly 2 in 3 flags are false alarms, while catching just over half (50%) of actual at-risk students").
   - **R²=0.21 Caveat:** Confirmed that every performance summary explicitly contextualizes predictions as low-confidence directional signals (accounting for ~21% of CGPA variance).
   - **Hallucination Audit:** Automated comparison of extracted numeric tokens against raw source payload confirmed 100% factual grounding with zero invented statistics.
   - **Caching:** Calling identical student endpoints confirmed zero redundant network API requests and immediate in-memory responses, with zero duplicate prompt log entries.
@@ -85,14 +85,16 @@ Campus360/
 │   ├── model1_performance_predictor.joblib
 │   ├── model2_atrisk_classifier.joblib
 │   ├── model2_atrisk_metrics.json
-│   ├── suvidya_ceiling_test_comparison.json
-│   ├── suvidya_ceiling_test_lifestyle_only.joblib
-│   └── suvidya_ceiling_test_with_academic.joblib
+│   └── research_archive/
+│       ├── suvidya_ceiling_test_comparison.json
+│       ├── suvidya_ceiling_test_lifestyle_only.joblib
+│       └── suvidya_ceiling_test_with_academic.joblib
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── DEPLOYMENT.md
 │   ├── DOCKER_VERIFICATION.md
-│   ├── PROJECT_STATE.md
+│   ├── SUBMISSION_GATE_CHECK.md
+│   ├── TECHNICAL_DEEP_DIVE.md
 │   ├── PROJECT_STATE_FINAL.md
 │   └── docker_first_run.log
 ├── logs/
@@ -238,9 +240,9 @@ This section serves as the **single canonical reference** for all honest technic
 - **Empirical Bound:** Model 1 achieves an $R^2$ of ~0.21 (RMSE ~0.94) on the holdout test set. Daily study hours, screen time, sleep, and technical skills explain only approximately one-fifth of overall CGPA variation.
 - **Operational Reality:** CGPA in higher education is predominantly governed by unmeasured variables (exam difficulty, grading curves, course syllabus differences, prior foundational knowledge, and individual course selection). Predictions must be treated strictly as **low-confidence directional signals**, never as definitive grade forecasts.
 
-### 2. Model 2 (At-Risk Early Warning) Lifestyle-Only Separation ($ROC\text{ }AUC \approx 0.53$, Recall $\approx 45\%$)
-- **Predictive Bound:** When strictly sanitized to exclude label-defining academic features, lifestyle and wellness signals yield an ROC AUC of ~0.53, a positive-class recall of ~45%, and precision of ~32%.
-- **Operational Reality:** Lifestyle signals (gaming hours, sleep duration, screen time, stress levels) provide marginal standalone early-warning separation. Roughly two out of every three flagged students are false alarms, and more than half of genuinely at-risk students are not flagged. The system is designed for **low-stakes mentoring check-ins**, not high-stakes academic penalties.
+### 2. Model 2 (At-Risk Early Warning) Lifestyle-Only Separation ($ROC\text{ }AUC = 0.5190$, Recall $= 50.22\%$)
+- **Predictive Bound:** When strictly sanitized to exclude label-defining academic features, lifestyle and wellness signals yield an ROC AUC of 0.5190, a positive-class recall of 50.22%, and precision of 33.46%.
+- **Operational Reality:** Lifestyle signals (gaming hours, sleep duration, screen time, stress levels) provide marginal standalone early-warning separation. Roughly two out of every three flagged students are false alarms, and the classifier catches just over half (50.22%) of genuinely at-risk students. The system is designed for **low-stakes mentoring check-ins**, not high-stakes academic penalties.
 
 ### 3. Synthetic Cross-Dataset Stitching Confound (Suvidya Ceiling Test)
 - **Methodological Artifact:** The warehouse anchors 25,000 students from Shambhuraje and stitches 5 external Indian datasets using attribute-based similarity matching (tertile and demographic clustering).
@@ -256,7 +258,7 @@ This section serves as the **single canonical reference** for all honest technic
 
 ### 6. GenAI Layer Dependency on External API Availability
 - **External Dependency:** The GenAI explanation layer requires external connectivity to Google Gemini API.
-- **Graceful Degradation:** When quota limits or network partitions occur, the platform automatically activates deterministic fallback templates. These templates preserve 100% of student facts, include identical calibration warnings (45% recall / $R^2=0.21$), and ensure zero API disruptions for faculty users.
+- **Graceful Degradation:** When quota limits or network partitions occur, the platform automatically activates deterministic fallback templates. These templates preserve 100% of student facts, include identical calibration warnings (50.22% recall / $R^2=0.21$), and ensure zero API disruptions for faculty users.
 
 ---
 

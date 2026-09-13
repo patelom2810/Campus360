@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -157,6 +158,8 @@ _MODEL1_CACHE: Optional[Tuple[Any, dict, dict]] = None
 _MODEL2_CACHE: Optional[Tuple[Any, dict]] = None
 _POPULATION_CACHE: Optional[pd.DataFrame] = None
 _MEDIANS_CACHE: Optional[Dict[str, float]] = None
+_POPULATION_STATS_CACHE: Optional[Dict[str, Any]] = None
+_PEER_AVG_CACHE: Dict[Tuple[Optional[str], Optional[int]], float] = {}
 
 
 def _get_model1() -> Tuple[Any, dict, dict]:
@@ -185,7 +188,7 @@ def _get_model1() -> Tuple[Any, dict, dict]:
 
 
 def _get_model2() -> Tuple[Any, dict]:
-    """Loads and caches Model 2 (RandomForestClassifier)."""
+    """Loads and caches Model 2 (LogisticRegression)."""
     global _MODEL2_CACHE
     if _MODEL2_CACHE is not None:
         return _MODEL2_CACHE
@@ -202,7 +205,7 @@ def _get_model2() -> Tuple[Any, dict]:
 
 def _get_population() -> pd.DataFrame:
     """Loads and caches the student master wide CSV for population normalization."""
-    global _POPULATION_CACHE
+    global _POPULATION_CACHE, _POPULATION_STATS_CACHE
     if _POPULATION_CACHE is not None:
         return _POPULATION_CACHE
     wide_path = PROCESSED_DIR / "student_master_wide.csv"
@@ -214,6 +217,25 @@ def _get_population() -> pd.DataFrame:
         + df["anchor_ai_ml_projects"].fillna(0)
     )
     _POPULATION_CACHE = df
+
+    # Precompute population min/max, means, and stds for O(1) inference lookups
+    min_max: Dict[str, Tuple[float, float]] = {}
+    for col in _CAREER_COL_MAP.values():
+        if col in df.columns:
+            min_max[col] = (float(df[col].min()), float(df[col].max()))
+
+    means: Dict[str, float] = {}
+    stds: Dict[str, float] = {}
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            means[col] = float(df[col].mean())
+            stds[col] = float(df[col].std()) or 1.0
+
+    _POPULATION_STATS_CACHE = {
+        "min_max": min_max,
+        "means": means,
+        "stds": stds,
+    }
     return _POPULATION_CACHE
 
 
@@ -328,13 +350,19 @@ def _compute_career_readiness(
     student_row_extended = dict(student_row)
     student_row_extended["_projects_total"] = dev + ai_proj
 
+    stats = _POPULATION_STATS_CACHE or {}
+    min_max_dict = stats.get("min_max", {})
+
     # Step 1: Normalize each active component against population min/max
     component_norms: Dict[str, float] = {}
     for key in active_weights.keys():
         col = _CAREER_COL_MAP[key]
         raw_val = float(student_row_extended.get(col, 0.0))
-        pop_min = float(pop_df[col].min())
-        pop_max = float(pop_df[col].max())
+        if col in min_max_dict:
+            pop_min, pop_max = min_max_dict[col]
+        else:
+            pop_min = float(pop_df[col].min())
+            pop_max = float(pop_df[col].max())
         rng = pop_max - pop_min
         norm = (raw_val - pop_min) / rng * 100.0 if rng > 0 else 50.0
         component_norms[key] = round(float(np.clip(norm, 0.0, 100.0)), 2)
@@ -345,35 +373,40 @@ def _compute_career_readiness(
     )
     readiness_score = round(float(np.clip(readiness_score, 0.0, 100.0)), 1)
 
-    # Step 3: Peer benchmark if branch is known
+    # Step 3: Peer benchmark if branch is known (cached per branch & tier)
     peer_avg_score: Optional[float] = None
     peer_group_label = "All Students"
     if norm_branch and norm_branch in pop_df["anchor_branch"].values:
-        peer_df = pop_df[pop_df["anchor_branch"] == norm_branch].copy()
-        if tier is not None and len(peer_df) >= 2:
-            tier_df = peer_df[peer_df["anchor_college_tier"] == tier]
-            if len(tier_df) >= 2:
-                peer_df = tier_df
-                peer_group_label = f"{norm_branch} · Tier {tier}"
+        peer_cache_key = (norm_branch, tier)
+        if peer_cache_key in _PEER_AVG_CACHE:
+            peer_avg_score = _PEER_AVG_CACHE[peer_cache_key]
+            peer_group_label = f"{norm_branch} · Tier {tier}" if tier is not None else norm_branch
+        else:
+            peer_df = pop_df[pop_df["anchor_branch"] == norm_branch].copy()
+            if tier is not None and len(peer_df) >= 2:
+                tier_df = peer_df[peer_df["anchor_college_tier"] == tier]
+                if len(tier_df) >= 2:
+                    peer_df = tier_df
+                    peer_group_label = f"{norm_branch} · Tier {tier}"
+                else:
+                    peer_group_label = norm_branch
             else:
                 peer_group_label = norm_branch
-        else:
-            peer_group_label = norm_branch
 
-        def _score_row(r: pd.Series) -> float:
-            s = 0.0
-            for k, w in active_weights.items():
-                col = _CAREER_COL_MAP[k]
-                rv = float(r[col]) if pd.notna(r[col]) else 0.0
-                pm = float(pop_df[col].min())
-                px = float(pop_df[col].max())
-                rng = px - pm
-                n = (rv - pm) / rng * 100.0 if rng > 0 else 50.0
-                s += float(np.clip(n, 0.0, 100.0)) * w
-            return round(float(np.clip(s, 0.0, 100.0)), 1)
+            def _score_row(r: pd.Series) -> float:
+                s = 0.0
+                for k, w in active_weights.items():
+                    col = _CAREER_COL_MAP[k]
+                    rv = float(r[col]) if pd.notna(r[col]) else 0.0
+                    pm, px = min_max_dict.get(col, (float(pop_df[col].min()), float(pop_df[col].max())))
+                    rng = px - pm
+                    n = (rv - pm) / rng * 100.0 if rng > 0 else 50.0
+                    s += float(np.clip(n, 0.0, 100.0)) * w
+                return round(float(np.clip(s, 0.0, 100.0)), 1)
 
-        if len(peer_df) >= 1:
-            peer_avg_score = round(float(peer_df.apply(_score_row, axis=1).mean()), 1)
+            if len(peer_df) >= 1:
+                peer_avg_score = round(float(peer_df.apply(_score_row, axis=1).mean()), 1)
+                _PEER_AVG_CACHE[peer_cache_key] = peer_avg_score
 
     # Step 4: Skill gap breakdown (percentile within branch population)
     skill_gaps: List[Dict[str, Any]] = []
@@ -438,7 +471,10 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         disclaimers             dict   — model calibration text
         input_echo              dict   — cleaned/filled values actually used
     """
+    t_start = time.perf_counter()
+
     # ── Step 1: Fill missing raw fields with population medians ───────────────
+    t0 = time.perf_counter()
     branch_raw = student_data.get("branch") or student_data.get("stream_branch")
     branch = normalize_branch(branch_raw)
     tier_raw = student_data.get("tier") or student_data.get("college_tier")
@@ -468,71 +504,163 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
     # ── Step 2: Compute 4 engineered interaction features ─────────────────────
     engineered = _compute_engineered_features(filled, branch=branch)
     full_row = {**filled, **engineered}
+    t_features = (time.perf_counter() - t0) * 1000
 
     # ── Step 3: Run Model 1 — CGPA Prediction ─────────────────────────────────
+    t0 = time.perf_counter()
     model1, meta1, _ = _get_model1()
     features1: List[str] = meta1["features"]
     X1 = pd.DataFrame([{f: full_row.get(f, 0.0) for f in features1}])[features1]
     raw_cgpa = float(model1.predict(X1)[0])
     predicted_cgpa = round(float(np.clip(raw_cgpa, 0.0, 10.0)), 2)
+    t_m1 = (time.perf_counter() - t0) * 1000
 
     # ── Step 4: Run Model 2 — At-Risk Classification ──────────────────────────
+    t0 = time.perf_counter()
     model2, meta2 = _get_model2()
     features2: List[str] = meta2["features"]
     X2 = pd.DataFrame([{f: full_row.get(f, 0.0) for f in features2}])[features2]
     at_risk_prob = round(float(model2.predict_proba(X2)[0, 1]), 4)
     threshold = float(meta2.get("decision_threshold", 0.50))
     at_risk_label = "At-Risk" if at_risk_prob >= threshold else "Safe"
+    t_m2 = (time.perf_counter() - t0) * 1000
 
     # ── Step 5: Career Readiness Engine ───────────────────────────────────────
+    t0 = time.perf_counter()
     career_readiness = _compute_career_readiness(filled, branch, tier)
+    t_career = (time.perf_counter() - t0) * 1000
 
     # ── Step 6: Build GenAI-compatible payload and call all 3 functions ────────
+    t0 = time.perf_counter()
     student_label = str(student_data.get("student_label", "BYOD-Student"))
 
-    # Compute top contributing risk factor (same z-score logic as production)
-    pos_risk_cols = {
-        "anchor_burnout_score": ("Elevated Burnout", "/10"),
-        "anchor_stress_level": ("High Academic Stress", "/10"),
-        "anchor_screen_time": ("Excessive Screen Time", " hrs/day"),
-        "anchor_gaming_hours": ("Excessive Gaming", " hrs/day"),
-        "screen_to_study_ratio": ("Screen-to-Study Imbalance", " ratio"),
-    }
-    neg_risk_cols = {
-        "anchor_sleep_hours": ("Chronic Sleep Deprivation", " hrs/night"),
-        "anchor_study_hours_daily": ("Low Daily Study Hours", " hrs/day"),
-        "anchor_self_learning_hours": ("Low Self-Learning Effort", " hrs/day"),
-        "anchor_motivation_level": ("Low Motivation Level", "/10"),
-        "anchor_adaptability_score": ("Low Adaptability Score", "/10"),
-        "wellness_score": ("Depleted Wellness Index", " pts"),
+    # Compute top contributing risk factor using Logistic Regression signed coefficients (.coef_)
+    factor_descriptions = {
+        "anchor_gym_frequency": {
+            "pos": ("Elevated Gym Frequency", " days/wk"),
+            "neg": ("Low Gym / Fitness Activity", " days/wk"),
+        },
+        "anchor_self_learning_hours": {
+            "pos": ("High Self-Learning Effort", " hrs/day"),
+            "neg": ("Low Self-Learning Effort", " hrs/day"),
+        },
+        "anchor_gaming_hours": {
+            "pos": ("Excessive Gaming Hours", " hrs/day"),
+            "neg": ("Minimal Gaming Hours", " hrs/day"),
+        },
+        "anchor_development_projects_count": {
+            "pos": ("High Project Output", " projects"),
+            "neg": ("Low Development Project Activity", " projects"),
+        },
+        "anchor_sleep_hours": {
+            "pos": ("Elevated Sleep Duration", " hrs/night"),
+            "neg": ("Chronic Sleep Deprivation", " hrs/night"),
+        },
+        "wellness_score": {
+            "pos": ("Elevated Wellness Index", " pts"),
+            "neg": ("Depleted Wellness Index", " pts"),
+        },
+        "screen_to_study_ratio": {
+            "pos": ("Screen-to-Study Imbalance", " ratio"),
+            "neg": ("Low Screen-to-Study Ratio", " ratio"),
+        },
+        "anchor_communication_skills": {
+            "pos": ("High Communication Skills", " pts"),
+            "neg": ("Low Communication Skills Score", " pts"),
+        },
+        "anchor_study_hours_daily": {
+            "pos": ("High Daily Study Hours", " hrs/day"),
+            "neg": ("Low Daily Study Hours", " hrs/day"),
+        },
+        "anchor_screen_time": {
+            "pos": ("Excessive Screen Time", " hrs/day"),
+            "neg": ("Low Daily Screen Time", " hrs/day"),
+        },
+        "anchor_stress_level": {
+            "pos": ("High Academic Stress", "/10"),
+            "neg": ("Low Academic Stress", "/10"),
+        },
+        "anchor_burnout_score": {
+            "pos": ("Elevated Burnout", "/10"),
+            "neg": ("Low Burnout Score", "/10"),
+        },
+        "anchor_ai_tool_usage_frequency": {
+            "pos": ("High AI Tool Reliance", " freq"),
+            "neg": ("Low AI Tool Utilization", " freq"),
+        },
+        "anchor_mock_interview_score": {
+            "pos": ("High Mock Interview Score", "/100"),
+            "neg": ("Low Mock Interview Preparation", "/100"),
+        },
+        "anchor_hackathons_participated": {
+            "pos": ("High Hackathon Engagement", " events"),
+            "neg": ("Low Hackathon Participation", " events"),
+        },
+        "anchor_aptitude_score": {
+            "pos": ("High Aptitude Score", "/100"),
+            "neg": ("Low Aptitude Score", "/100"),
+        },
+        "anchor_prompt_engineering_skill": {
+            "pos": ("High Prompt Engineering Skills", "/10"),
+            "neg": ("Low Prompt Engineering Skills", "/10"),
+        },
+        "anchor_family_income_lpa": {
+            "pos": ("Higher Family Income Tier", " LPA"),
+            "neg": ("Financial Strain (Low Family Income)", " LPA"),
+        },
+        "anchor_motivation_level": {
+            "pos": ("High Motivation Level", "/10"),
+            "neg": ("Low Motivation Level", "/10"),
+        },
+        "anchor_adaptability_score": {
+            "pos": ("High Adaptability Score", "/10"),
+            "neg": ("Low Adaptability Score", "/10"),
+        },
+        "anchor_git_hub_repos": {
+            "pos": ("High GitHub Activity", " repos"),
+            "neg": ("Low GitHub Code Activity", " repos"),
+        },
+        "anchor_ai_ml_projects": {
+            "pos": ("High AI/ML Projects", " projects"),
+            "neg": ("Low AI/ML Project Count", " projects"),
+        },
+        "anchor_resume_score": {
+            "pos": ("High Resume Evaluation Score", "/100"),
+            "neg": ("Low Resume Evaluation Score", "/100"),
+        },
     }
 
-    # Use population medians as reference for z-score computation
     try:
         pop_df = _get_population()
-        max_z = -999.0
+        stats = _POPULATION_STATS_CACHE or {}
+        means = stats.get("means", {})
+        stds = stats.get("stds", {})
+
+        coef_map = {}
+        if hasattr(model2, "coef_"):
+            coef_map = dict(zip(features2, [float(c) for c in model2.coef_[0]]))
+        elif "feature_coefficients" in meta2:
+            coef_map = {k: float(v) for k, v in meta2["feature_coefficients"].items()}
+        else:
+            coef_map = {f: 1.0 for f in features2}
+
+        best_push = -9999.0
         top_factor = "Academic Workload Imbalance"
         stu_val_str = "N/A"
         pop_avg_str = "N/A"
-        for col, (desc, unit) in pos_risk_cols.items():
+        for col in features2:
             if col in pop_df.columns:
-                m = float(pop_df[col].mean())
-                s = float(pop_df[col].std()) or 1.0
-                val = full_row.get(col, m)
+                m = means.get(col, float(pop_df[col].mean()))
+                s = stds.get(col, float(pop_df[col].std()) or 1.0)
+                val = float(full_row.get(col, m))
                 z = (val - m) / s
-                if z > max_z:
-                    max_z = z
-                    top_factor = desc
-                    stu_val_str = f"{val:.1f}{unit}"
-                    pop_avg_str = f"{m:.1f}{unit}"
-        for col, (desc, unit) in neg_risk_cols.items():
-            if col in pop_df.columns:
-                m = float(pop_df[col].mean())
-                s = float(pop_df[col].std()) or 1.0
-                val = full_row.get(col, m)
-                z = (m - val) / s
-                if z > max_z:
-                    max_z = z
+                c = coef_map.get(col, 0.0)
+                risk_push = c * z
+                if risk_push > best_push:
+                    best_push = risk_push
+                    meta_info = factor_descriptions.get(col, {})
+                    dir_key = "pos" if z >= 0 else "neg"
+                    desc, unit = meta_info.get(dir_key, (col.replace("anchor_", "").replace("_", " ").title(), ""))
                     top_factor = desc
                     stu_val_str = f"{val:.1f}{unit}"
                     pop_avg_str = f"{m:.1f}{unit}"
@@ -540,6 +668,7 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         top_factor = "Academic Workload Imbalance"
         stu_val_str = "N/A"
         pop_avg_str = "N/A"
+    t_risk_factors = (time.perf_counter() - t0) * 1000
 
     # Build data payloads for GenAI bypass
     atrisk_payload = {
@@ -592,6 +721,10 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         }
 
     # ── Step 7: Call GenAI functions via data-dict bypass in parallel ─────────
+    t_genai_atrisk = 0.0
+    t_genai_perf = 0.0
+    t_genai_career = 0.0
+
     if include_genai:
         from src.genai.insights import (
             generate_atrisk_brief_from_data,
@@ -600,26 +733,32 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         )
         import concurrent.futures
 
+        def _timed_call(func, payload):
+            t_fn = time.perf_counter()
+            res = func(payload)
+            dur = (time.perf_counter() - t_fn) * 1000
+            return res, dur
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            fut_atrisk = executor.submit(generate_atrisk_brief_from_data, atrisk_payload)
-            fut_perf = executor.submit(generate_performance_summary_from_data, perf_payload)
-            fut_career = executor.submit(generate_career_guidance_narrative_from_data, career_payload) if career_payload else None
+            fut_atrisk = executor.submit(_timed_call, generate_atrisk_brief_from_data, atrisk_payload)
+            fut_perf = executor.submit(_timed_call, generate_performance_summary_from_data, perf_payload)
+            fut_career = executor.submit(_timed_call, generate_career_guidance_narrative_from_data, career_payload) if career_payload else None
 
             try:
-                atrisk_brief = fut_atrisk.result(timeout=6.0)
+                atrisk_brief, t_genai_atrisk = fut_atrisk.result(timeout=6.0)
             except Exception as e:
                 logger.warning("GenAI at-risk brief failed: %s", e)
                 atrisk_brief = _fallback_atrisk_brief(atrisk_payload)
 
             try:
-                performance_summary = fut_perf.result(timeout=6.0)
+                performance_summary, t_genai_perf = fut_perf.result(timeout=6.0)
             except Exception as e:
                 logger.warning("GenAI performance summary failed: %s", e)
                 performance_summary = _fallback_performance_summary(perf_payload)
 
             if fut_career:
                 try:
-                    career_narrative = fut_career.result(timeout=6.0)
+                    career_narrative, t_genai_career = fut_career.result(timeout=6.0)
                 except Exception as e:
                     logger.warning("GenAI career narrative failed: %s", e)
                     career_narrative = None
@@ -647,6 +786,20 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
     else:
         fallback_notice = None
 
+    t_total = (time.perf_counter() - t_start) * 1000
+    timing_breakdown = {
+        "features_and_medians_ms": round(t_features, 2),
+        "model1_inference_ms": round(t_m1, 2),
+        "model2_inference_ms": round(t_m2, 2),
+        "career_readiness_ms": round(t_career, 2),
+        "risk_factors_ms": round(t_risk_factors, 2),
+        "genai_atrisk_ms": round(t_genai_atrisk, 2),
+        "genai_perf_ms": round(t_genai_perf, 2),
+        "genai_career_ms": round(t_genai_career, 2),
+        "total_ms": round(t_total, 2),
+    }
+    logger.info("Assessment timing breakdown: %s", json.dumps(timing_breakdown))
+
     # ── Step 8: Assemble and return response ──────────────────────────────────
     return {
         "branch": branch,
@@ -662,15 +815,16 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         "token_available": token_ok,
         "fallback_notice": fallback_notice,
         "defaulted_fields": defaulted_fields,
+        "timing_ms": timing_breakdown,
         "disclaimers": {
             "model1_note": (
                 "CGPA prediction uses a GradientBoostingRegressor (R²=0.21). "
                 "This is a directional signal only, not a reliable forecast."
             ),
             "model2_note": (
-                "At-risk classification uses a RandomForestClassifier "
-                "(Recall=45%, Precision=32%). ~2 in 3 flags are false alarms; "
-                "over half of genuinely at-risk students may go unflagged."
+                "At-risk classification uses a LogisticRegression classifier "
+                "(Recall=50.22%, Precision=33.46%). ~2 in 3 flags are false alarms; "
+                "catches just over half (50.22%) of genuinely at-risk students."
             ),
             "byod_note": (
                 "This assessment was run on user-supplied data, not persisted warehouse records. "
@@ -700,9 +854,9 @@ def _fallback_atrisk_brief(payload: dict) -> dict:
         f"The early-warning model flagged {sid} ({branch}, Tier {tier}) as {label} "
         f"with an estimated risk probability of {prob:.1%}, primarily attributed to "
         f"{factor} ({stu_val} vs. population average of {pop_avg}). "
-        f"This model has an established calibration of 45% recall and 32% precision — "
-        f"meaning approximately two out of three flags are false alarms, while over half "
-        f"of genuinely at-risk students remain unflagged. "
+        f"This model has an established calibration of 50% recall and 33% precision — "
+        f"meaning approximately two out of three flags are false alarms, while catching "
+        f"just over half (50.22%) of genuinely at-risk students. "
         f"Consider scheduling an informal check-in conversation to understand current workload and wellbeing."
     )
     return {

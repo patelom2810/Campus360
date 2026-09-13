@@ -283,12 +283,201 @@ async function loadOverviewView() {
       },
     });
 
-    // 3. Fetch & Render Top 6 Flagged At-Risk Students
+    // 3. Render Academic Performance Progression Featured Spline Chart (UI Mockup Match)
+    renderAcademicTrajectoryChart('subjects');
+
+    // 4. Fetch & Render Top 6 Flagged At-Risk Students
     loadOverviewAtRiskList();
   } catch (err) {
     console.error('Error loading Overview:', err);
   }
 }
+
+// ── Academic Performance Progression Spline Chart (UI Mockup Match) ───────────
+const academicSplineShadowPlugin = {
+  id: 'academicSplineShadowPlugin',
+  beforeDatasetDraw(chart, args) {
+    if (chart.canvas && chart.canvas.id === 'academicTrajectoryChart') {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.shadowColor = 'rgba(255, 87, 34, 0.42)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 10;
+    }
+  },
+  afterDatasetDraw(chart, args) {
+    if (chart.canvas && chart.canvas.id === 'academicTrajectoryChart') {
+      const { ctx } = chart;
+      ctx.restore();
+    }
+  },
+};
+
+function renderAcademicTrajectoryChart(metricMode = 'subjects') {
+  const canvas = document.getElementById('academicTrajectoryChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Subtle translucent warm gradient beneath the curve
+  const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+  gradient.addColorStop(0, 'rgba(255, 87, 34, 0.12)');
+  gradient.addColorStop(0.5, 'rgba(255, 87, 34, 0.03)');
+  gradient.addColorStop(1, 'rgba(255, 87, 34, 0.0)');
+
+  // Authentic Campus360 datasets
+  let labels = [];
+  let dataPoints = [];
+  let purpleLabel = 'Target Benchmark:';
+  let purpleVal = '75.0%';
+  let orangeLabel = 'Campus Average:';
+  let orangeVal = '64.6%';
+  let datasetLabel = 'Normalized Score (%)';
+  let yMin = 0;
+  let yMax = 100;
+  let yStep = 20;
+  let tooltipFormatter = (ctx) => `  Score: ${ctx.raw}% | Target: 75.0%`;
+
+  if (metricMode === 'effort') {
+    // Mode 2: Daily Study Hours vs Empirical CGPA (11 bins: 2h to 12h)
+    labels = ['2 hrs', '3 hrs', '4 hrs', '5 hrs', '6 hrs', '7 hrs', '8 hrs', '9 hrs', '10 hrs', '11 hrs', '12 hrs'];
+    dataPoints = [7.01, 7.03, 6.88, 7.10, 7.18, 7.34, 7.50, 7.63, 7.78, 7.97, 8.12];
+    purpleLabel = 'Target CGPA:';
+    purpleVal = '8.00';
+    orangeLabel = 'Cohort Median:';
+    orangeVal = '7.62';
+    datasetLabel = 'Average CGPA';
+    yMin = 6.0;
+    yMax = 8.5;
+    yStep = 0.5;
+    tooltipFormatter = (ctx) => `  Average CGPA: ${ctx.raw} | Target: 8.00 CGPA`;
+  } else if (metricMode === 'salary') {
+    // Mode 3: Placement Salary LPA across CGPA bands
+    labels = ['<6.0', '6.0-6.5', '6.5-7.0', '7.0-7.5', '7.5-8.0', '8.0-8.5', '8.5-9.0', '9.0+'];
+    dataPoints = [13.97, 16.17, 17.39, 18.54, 19.78, 20.95, 22.00, 23.27];
+    purpleLabel = 'Top Tier Avg:';
+    purpleVal = '23.3 LPA';
+    orangeLabel = 'Campus Median:';
+    orangeVal = '19.1 LPA';
+    datasetLabel = 'Average Package (LPA)';
+    yMin = 10;
+    yMax = 25;
+    yStep = 5;
+    tooltipFormatter = (ctx) => `  Average Package: ${ctx.raw} LPA | Campus Median: 19.1 LPA`;
+  } else {
+    // Mode 1: Curriculum Subject Milestones (Kundan + Suvidya actual assessment marks)
+    labels = ['Math (Term)', 'Math (Final)', 'Science (Term)', 'Science (Final)', 'English (Term)', 'English (Final)', 'Overall Exam', 'Aptitude Test', 'Tech Skills', 'Degree CGPA'];
+    dataPoints = [63.8, 67.8, 63.8, 66.9, 63.7, 67.8, 64.0, 81.0, 85.9, 74.6];
+    purpleLabel = 'Target Benchmark:';
+    purpleVal = '75.0%';
+    orangeLabel = 'Campus Average:';
+    orangeVal = '64.6%';
+    datasetLabel = 'Normalized Score (%)';
+    yMin = 40;
+    yMax = 100;
+    yStep = 10;
+    tooltipFormatter = (ctx) => `  Average Score: ${ctx.raw}% | Target Benchmark: 75.0%`;
+  }
+
+  // Update Dark Capsule Pill Badge values
+  const pillPurpleLabel = document.getElementById('acad-pill-purple-label');
+  const pillPurpleVal = document.getElementById('acad-pill-purple-val');
+  const pillOrangeLabel = document.getElementById('acad-pill-orange-label');
+  const pillOrangeVal = document.getElementById('acad-pill-orange-val');
+
+  if (pillPurpleLabel) pillPurpleLabel.textContent = purpleLabel;
+  if (pillPurpleVal) pillPurpleVal.textContent = purpleVal;
+  if (pillOrangeLabel) pillOrangeLabel.textContent = orangeLabel;
+  if (pillOrangeVal) pillOrangeVal.textContent = orangeVal;
+
+  // Update switcher buttons active styles
+  ['subjects', 'effort', 'salary'].forEach((m) => {
+    const btn = document.getElementById(`acad-btn-${m}`);
+    if (btn) {
+      if (m === metricMode) {
+        btn.className = 'px-3 py-1 rounded-full font-medium transition-all duration-150 bg-white text-[#111827] shadow-sm';
+      } else {
+        btn.className = 'px-3 py-1 rounded-full font-medium transition-all duration-150 text-[#6B7280] hover:text-[#111827]';
+      }
+    }
+  });
+
+  getOrCreateChart('academicTrajectoryChart', {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: datasetLabel,
+          data: dataPoints,
+          borderColor: '#FF5722',
+          borderWidth: 3.5,
+          tension: 0.46,
+          fill: true,
+          backgroundColor: gradient,
+          pointRadius: 0,
+          pointHoverRadius: 7,
+          pointHoverBackgroundColor: '#FF5722',
+          pointHoverBorderColor: '#FFFFFF',
+          pointHoverBorderWidth: 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0B0F17',
+          titleColor: '#FFFFFF',
+          bodyColor: '#E2E8F0',
+          titleFont: { family: 'Sora', size: 12, weight: '600' },
+          bodyFont: { family: 'Inter', size: 12 },
+          padding: 12,
+          cornerRadius: 12,
+          displayColors: false,
+          callbacks: {
+            title: (items) => `${items[0].label} • Academic Intelligence`,
+            label: tooltipFormatter,
+          },
+        },
+      },
+      scales: {
+        y: {
+          min: yMin,
+          max: yMax,
+          border: { display: false },
+          grid: { display: false },
+          ticks: {
+            stepSize: yStep,
+            color: '#9CA3AF',
+            font: { family: 'Inter', size: 13, weight: '500' },
+            padding: 12,
+          },
+        },
+        x: {
+          border: { display: false },
+          grid: { display: false },
+          ticks: {
+            color: '#9CA3AF',
+            font: { family: 'Inter', size: 13, weight: '500' },
+            padding: 14,
+          },
+        },
+      },
+    },
+    plugins: [academicSplineShadowPlugin],
+  });
+}
+
+window.switchAcademicMetric = function(mode) {
+  renderAcademicTrajectoryChart(mode);
+};
 
 async function loadOverviewAtRiskList() {
   const container = document.getElementById('overview-flagged-list');
@@ -685,12 +874,12 @@ function renderAtRiskTableRows() {
       <td class="py-3 px-4 text-right">
         <button
           onclick="event.stopPropagation(); showAtRiskMentorBrief('${stu.student_id}')"
-          class="px-2.5 py-1 rounded-lg bg-[#EDEBFB] hover:bg-[#6C5CE7] text-[#6C5CE7] hover:text-white font-sora font-semibold text-[11px] transition-all shadow-sm inline-flex items-center space-x-1"
-          title="Generate Mentor Brief for ${stu.student_id}">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          class="px-2.5 py-1 rounded-lg bg-[#EDEBFB] hover:bg-[#6C5CE7] text-[#6C5CE7] hover:text-white font-sora font-semibold text-[11px] transition-all shadow-sm inline-flex items-center space-x-1.5 cursor-pointer"
+          title="Open AI Assistant for ${stu.student_id}">
+          <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
           </svg>
-          <span>Mentor Brief</span>
+          <span>AI Assist</span>
         </button>
       </td>
     </tr>
@@ -713,16 +902,73 @@ window.filterAtRiskTable = function () {
   loadAtRiskTable();
 };
 
-window.showAtRiskMentorBrief = async function (studentId) {
+window.showAtRiskMentorBrief = function (studentId) {
   const modal = document.getElementById('ai-mentor-modal');
   const title = document.getElementById('ai-modal-title');
   const subtitle = document.getElementById('ai-modal-subtitle');
   const body = document.getElementById('ai-modal-body');
   if (!modal || !body) return;
 
-  title.textContent = `Mentor Brief • ${studentId}`;
+  title.textContent = `Faculty & Mentor Brief • ${studentId}`;
   subtitle.textContent = 'AI synthesis from calibrated Model 2 early-warning classifier';
   modal.classList.remove('hidden');
+
+  // Look up cached student row data if available
+  const stu = (state.atRiskData || []).find((s) => s.student_id === studentId) || {
+    student_id: studentId,
+    current_cgpa: null,
+    predicted_risk_probability: 0.5,
+    top_contributing_factor: 'Attendance / Academic Standing',
+  };
+
+  const prob = (stu.predicted_risk_probability * 100).toFixed(1);
+  const badgeColor = stu.predicted_risk_probability >= 0.5 ? 'bg-[#FDEDEF] text-[#E85D75]' : 'bg-[#E7F8EE] text-[#4CAF7D]';
+  const cgpaDisplay = typeof stu.current_cgpa === 'number' ? stu.current_cgpa.toFixed(2) : 'Profile Synced';
+
+  // Render on-demand assistant standby prompt — DO NOT call GenAI directly
+  body.innerHTML = `
+    <div class="rounded-2xl p-5 border border-purple-100 mb-5" style="background: linear-gradient(135deg, #EDEBFB 0%, #F6F5FC 100%)">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <span class="font-sora font-bold text-sm text-[#1E1B2E]">Student Early-Warning Indicators</span>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
+          Risk Probability: ${prob}%
+        </span>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-xs mb-3">
+        <div class="bg-white/85 p-3 rounded-xl border border-purple-50 shadow-2xs">
+          <div class="text-[11px] text-[#8A8797]">Current Academic Standing</div>
+          <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-0.5">${cgpaDisplay} CGPA</div>
+        </div>
+        <div class="bg-white/85 p-3 rounded-xl border border-purple-50 shadow-2xs">
+          <div class="text-[11px] text-[#8A8797]">Primary Contributing Factor</div>
+          <div class="font-sora font-bold text-sm text-[#6C5CE7] mt-0.5">${stu.top_contributing_factor}</div>
+        </div>
+      </div>
+      <p class="text-xs text-[#8A8797] leading-relaxed">
+        GenAI Assistant is on standby. Click the assist button below to synthesize an actionable, tailored faculty mentor brief grounded in Model 2 early-warning indicators.
+      </p>
+    </div>
+
+    <div class="flex items-center justify-end space-x-3">
+      <button onclick="closeAiModal()" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#8A8797] hover:bg-[#F6F5FC] transition-colors cursor-pointer">
+        Cancel
+      </button>
+      <button
+        id="btn-execute-modal-ai-assist"
+        onclick="executeModalAiAssist('${studentId}')"
+        class="px-5 py-2.5 rounded-xl bg-[#6C5CE7] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 cursor-pointer">
+        <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+        </svg>
+        <span>Assist with GenAI</span>
+      </button>
+    </div>
+  `;
+};
+
+window.executeModalAiAssist = async function (studentId) {
+  const body = document.getElementById('ai-modal-body');
+  if (!body) return;
 
   body.innerHTML = `
     <div class="py-8 text-center">
@@ -771,13 +1017,19 @@ window.showAtRiskMentorBrief = async function (studentId) {
           <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'Gemini AI generated'}</span>
         </div>
       </div>
-      <div class="mt-5 flex items-center justify-end space-x-3">
-        <button onclick="closeAiModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-[#8A8797] hover:bg-[#F6F5FC] transition-colors">
-          Close
+      <div class="mt-5 flex items-center justify-between">
+        <button onclick="executeModalAiAssist('${studentId}')" class="text-[11px] text-[#6C5CE7] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Re-synthesize Brief
         </button>
-        <button onclick="closeAiModal(); jumpToStudent('${studentId}')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-[#6C5CE7] hover:bg-[#4B3FA8] text-white transition-all shadow-sm">
-          View 360° Profile
-        </button>
+        <div class="flex items-center space-x-3">
+          <button onclick="closeAiModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-[#8A8797] hover:bg-[#F6F5FC] transition-colors cursor-pointer">
+            Close
+          </button>
+          <button onclick="closeAiModal(); jumpToStudent('${studentId}')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-[#6C5CE7] hover:bg-[#4B3FA8] text-white transition-all shadow-sm cursor-pointer">
+            View 360° Profile
+          </button>
+        </div>
       </div>
     `;
   } catch (err) {
@@ -785,6 +1037,11 @@ window.showAtRiskMentorBrief = async function (studentId) {
     body.innerHTML = `
       <div class="p-6 text-center text-xs text-red-500">
         Failed to load mentor brief for ${studentId}. Please ensure backend API is running.
+      </div>
+      <div class="mt-3 flex justify-center">
+        <button onclick="showAtRiskMentorBrief('${studentId}')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
+          Back
+        </button>
       </div>
     `;
   }
@@ -1144,17 +1401,55 @@ function renderStudent360(data) {
     </div>
   `;
 
-  // Auto-load initial At-Risk Brief for this student
+  // Setup GenAI Assistant on standby — do NOT call GenAI directly
   if (d.student_id) {
-    switchStudentBriefTab(d.student_id, 'atrisk');
+    state.activeStudentAiStudentId = d.student_id;
+    state.activeStudentAiTab = 'atrisk';
+    renderStudentAiStandby(d.student_id, 'atrisk');
   }
 }
 
-window.switchStudentBriefTab = async function (studentId, tab) {
+window.renderStudentAiStandby = function (studentId, tab = 'atrisk') {
   const container = document.getElementById('student-brief-content');
+  if (!container) return;
+
+  const tabLabel = tab === 'atrisk' ? 'Early-Warning At-Risk Brief' : 'Academic Trajectory Analysis';
+  const tabDesc = tab === 'atrisk'
+    ? 'Synthesizes Model 2 early-warning indicators, attendance patterns, and faculty intervention steps.'
+    : 'Analyzes Model 1 academic trajectory (R²=0.21), study habits, and projected term CGPA.';
+
+  container.innerHTML = `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
+      <div class="flex items-center space-x-3.5">
+        <div class="w-10 h-10 rounded-xl bg-white shadow-xs border border-purple-100 flex items-center justify-center text-[#6C5CE7] flex-shrink-0">
+          <svg class="w-5 h-5 text-[#6C5CE7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-[#1E1B2E] flex items-center gap-1.5">
+            <span>GenAI Assistant Standby</span>
+            <span class="px-2 py-0.5 rounded-md bg-white border border-purple-100 text-[10px] text-[#6C5CE7] font-medium">${tabLabel}</span>
+          </div>
+          <div class="text-[11px] text-[#8A8797] mt-0.5 max-w-xl">${tabDesc}</div>
+        </div>
+      </div>
+      <button
+        id="btn-assist-student-ai"
+        onclick="executeStudentAiAssist('${studentId}')"
+        class="px-5 py-2.5 rounded-xl bg-[#6C5CE7] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 flex-shrink-0 cursor-pointer">
+        <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+        </svg>
+        <span>Assist with GenAI</span>
+      </button>
+    </div>
+  `;
+};
+
+window.switchStudentBriefTab = function (studentId, tab) {
   const btnAtRisk = document.getElementById('btn-tab-atrisk');
   const btnPerf = document.getElementById('btn-tab-perf');
-  if (!container) return;
 
   if (btnAtRisk && btnPerf) {
     if (tab === 'atrisk') {
@@ -1166,10 +1461,28 @@ window.switchStudentBriefTab = async function (studentId, tab) {
     }
   }
 
+  state.activeStudentAiTab = tab;
+  state.activeStudentAiStudentId = studentId;
+  state.studentAiCache = state.studentAiCache || {};
+
+  const cachedData = state.studentAiCache[`${studentId}_${tab}`];
+  if (cachedData) {
+    renderStudentAiBriefContent(studentId, tab, cachedData);
+  } else {
+    // Show standby with button to assist — DO NOT call GenAI directly
+    renderStudentAiStandby(studentId, tab);
+  }
+};
+
+window.executeStudentAiAssist = async function (studentId) {
+  const container = document.getElementById('student-brief-content');
+  if (!container) return;
+
+  const tab = state.activeStudentAiTab || 'atrisk';
   container.innerHTML = `
     <div class="flex items-center justify-center py-4">
       <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[#6C5CE7]"></div>
-      <span class="ml-2 text-xs text-[#8A8797]">Synthesizing ${tab === 'atrisk' ? 'early-warning at-risk' : 'academic trajectory'} brief...</span>
+      <span class="ml-2 text-xs text-[#8A8797]">Synthesizing ${tab === 'atrisk' ? 'early-warning at-risk' : 'academic trajectory'} brief for ${studentId}...</span>
     </div>
   `;
 
@@ -1180,69 +1493,96 @@ window.switchStudentBriefTab = async function (studentId, tab) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
+    state.studentAiCache = state.studentAiCache || {};
+    state.studentAiCache[`${studentId}_${tab}`] = data;
+
     if (data.is_fallback) {
       showToast('Gemini AI did not respond — displaying rule-based statistical brief.', 'fallback');
     }
 
-    const fallbackPill = data.is_fallback ? `
-      <div class="mb-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
-        <div class="flex items-center gap-1.5">
-          <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span><strong>AI Fallback:</strong> Gemini not responding; statistical rule brief generated.</span>
-        </div>
-        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-200/60 text-amber-900">Rule Fallback</span>
-      </div>` : '';
-
-    if (tab === 'atrisk') {
-      const prob = (data.model_probability * 100).toFixed(1);
-      const badgeColor = data.model_probability >= 0.5 ? 'bg-[#FDEDEF] text-[#E85D75]' : 'bg-[#E7F8EE] text-[#4CAF7D]';
-      container.innerHTML = `
-        ${fallbackPill}
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
-            Model Probability: ${prob}%
-          </span>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#6C5CE7]">
-            Top Factor: ${data.model_top_factor}
-          </span>
-          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
-        </div>
-        <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">
-          ${data.brief_text}
-        </p>
-        <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
-          <span>Source: Model 2 Early-Warning Classifier (45% Recall, 32% Precision)</span>
-          <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'AI-generated — verify before acting'}</span>
-        </div>
-      `;
-    } else {
-      const dirColor = (data.current_cgpa !== null && data.predicted_cgpa >= data.current_cgpa) ? 'text-[#4CAF7D]' : 'text-[#E85D75]';
-      const currCgpaStr = data.current_cgpa !== null ? data.current_cgpa.toFixed(2) : 'N/A';
-      container.innerHTML = `
-        ${fallbackPill}
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#1E1B2E]">
-            Current: ${currCgpaStr} → Predicted: <strong class="${dirColor}">${data.predicted_cgpa.toFixed(2)}</strong>
-          </span>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
-            R² = 0.21 Calibration
-          </span>
-          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
-        </div>
-        <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">
-          ${data.summary_text}
-        </p>
-        <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
-          <span>Source: Model 1 Trajectory Predictor (R²=0.21 directional signal)</span>
-          <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'AI-generated — verify before acting'}</span>
-        </div>
-      `;
-    }
+    renderStudentAiBriefContent(studentId, tab, data);
   } catch (err) {
     console.error('Student brief tab fetch error:', err);
-    container.innerHTML = `<div class="py-4 text-center text-xs text-red-500">Failed to load brief for ${studentId}.</div>`;
+    container.innerHTML = `
+      <div class="py-3 text-center text-xs text-red-500">
+        Failed to load brief for ${studentId}.
+        <button onclick="executeStudentAiAssist('${studentId}')" class="ml-2 text-[#6C5CE7] underline font-semibold cursor-pointer">Retry</button>
+      </div>
+    `;
   }
 };
+
+function renderStudentAiBriefContent(studentId, tab, data) {
+  const container = document.getElementById('student-brief-content');
+  if (!container) return;
+
+  const fallbackPill = data.is_fallback ? `
+    <div class="mb-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+      <div class="flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span><strong>AI Fallback:</strong> Gemini not responding; statistical rule brief generated.</span>
+      </div>
+      <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-200/60 text-amber-900">Rule Fallback</span>
+    </div>` : '';
+
+  if (tab === 'atrisk') {
+    const prob = (data.model_probability * 100).toFixed(1);
+    const badgeColor = data.model_probability >= 0.5 ? 'bg-[#FDEDEF] text-[#E85D75]' : 'bg-[#E7F8EE] text-[#4CAF7D]';
+    container.innerHTML = `
+      ${fallbackPill}
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
+          Model Probability: ${prob}%
+        </span>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#6C5CE7]">
+          Top Factor: ${data.model_top_factor}
+        </span>
+        ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
+      </div>
+      <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">
+        ${data.brief_text}
+      </p>
+      <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
+        <span>Source: Model 2 Early-Warning Classifier (50.22% Recall, 33.46% Precision)</span>
+        <div class="flex items-center gap-3">
+          <button onclick="executeStudentAiAssist('${studentId}')" class="text-[#6C5CE7] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Re-synthesize
+          </button>
+          <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'AI-generated — verify before acting'}</span>
+        </div>
+      </div>
+    `;
+  } else {
+    const dirColor = (data.current_cgpa !== null && data.predicted_cgpa >= data.current_cgpa) ? 'text-[#4CAF7D]' : 'text-[#E85D75]';
+    const currCgpaStr = data.current_cgpa !== null ? data.current_cgpa.toFixed(2) : 'N/A';
+    container.innerHTML = `
+      ${fallbackPill}
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#1E1B2E]">
+          Current: ${currCgpaStr} → Predicted: <strong class="${dirColor}">${data.predicted_cgpa.toFixed(2)}</strong>
+        </span>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
+          R² = 0.21 Calibration
+        </span>
+        ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
+      </div>
+      <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">
+        ${data.summary_text}
+      </p>
+      <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
+        <span>Source: Model 1 Trajectory Predictor (R²=0.21 directional signal)</span>
+        <div class="flex items-center gap-3">
+          <button onclick="executeStudentAiAssist('${studentId}')" class="text-[#6C5CE7] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Re-synthesize
+          </button>
+          <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'AI-generated — verify before acting'}</span>
+        </div>
+      </div>
+    `;
+  }
+}
 
 
 // ── VIEW 6: Career Guidance ───────────────────────────────────────────────────
@@ -1475,9 +1815,25 @@ function renderCareerGuidance(data) {
             <span class="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-white text-[#6C5CE7]">Synthesized by Gemini 2.5 Flash</span>
           </div>
           <div id="career-narrative-text" class="text-sm font-medium text-[#1E1B2E] leading-relaxed">
-            <div class="flex items-center py-2">
-              <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-[#6C5CE7] mr-2"></div>
-              <span class="text-xs text-[#8A8797]">Generating personalized career narrative for ${data.student_id}...</span>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
+              <div>
+                <div class="text-xs font-semibold text-[#1E1B2E] flex items-center gap-1.5 mb-1">
+                  <span>GenAI Career Assistant Standby</span>
+                  <span class="px-2 py-0.5 rounded-md bg-white border border-purple-100 text-[10px] text-[#6C5CE7] font-medium">Placement Guidance</span>
+                </div>
+                <p class="text-xs text-[#8A8797] leading-relaxed max-w-xl">
+                  Click assist to synthesize personalized benchmark percentiles, skill gap mitigation steps, and career path recommendations for ${data.student_id}.
+                </p>
+              </div>
+              <button
+                id="btn-assist-career-ai"
+                onclick="executeCareerAiAssist('${data.student_id}')"
+                class="px-5 py-2.5 rounded-xl bg-[#6C5CE7] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 flex-shrink-0 cursor-pointer">
+                <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span>Assist with GenAI</span>
+              </button>
             </div>
           </div>
           <div class="text-[11px] text-[#8A8797] mt-3 pt-2 border-t border-purple-200/60 flex items-center justify-between">
@@ -1559,13 +1915,19 @@ function renderCareerGuidance(data) {
     },
   });
 
-  // Auto-load AI Career Guidance Narrative
-  loadCareerNarrative(data.student_id);
+  // GenAI Career Guidance Narrative is on standby — do NOT auto-call directly
 }
 
-async function loadCareerNarrative(studentId) {
+window.executeCareerAiAssist = async function (studentId) {
   const textEl = document.getElementById('career-narrative-text');
   if (!textEl) return;
+
+  textEl.innerHTML = `
+    <div class="flex items-center py-3">
+      <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[#6C5CE7] mr-3"></div>
+      <span class="text-xs text-[#8A8797]">Synthesizing personalized career narrative for ${studentId}...</span>
+    </div>
+  `;
 
   try {
     const res = await fetch(`${API_BASE}/api/genai/career-guidance/${encodeURIComponent(studentId)}`);
@@ -1584,13 +1946,24 @@ async function loadCareerNarrative(studentId) {
       </div>` : '';
     textEl.innerHTML = `
       ${fallbackBanner}
-      <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed">${data.narrative_text}</p>
+      <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">${data.narrative_text}</p>
+      <div class="flex justify-end">
+        <button onclick="executeCareerAiAssist('${studentId}')" class="text-[11px] text-[#6C5CE7] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Re-synthesize Career Narrative
+        </button>
+      </div>
     `;
   } catch (err) {
     console.error('Career narrative fetch error:', err);
-    textEl.innerHTML = '<p class="text-xs text-red-500">Failed to load AI career narrative.</p>';
+    textEl.innerHTML = `
+      <div class="py-2 text-xs text-red-500 flex items-center justify-between">
+        <span>Failed to load AI career narrative for ${studentId}.</span>
+        <button onclick="executeCareerAiAssist('${studentId}')" class="text-[#6C5CE7] font-semibold hover:underline cursor-pointer">Retry</button>
+      </div>
+    `;
   }
-}
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // VIEW 7: DATA & ETL PIPELINE MONITORING
@@ -2188,7 +2561,7 @@ function renderStageDetailsHtml(stage) {
                 <span>Known Limitation: Lifestyle Early Warning (~2 in 3 False Alarms)</span>
               </div>
               <p class="text-[11px] mt-1 text-[#B45309] leading-relaxed">
-                ${m2.limitation_badge || 'Recall is ~45% and Precision is ~32%. Designed as an exploratory lifestyle screening filter, not an automated disciplinary or tracking flag. Advisors must verify before intervention.'}
+                ${m2.limitation_badge || 'Recall is ~50% (50.22%) and Precision is ~33% (33.46%). Catches just over half of at-risk students (~2 in 3 flags are false alarms). Designed as an exploratory lifestyle screening filter, not an automated disciplinary or tracking flag. Advisors must verify before intervention.'}
               </p>
             </div>
           </div>

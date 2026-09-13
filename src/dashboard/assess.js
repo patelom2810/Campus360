@@ -434,7 +434,7 @@ function renderSingleResult(containerId, data, label = null) {
           <div class="text-xs font-semibold mt-1" style="color:${atRiskColor}">${riskLabel}</div>
           <div class="${atRiskBannerClass} mt-3 flex items-start gap-2 text-xs">
             ${atRiskIcon}
-            <span>${disclaimers.model2_note || 'Recall=45%, Precision=32%'}</span>
+            <span>${disclaimers.model2_note || 'Recall=50.22%, Precision=33.46%'}</span>
           </div>
         </div>
 

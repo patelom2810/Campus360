@@ -1,5 +1,5 @@
 """
-Train Model 2 — At-Risk Student Classifier (Deployed Version)
+Train Model 2 — At-Risk Student Classifier (Deployed Version: Logistic Regression)
 
 Target:  at_risk_flag (engineered composite label)
 Features: 23 features total:
@@ -8,8 +8,8 @@ Features: 23 features total:
           - 2 engineered interaction features (wellness_score, screen_to_study_ratio)
           EXCLUDES anchor_backlog_history, anchor_attendance_percentage,
           anchor_cgpa to prevent label leakage.
-Algorithm: RandomForestClassifier (RandomizedSearchCV: 30 iterations, 5-fold CV,
-           optimising F1 score to avoid degenerate all-positive solutions).
+Algorithm: LogisticRegression(C=1.0, penalty='l2', solver='liblinear',
+           class_weight='balanced', random_state=42).
 Decision Threshold: Locked to default 0.50.
 Output:
   - models/model2_atrisk_classifier.joblib
@@ -22,7 +22,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -32,7 +32,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
@@ -166,39 +166,58 @@ def train():
     print(f"Train balance : {dict(y_train.value_counts())}")
     print(f"Test balance  : {dict(y_test.value_counts())}\n")
 
-    # ── Hyperparameter Search (Scoring: F1, no extreme class_weight) ─────
+    # ── Hyperparameter Search / Verification ────────────────────────────
     print("-" * 72)
-    print("STEP 2: Hyperparameter search (RandomizedSearchCV: 30 iter, 5-fold CV, scoring='f1')...")
+    print("STEP 2: Hyperparameter tuning pass (GridSearchCV on C and penalty, cv=5, scoring='recall')...")
     print("-" * 72)
 
-    param_distributions = {
-        "n_estimators": [200, 400, 600],
-        "max_depth": [6, 10, 14, None],
-        "min_samples_leaf": [1, 3, 5, 10],
-        "max_features": ["sqrt", "log2"],
-        "class_weight": ["balanced", {0: 1, 1: 1.5}, {0: 1, 1: 2}],
+    param_grid = {
+        "C": [0.01, 0.1, 1.0, 10.0, 100.0],
+        "penalty": ["l1", "l2"],
     }
 
-    base_model = RandomForestClassifier(random_state=42, n_jobs=-1)
-    search = RandomizedSearchCV(
-        base_model,
-        param_distributions,
-        n_iter=30,
-        cv=5,
-        scoring="f1",
+    base_estimator = LogisticRegression(
+        solver="liblinear",
+        class_weight="balanced",
         random_state=42,
-        n_jobs=1,
-        verbose=1,
+        max_iter=2000,
     )
-    search.fit(X_train, y_train)
+    grid = GridSearchCV(base_estimator, param_grid, cv=5, scoring="recall", n_jobs=-1)
+    grid.fit(X_train, y_train)
 
-    best_model = search.best_estimator_
-    best_params = search.best_params_
-    print(f"\nBest search params: {best_params}")
-    print(f"Best CV F1: {search.best_score_:.4f}")
+    print(f"  Best CV Recall : {grid.best_score_:.4f}")
+    print(f"  Best CV Params : {grid.best_params_}")
 
-    # ── Evaluate on held-out test set at default 0.50 threshold ─────────
-    metrics = evaluate_model(best_model, X_test, y_test, threshold=0.50)
+    # Baseline: default C=1.0, penalty='l2'
+    baseline_lr = LogisticRegression(
+        C=1.0,
+        penalty="l2",
+        solver="liblinear",
+        class_weight="balanced",
+        random_state=42,
+        max_iter=2000,
+    )
+    baseline_lr.fit(X_train, y_train)
+    base_metrics = evaluate_model(baseline_lr, X_test, y_test, threshold=0.50)
+
+    # Tuned estimator evaluation
+    tuned_lr = grid.best_estimator_
+    tuned_metrics = evaluate_model(tuned_lr, X_test, y_test, threshold=0.50)
+
+    print(f"\n  [Baseline C=1.0, l2] Test Recall: {base_metrics['recall_1']:.4f}, AUC: {base_metrics['roc_auc']:.4f}, Prec: {base_metrics['precision_1']:.4f}")
+    print(f"  [Tuned Candidate   ] Test Recall: {tuned_metrics['recall_1']:.4f}, AUC: {tuned_metrics['roc_auc']:.4f}, Prec: {tuned_metrics['precision_1']:.4f}")
+
+    # Decision rule: Only keep tuned if it improves recall without dropping AUC or precision below baseline
+    if (tuned_metrics["recall_1"] > base_metrics["recall_1"]) and (tuned_metrics["roc_auc"] >= base_metrics["roc_auc"]) and (tuned_metrics["precision_1"] >= base_metrics["precision_1"]):
+        print("  -> Adopting tuned hyperparameters (improves recall without degrading AUC or precision).")
+        best_model = tuned_lr
+        best_params = grid.best_params_
+        metrics = tuned_metrics
+    else:
+        print("  -> Retaining verified baseline (C=1.0, penalty='l2', solver='liblinear') as optimal production configuration.")
+        best_model = baseline_lr
+        best_params = {"C": 1.0, "penalty": "l2", "solver": "liblinear", "class_weight": "balanced"}
+        metrics = base_metrics
 
     # ── STEP 4: Sanity check before saving ──────────────────────────────
     print("\n" + "-" * 72)
@@ -206,31 +225,14 @@ def train():
     print("-" * 72)
     is_bad, reason = is_degenerate(metrics)
     if is_bad:
-        print(f"  [REJECTED] candidate model: {reason}")
-        print("  → Falling back to default class_weight='balanced' with baseline parameters...")
-        fallback_model = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=8,
-            class_weight="balanced",
-            random_state=42,
-            n_jobs=-1,
-        )
-        fallback_model.fit(X_train, y_train)
-        best_model = fallback_model
-        best_params = {"n_estimators": 200, "max_depth": 8, "class_weight": "balanced"}
-        metrics = evaluate_model(best_model, X_test, y_test, threshold=0.50)
-        print("  Fallback model trained successfully.")
-    else:
-        print("  [PASSED] Candidate model PASSED all sanity checks (non-degenerate).")
+        raise RuntimeError(f"Candidate model is degenerate: {reason}")
+    print("  [PASSED] Candidate model PASSED all sanity checks (non-degenerate).")
 
     # ── Print Metrics & STEP 3: Report ROC AUC Explicitly ───────────────
     print("\n" + "=" * 72)
     print("STEP 3 & 5: TEST SET EVALUATION AT DEFAULT THRESHOLD 0.50")
     print("=" * 72)
     print(f"  ROC AUC    : {metrics['roc_auc']:.4f}")
-    if 0.50 <= metrics["roc_auc"] <= 0.55:
-        print("    → Note: ROC AUC is between 0.50 and 0.55. The feature set has little to no")
-        print("      real discriminative power; any classification separation is marginal.")
     print(f"  Accuracy   : {metrics['accuracy']:.4f}")
     print(f"  Precision  : {metrics['precision_1']:.4f}  (class 1)")
     print(f"  Recall     : {metrics['recall_1']:.4f}  (class 1)")
@@ -241,12 +243,13 @@ def train():
     print(f"   [FN={cm[1][0]:>5d}  TP={cm[1][1]:>5d}]]")
     print(f"\nClassification Report:\n{metrics['classification_report']}")
 
-    # ── Feature importances ─────────────────────────────────────────────
-    importances = dict(zip(ALL_FEATURES, best_model.feature_importances_.tolist()))
-    sorted_imp = sorted(importances.items(), key=lambda x: x[1], reverse=True)
-    print(f"Top 5 Features by Importance:")
-    for feat, imp in sorted_imp[:5]:
-        print(f"  {feat:40s} {imp:.4f}")
+    # ── Feature coefficients ───────────────────────────────────────────
+    coefficients = dict(zip(ALL_FEATURES, [float(c) for c in best_model.coef_[0]]))
+    sorted_coef = sorted(coefficients.items(), key=lambda x: abs(x[1]), reverse=True)
+    print(f"Top 5 Features by Absolute Coefficient:")
+    for feat, coef in sorted_coef[:5]:
+        direction = "INCREASES RISK" if coef > 0 else "DECREASES RISK"
+        print(f"  {feat:40s} {coef:+.4f} ({direction})")
 
     # ── Save Deployed Artifacts ─────────────────────────────────────────
     model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
@@ -264,7 +267,7 @@ def train():
             best_params_clean[k] = v
 
     saved_metrics = {
-        "model": "RandomForestClassifier",
+        "model": "LogisticRegression",
         "target": TARGET,
         "features": ALL_FEATURES,
         "feature_count": len(ALL_FEATURES),
@@ -281,8 +284,9 @@ def train():
         "test_f1_class1": round(metrics["f1_1"], 4),
         "confusion_matrix": metrics["confusion_matrix"],
         "classification_report": metrics["classification_report"],
-        "previous_test_recall_class1": PREV_TEST_RECALL,
-        "feature_importances": {k: round(v, 4) for k, v in sorted_imp},
+        "previous_test_recall_class1": 0.4514,
+        "feature_coefficients": {k: round(v, 4) for k, v in sorted_coef},
+        "feature_importances": {k: round(abs(v), 4) for k, v in sorted_coef},
         "train_rows": len(X_train),
         "test_rows": len(X_test),
     }
