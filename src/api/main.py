@@ -10,19 +10,25 @@ Supports dual-database engines:
 Configurable via DB_ENGINE environment variable (postgres | sqlite).
 """
 
+import base64
+import csv
+import difflib
+import io
 import json
 import os
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -1532,7 +1538,864 @@ def get_pipeline_status():
     }
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# BYOD — Bring Your Own Data Assessment Endpoints
+# All 4 options converge into run_full_assessment() in assessment_engine.py.
+# None of these endpoints write to the database.
+# ══════════════════════════════════════════════════════════════════════════════
+
+from src.api.assessment_engine import run_full_assessment
+
+# ── BYOD Production Feature Schema (for fuzzy matching) ───────────────────────
+BYOD_FEATURE_SCHEMA: List[str] = [
+    "anchor_attendance_percentage",
+    "anchor_study_hours_daily",
+    "anchor_self_learning_hours",
+    "anchor_sleep_hours",
+    "anchor_screen_time",
+    "anchor_gaming_hours",
+    "anchor_stress_level",
+    "anchor_burnout_score",
+    "anchor_backlog_history",
+    "anchor_dsa_problems_solved",
+    "anchor_internships_completed",
+    "anchor_motivation_level",
+    "anchor_family_income_lpa",
+    "anchor_resume_score",
+    "anchor_communication_skills",
+    "anchor_aptitude_score",
+    "anchor_mock_interview_score",
+    "anchor_hackathons_participated",
+    "anchor_development_projects_count",
+    "anchor_ai_ml_projects",
+    "anchor_git_hub_repos",
+    "anchor_ai_tool_usage_frequency",
+    "anchor_prompt_engineering_skill",
+    "anchor_adaptability_score",
+    "anchor_gym_frequency",
+]
+
+# Synonym / common-alias mapping: user column names → canonical feature names
+BYOD_SYNONYMS: Dict[str, str] = {
+    # Attendance
+    "attendance": "anchor_attendance_percentage",
+    "attendance%": "anchor_attendance_percentage",
+    "attendance_pct": "anchor_attendance_percentage",
+    "attendance_percentage": "anchor_attendance_percentage",
+    "class_attendance": "anchor_attendance_percentage",
+    # Study hours
+    "study_hours": "anchor_study_hours_daily",
+    "study_hrs": "anchor_study_hours_daily",
+    "study_time": "anchor_study_hours_daily",
+    "daily_study_hours": "anchor_study_hours_daily",
+    "hours_studied": "anchor_study_hours_daily",
+    # Sleep
+    "sleep_hours": "anchor_sleep_hours",
+    "sleep_hrs": "anchor_sleep_hours",
+    "sleep": "anchor_sleep_hours",
+    "avg_sleep": "anchor_sleep_hours",
+    # Screen time
+    "screen_time": "anchor_screen_time",
+    "screen_hrs": "anchor_screen_time",
+    "screentime": "anchor_screen_time",
+    "daily_screen_time": "anchor_screen_time",
+    # Gaming
+    "gaming_hours": "anchor_gaming_hours",
+    "gaming_hrs": "anchor_gaming_hours",
+    "gaming": "anchor_gaming_hours",
+    # Stress
+    "stress_level": "anchor_stress_level",
+    "stress": "anchor_stress_level",
+    "stress_score": "anchor_stress_level",
+    # Burnout
+    "burnout_score": "anchor_burnout_score",
+    "burnout": "anchor_burnout_score",
+    # CGPA/backlog
+    "backlog_history": "anchor_backlog_history",
+    "backlogs": "anchor_backlog_history",
+    "backlog": "anchor_backlog_history",
+    # DSA
+    "dsa_problems_solved": "anchor_dsa_problems_solved",
+    "dsa_problems": "anchor_dsa_problems_solved",
+    "dsa": "anchor_dsa_problems_solved",
+    "leetcode": "anchor_dsa_problems_solved",
+    # Internships
+    "internships_completed": "anchor_internships_completed",
+    "internships": "anchor_internships_completed",
+    "internship_count": "anchor_internships_completed",
+    # Motivation
+    "motivation_level": "anchor_motivation_level",
+    "motivation": "anchor_motivation_level",
+    # Family income
+    "family_income_lpa": "anchor_family_income_lpa",
+    "family_income": "anchor_family_income_lpa",
+    "income_lpa": "anchor_family_income_lpa",
+    # Resume
+    "resume_score": "anchor_resume_score",
+    "resume": "anchor_resume_score",
+    # Communication
+    "communication_skills": "anchor_communication_skills",
+    "communication": "anchor_communication_skills",
+    "comm_skills": "anchor_communication_skills",
+    # Aptitude
+    "aptitude_score": "anchor_aptitude_score",
+    "aptitude": "anchor_aptitude_score",
+    # Mock interview
+    "mock_interview_score": "anchor_mock_interview_score",
+    "mock_interview": "anchor_mock_interview_score",
+    "interview_score": "anchor_mock_interview_score",
+    # Hackathons
+    "hackathons_participated": "anchor_hackathons_participated",
+    "hackathons": "anchor_hackathons_participated",
+    # Projects
+    "development_projects_count": "anchor_development_projects_count",
+    "dev_projects": "anchor_development_projects_count",
+    "projects": "anchor_development_projects_count",
+    # AI/ML projects
+    "ai_ml_projects": "anchor_ai_ml_projects",
+    "ai_projects": "anchor_ai_ml_projects",
+    "ml_projects": "anchor_ai_ml_projects",
+    # GitHub
+    "git_hub_repos": "anchor_git_hub_repos",
+    "github_repos": "anchor_git_hub_repos",
+    "github": "anchor_git_hub_repos",
+    "repositories": "anchor_git_hub_repos",
+    # AI tool usage
+    "ai_tool_usage_frequency": "anchor_ai_tool_usage_frequency",
+    "ai_usage": "anchor_ai_tool_usage_frequency",
+    "ai_tool_usage": "anchor_ai_tool_usage_frequency",
+    # Prompt engineering
+    "prompt_engineering_skill": "anchor_prompt_engineering_skill",
+    "prompt_engineering": "anchor_prompt_engineering_skill",
+    # Adaptability
+    "adaptability_score": "anchor_adaptability_score",
+    "adaptability": "anchor_adaptability_score",
+    # Gym
+    "gym_frequency": "anchor_gym_frequency",
+    "gym": "anchor_gym_frequency",
+    "exercise_frequency": "anchor_gym_frequency",
+    "self_learning_hours": "anchor_self_learning_hours",
+    "self_learning": "anchor_self_learning_hours",
+}
+
+
+def _fuzzy_match_column(uploaded_col: str) -> Tuple[Optional[str], float]:
+    """
+    Fuzzy-matches a single uploaded column name against the production schema.
+    Returns (matched_feature, confidence_0_to_100).
+    Uses synonym table first (100% confidence), then difflib similarity.
+    """
+    normalized = uploaded_col.strip().lower().replace(" ", "_").replace("-", "_")
+
+    # 1. Exact synonym match → 100%
+    if normalized in BYOD_SYNONYMS:
+        return BYOD_SYNONYMS[normalized], 100.0
+
+    # 2. Exact schema match after strip → 100%
+    if normalized in BYOD_FEATURE_SCHEMA:
+        return normalized, 100.0
+    if f"anchor_{normalized}" in BYOD_FEATURE_SCHEMA:
+        return f"anchor_{normalized}", 98.0
+
+    # 3. difflib SequenceMatcher against all schema names + synonym keys
+    candidates = BYOD_FEATURE_SCHEMA + list(BYOD_SYNONYMS.keys())
+    best_match = None
+    best_ratio = 0.0
+    for candidate in candidates:
+        ratio = difflib.SequenceMatcher(None, normalized, candidate).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_match = candidate
+
+    if best_match is None:
+        return None, 0.0
+
+    # Resolve synonym key to canonical feature name
+    canonical = BYOD_SYNONYMS.get(best_match, best_match)
+    confidence = round(best_ratio * 100.0, 1)
+    return canonical, confidence
+
+
+def _parse_csv_bytes(content: bytes) -> Tuple[List[str], List[Dict[str, str]]]:
+    """Parses CSV bytes and returns (headers, first_5_rows_as_dicts)."""
+    text_content = content.decode("utf-8", errors="replace")
+    reader = csv.DictReader(io.StringIO(text_content))
+    headers = reader.fieldnames or []
+    rows: List[Dict[str, str]] = []
+    for i, row in enumerate(reader):
+        rows.append(dict(row))
+        if i >= 4:  # Keep only first 5 for preview
+            break
+    return list(headers), rows
+
+
+def _csv_bytes_to_records(content: bytes) -> List[Dict[str, Any]]:
+    """Parses full CSV and returns all rows as a list of dicts."""
+    text_content = content.decode("utf-8", errors="replace")
+    reader = csv.DictReader(io.StringIO(text_content))
+    return [dict(row) for row in reader]
+
+
+def _apply_mapping_and_assess_batch(
+    records: List[Dict[str, Any]],
+    mapping: List[Dict[str, str]],
+    label_prefix: str = "Row",
+) -> Dict[str, Any]:
+    """
+    Applies a finalized column mapping to a list of raw CSV rows,
+    then runs each through run_full_assessment(). Returns batch results.
+    """
+    col_map: Dict[str, str] = {
+        m["uploaded_column"]: m["matched_to_feature"]
+        for m in mapping
+        if m.get("matched_to_feature") and m["matched_to_feature"] != "__skip__"
+    }
+
+    student_results = []
+    for idx, raw_row in enumerate(records):
+        student_data: Dict[str, Any] = {}
+        for uploaded_col, canonical in col_map.items():
+            val = raw_row.get(uploaded_col)
+            if val is not None and val != "":
+                try:
+                    student_data[canonical] = float(val)
+                except (ValueError, TypeError):
+                    pass  # Non-numeric value — will be median-filled
+        student_data["student_label"] = f"{label_prefix}-{idx + 1}"
+        try:
+            result = run_full_assessment(student_data, include_genai=False)
+            student_results.append({"row_index": idx + 1, "assessment": result})
+        except Exception as e:
+            student_results.append({"row_index": idx + 1, "error": str(e)})
+
+    # Summary stats
+    valid = [r for r in student_results if "assessment" in r]
+    predicted_cgpas = [r["assessment"]["predicted_cgpa"] for r in valid]
+    risk_probs = [r["assessment"]["at_risk_probability"] for r in valid]
+    at_risk_flags = [1 for r in valid if r["assessment"]["at_risk_label"] == "At-Risk"]
+
+    summary = {
+        "total_rows": len(records),
+        "successfully_assessed": len(valid),
+        "failed_rows": len(student_results) - len(valid),
+        "avg_predicted_cgpa": round(float(np.mean(predicted_cgpas)), 2) if predicted_cgpas else None,
+        "min_predicted_cgpa": round(float(np.min(predicted_cgpas)), 2) if predicted_cgpas else None,
+        "max_predicted_cgpa": round(float(np.max(predicted_cgpas)), 2) if predicted_cgpas else None,
+        "avg_at_risk_probability": round(float(np.mean(risk_probs)), 4) if risk_probs else None,
+        "pct_flagged_at_risk": round(len(at_risk_flags) / len(valid) * 100.0, 1) if valid else None,
+    }
+
+    return {"summary": summary, "results": student_results}
+
+
+# ── In-Memory Session Store for CSV preview + Chat ────────────────────────────
+# Keyed by preview_id / session_id (UUID strings)
+# Each entry has a TTL — cleaned up lazily on new requests
+_SESSION_STORE: Dict[str, Dict[str, Any]] = {}
+SESSION_TTL_SECONDS = 3600  # 1 hour
+
+
+def _cleanup_sessions():
+    """Lazily removes expired sessions from the in-memory store."""
+    now = time.time()
+    expired = [k for k, v in _SESSION_STORE.items() if now - v.get("created_at", now) > SESSION_TTL_SECONDS]
+    for k in expired:
+        del _SESSION_STORE[k]
+
+
+# ── Option 4: Direct Form Entry ────────────────────────────────────────────────
+class NewStudentRequest(BaseModel):
+    student_label: Optional[str] = Field("Assessed Student", description="Optional display name/label")
+    branch: Optional[str] = Field(None, description="Engineering branch (e.g. CSE, ECE)")
+    tier: Optional[int] = Field(None, ge=1, le=3, description="College tier (1, 2, or 3)")
+    # Academic
+    anchor_attendance_percentage: Optional[float] = Field(None, ge=0.0, le=100.0)
+    anchor_study_hours_daily: Optional[float] = Field(None, ge=0.0, le=16.0)
+    anchor_self_learning_hours: Optional[float] = Field(None, ge=0.0, le=12.0)
+    anchor_backlog_history: Optional[int] = Field(None, ge=0)
+    anchor_dsa_problems_solved: Optional[int] = Field(None, ge=0)
+    anchor_internships_completed: Optional[int] = Field(None, ge=0)
+    # Lifestyle
+    anchor_sleep_hours: Optional[float] = Field(None, ge=0.0, le=16.0)
+    anchor_screen_time: Optional[float] = Field(None, ge=0.0, le=24.0)
+    anchor_gaming_hours: Optional[float] = Field(None, ge=0.0, le=16.0)
+    anchor_stress_level: Optional[float] = Field(None, ge=0.0, le=100.0)
+    anchor_burnout_score: Optional[float] = Field(None, ge=0.0, le=100.0)
+    anchor_motivation_level: Optional[float] = Field(None, ge=0.0, le=10.0)
+    anchor_adaptability_score: Optional[float] = Field(None, ge=0.0, le=10.0)
+    anchor_gym_frequency: Optional[float] = Field(None, ge=0.0, le=7.0)
+    # Career & Skills
+    anchor_family_income_lpa: Optional[float] = Field(None, ge=0.0)
+    anchor_resume_score: Optional[float] = Field(None, ge=0.0, le=100.0)
+    anchor_communication_skills: Optional[float] = Field(None, ge=0.0, le=100.0)
+    anchor_aptitude_score: Optional[float] = Field(None, ge=0.0, le=100.0)
+    anchor_mock_interview_score: Optional[float] = Field(None, ge=0.0, le=100.0)
+    anchor_hackathons_participated: Optional[int] = Field(None, ge=0)
+    anchor_development_projects_count: Optional[int] = Field(None, ge=0)
+    anchor_ai_ml_projects: Optional[int] = Field(None, ge=0)
+    anchor_git_hub_repos: Optional[int] = Field(None, ge=0)
+    anchor_ai_tool_usage_frequency: Optional[float] = Field(None, ge=0.0)
+    anchor_prompt_engineering_skill: Optional[float] = Field(None, ge=0.0, le=10.0)
+
+
+@app.post("/api/assess/new-student")
+def assess_new_student(req: NewStudentRequest):
+    """
+    Option 4 — Direct form entry.
+    Accepts all student fields as optional body parameters.
+    Missing fields are filled with population medians.
+    Calls run_full_assessment() and returns the unified assessment result.
+    Does NOT write to the database.
+    """
+    student_data = {k: v for k, v in req.model_dump().items() if v is not None}
+    try:
+        return run_full_assessment(student_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
+
+
+# ── Option 1: CSV Upload with Auto Column Matching ─────────────────────────────
+@app.post("/api/assess/csv-match")
+async def csv_match_preview(file: UploadFile = File(...)):
+    """
+    Option 1 Step 1 — Accepts a single CSV upload.
+    Returns a mapping preview: for each uploaded column, shows the best-match
+    production feature, confidence (0-100), and sample values.
+    Columns with confidence < 70 are flagged for manual review.
+    Also returns a preview_id for the confirm step (avoids re-uploading the file).
+    Does NOT process rows yet.
+    """
+    _cleanup_sessions()
+    content = await file.read()
+    try:
+        headers, sample_rows = _parse_csv_bytes(content)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse CSV: {str(e)}")
+
+    if not headers:
+        raise HTTPException(status_code=400, detail="CSV appears to have no headers")
+
+    # Build mapping preview
+    mapping_preview = []
+    for col in headers:
+        matched_feature, confidence = _fuzzy_match_column(col)
+        sample_vals = [str(r.get(col, "")) for r in sample_rows][:3]
+        mapping_preview.append({
+            "uploaded_column": col,
+            "matched_to_feature": matched_feature,
+            "confidence": confidence,
+            "needs_review": confidence < 70.0,
+            "sample_values": sample_vals,
+        })
+
+    # Store CSV content keyed by preview_id (server-side temp session)
+    preview_id = str(uuid.uuid4())
+    _SESSION_STORE[preview_id] = {
+        "type": "csv_single",
+        "csv_content": content,
+        "filename": file.filename,
+        "created_at": time.time(),
+        "total_rows": len(_csv_bytes_to_records(content)),
+    }
+
+    return {
+        "preview_id": preview_id,
+        "filename": file.filename,
+        "total_rows": _SESSION_STORE[preview_id]["total_rows"],
+        "columns_detected": len(headers),
+        "mapping_preview": mapping_preview,
+        "schema_features": BYOD_FEATURE_SCHEMA,
+    }
+
+
+class CSVMatchConfirmRequest(BaseModel):
+    preview_id: str
+    mapping: List[Dict[str, str]]  # [{uploaded_column, matched_to_feature}]
+
+
+@app.post("/api/assess/csv-match/confirm")
+def csv_match_confirm(req: CSVMatchConfirmRequest):
+    """
+    Option 1 Step 2 — Confirms the finalized column mapping and processes all rows.
+    Uses the server-side temp session (preview_id) from Step 1.
+    Runs every CSV row through run_full_assessment().
+    Returns batch results + summary stats.
+    Does NOT write to the database.
+    """
+    session = _SESSION_STORE.get(req.preview_id)
+    if not session:
+        raise HTTPException(
+            status_code=404,
+            detail="Preview session not found or expired. Please re-upload the CSV."
+        )
+
+    csv_content = session["csv_content"]
+    records = _csv_bytes_to_records(csv_content)
+    if not records:
+        raise HTTPException(status_code=400, detail="CSV contains no data rows")
+
+    batch_result = _apply_mapping_and_assess_batch(records, req.mapping, label_prefix="Row")
+
+    # Clean up the session after successful processing
+    del _SESSION_STORE[req.preview_id]
+
+    return {
+        "source": "csv_single",
+        "filename": session.get("filename", "unknown.csv"),
+        **batch_result,
+    }
+
+
+# ── Option 2: Multiple CSVs with Stitching ─────────────────────────────────────
+@app.post("/api/assess/csv-stitch")
+async def csv_stitch(
+    files: List[UploadFile] = File(...),
+):
+    """
+    Option 2 — Accepts 2+ CSV uploads.
+    Independently fuzzy-matches each file's columns, attempts to find a shared
+    join key (ID column with overlapping values). If found, joins on that key
+    (real join). If not, falls back to tertile/performance-band approximate
+    matching (same methodology as the platform's stitch.py). Clearly discloses
+    which join method was used. Then runs all stitched records through
+    run_full_assessment() and returns batch results.
+    Does NOT write to the database.
+    """
+    if len(files) < 2:
+        raise HTTPException(status_code=400, detail="Please upload at least 2 CSV files")
+
+    # Parse all files
+    parsed_files: List[Dict[str, Any]] = []
+    for f in files:
+        content = await f.read()
+        try:
+            headers, sample_rows = _parse_csv_bytes(content)
+            all_records = _csv_bytes_to_records(content)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Could not parse {f.filename}: {str(e)}")
+
+        # Auto-match columns
+        col_mapping: List[Dict[str, Any]] = []
+        for col in headers:
+            matched, confidence = _fuzzy_match_column(col)
+            col_mapping.append({
+                "uploaded_column": col,
+                "matched_to_feature": matched,
+                "confidence": confidence,
+                "needs_review": confidence < 70.0,
+                "sample_values": [str(r.get(col, "")) for r in sample_rows][:3],
+            })
+
+        parsed_files.append({
+            "filename": f.filename,
+            "headers": headers,
+            "sample_rows": sample_rows,
+            "all_records": all_records,
+            "col_mapping": col_mapping,
+        })
+
+    # ── Attempt to find a shared join key ──────────────────────────────────────
+    ID_LIKE_NAMES = {"id", "student_id", "roll_no", "roll_number", "student_no",
+                     "studentid", "enrollment_id", "reg_no", "registration_no"}
+
+    shared_key: Optional[str] = None
+    join_method = "approximate_matching"
+    join_files_involved: List[str] = []
+    matched_count = 0
+    unmatched_count = 0
+
+    # Check every pair for a shared key column with overlapping values
+    for i in range(len(parsed_files)):
+        for j in range(i + 1, len(parsed_files)):
+            fi = parsed_files[i]
+            fj = parsed_files[j]
+            hi_norm = {h.strip().lower().replace(" ", "_") for h in fi["headers"]}
+            hj_norm = {h.strip().lower().replace(" ", "_") for h in fj["headers"]}
+            common_cols = hi_norm & hj_norm & ID_LIKE_NAMES
+            if common_cols:
+                candidate_key = next(iter(common_cols))
+                # Get the actual header name in each file
+                key_i = next((h for h in fi["headers"] if h.strip().lower().replace(" ", "_") == candidate_key), None)
+                key_j = next((h for h in fj["headers"] if h.strip().lower().replace(" ", "_") == candidate_key), None)
+                if key_i and key_j:
+                    vals_i = {str(r.get(key_i, "")).strip() for r in fi["all_records"]}
+                    vals_j = {str(r.get(key_j, "")).strip() for r in fj["all_records"]}
+                    overlap = vals_i & vals_j
+                    if len(overlap) > 0:
+                        shared_key = candidate_key
+                        join_method = "real_key_join"
+                        join_files_involved = [fi["filename"], fj["filename"]]
+                        break
+            if shared_key:
+                break
+
+    # ── Perform the join / stitch ──────────────────────────────────────────────
+    stitched_records: List[Dict[str, Any]] = []
+
+    if join_method == "real_key_join":
+        # Real key join: use the first two files that share the key
+        fi_name = join_files_involved[0]
+        fj_name = join_files_involved[1]
+        fi_data = next(pf for pf in parsed_files if pf["filename"] == fi_name)
+        fj_data = next(pf for pf in parsed_files if pf["filename"] == fj_name)
+
+        key_col_i = next((h for h in fi_data["headers"] if h.strip().lower().replace(" ", "_") == shared_key), None)
+        key_col_j = next((h for h in fj_data["headers"] if h.strip().lower().replace(" ", "_") == shared_key), None)
+
+        index_j = {str(r.get(key_col_j, "")).strip(): r for r in fj_data["all_records"]}
+
+        for row_i in fi_data["all_records"]:
+            key_val = str(row_i.get(key_col_i, "")).strip()
+            row_j = index_j.get(key_val)
+            if row_j:
+                merged = {**row_i, **row_j}  # row_j fields win on conflict
+                stitched_records.append(merged)
+                matched_count += 1
+            else:
+                stitched_records.append(dict(row_i))
+                unmatched_count += 1
+
+        # Also apply auto-mapping from both files to build combined mapping
+        combined_mapping = fi_data["col_mapping"] + [
+            m for m in fj_data["col_mapping"]
+            if m["uploaded_column"] not in [cm["uploaded_column"] for cm in fi_data["col_mapping"]]
+        ]
+
+    else:
+        # Approximate matching: tertile/performance-band matching across all files
+        # Strategy: identify the best performance-like column in each file and bin into tertiles (L/M/H)
+        # Then cross-join records within the same tertile band (same approach as stitch.py)
+        def _find_performance_col(headers: List[str]) -> Optional[str]:
+            performance_keywords = ["cgpa", "gpa", "marks", "score", "grade", "performance",
+                                    "study", "attendance", "dsa", "aptitude"]
+            for h in headers:
+                h_norm = h.strip().lower()
+                if any(kw in h_norm for kw in performance_keywords):
+                    return h
+            return headers[0] if headers else None
+
+        # Use first file as anchor
+        anchor = parsed_files[0]
+        perf_col_anchor = _find_performance_col(anchor["headers"])
+
+        if perf_col_anchor and anchor["all_records"]:
+            anchor_vals = []
+            for r in anchor["all_records"]:
+                try:
+                    anchor_vals.append(float(r.get(perf_col_anchor, 0) or 0))
+                except ValueError:
+                    anchor_vals.append(0.0)
+
+            # Assign tertiles
+            if len(anchor_vals) >= 3:
+                t33 = float(np.percentile(anchor_vals, 33))
+                t66 = float(np.percentile(anchor_vals, 66))
+
+                def _tertile(v: float) -> str:
+                    return "L" if v <= t33 else ("M" if v <= t66 else "H")
+
+                anchor_by_tertile: Dict[str, List[Dict]] = {"L": [], "M": [], "H": []}
+                for r, v in zip(anchor["all_records"], anchor_vals):
+                    anchor_by_tertile[_tertile(v)].append(r)
+
+                # Merge subsequent files within each tertile band
+                for sec_file in parsed_files[1:]:
+                    sec_perf_col = _find_performance_col(sec_file["headers"])
+                    if not sec_perf_col:
+                        continue
+                    sec_vals = []
+                    for r in sec_file["all_records"]:
+                        try:
+                            sec_vals.append(float(r.get(sec_perf_col, 0) or 0))
+                        except ValueError:
+                            sec_vals.append(0.0)
+
+                    if len(sec_vals) < 3:
+                        continue
+
+                    st33 = float(np.percentile(sec_vals, 33))
+                    st66 = float(np.percentile(sec_vals, 66))
+
+                    def _sec_tertile(v: float) -> str:
+                        return "L" if v <= st33 else ("M" if v <= st66 else "H")
+
+                    sec_by_tertile: Dict[str, List[Dict]] = {"L": [], "M": [], "H": []}
+                    for r, v in zip(sec_file["all_records"], sec_vals):
+                        sec_by_tertile[_sec_tertile(v)].append(r)
+
+                    for band in ["L", "M", "H"]:
+                        a_rows = anchor_by_tertile[band]
+                        s_rows = sec_by_tertile[band]
+                        if not a_rows or not s_rows:
+                            continue
+                        # Round-robin merge within band
+                        for k, a_row in enumerate(a_rows):
+                            s_row = s_rows[k % len(s_rows)]
+                            anchor_by_tertile[band][k] = {**a_row, **s_row}
+
+                for band in ["L", "M", "H"]:
+                    stitched_records.extend(anchor_by_tertile[band])
+                    matched_count += len(anchor_by_tertile[band])
+            else:
+                stitched_records = anchor["all_records"]
+        else:
+            stitched_records = anchor["all_records"]
+
+        # Build combined mapping from all files
+        seen_cols: set = set()
+        combined_mapping = []
+        for pf in parsed_files:
+            for m in pf["col_mapping"]:
+                if m["uploaded_column"] not in seen_cols:
+                    combined_mapping.append(m)
+                    seen_cols.add(m["uploaded_column"])
+
+    # ── Run batch assessment on stitched records ───────────────────────────────
+    batch_result = _apply_mapping_and_assess_batch(
+        stitched_records, combined_mapping, label_prefix="Stitched"
+    )
+
+    # ── Build lineage summary ──────────────────────────────────────────────────
+    lineage = {
+        "join_method": join_method,
+        "join_method_label": (
+            f"Real key join on '{shared_key}' column"
+            if join_method == "real_key_join"
+            else "Approximate matching (tertile/performance-band) — no shared ID column found across your files"
+        ),
+        "is_approximate": join_method == "approximate_matching",
+        "approximate_matching_disclosure": (
+            None if join_method == "real_key_join"
+            else (
+                "No shared identifier column was found across your uploaded files. "
+                "Records have been approximately matched using performance-band tertiles "
+                "(low / medium / high) — the same methodology used in the Campus360 "
+                "internal stitch pipeline. This is not a definitive join: individual rows "
+                "may not correspond to the same person across files."
+            )
+        ),
+        "files_uploaded": [pf["filename"] for pf in parsed_files],
+        "files_in_join": join_files_involved if join_method == "real_key_join" else [pf["filename"] for pf in parsed_files],
+        "matched_rows": matched_count,
+        "unmatched_rows": unmatched_count,
+        "stitched_total_rows": len(stitched_records),
+    }
+
+    return {
+        "source": "csv_stitch",
+        "lineage": lineage,
+        "column_mappings_by_file": [
+            {"filename": pf["filename"], "mapping": pf["col_mapping"]}
+            for pf in parsed_files
+        ],
+        **batch_result,
+    }
+
+
+# ── Option 3: Chat-Guided Input ────────────────────────────────────────────────
+# Question flow: academic basics → lifestyle → skills/career
+_CHAT_QUESTIONS: List[Dict[str, Any]] = [
+    # ── Academic ──────────────────────────────────────────────────────────────
+    {"field": "branch", "prompt": "Great, let's get started! What's your engineering branch? (e.g. CSE, ECE, Mechanical, Civil)", "type": "text", "group": "Profile"},
+    {"field": "tier", "prompt": "And what tier is your college? (1 = top-tier IIT/NIT, 2 = mid-tier, 3 = other)", "type": "int", "group": "Profile"},
+    {"field": "anchor_attendance_percentage", "prompt": "What's your current class attendance percentage? (0–100)", "type": "float", "group": "Academic"},
+    {"field": "anchor_study_hours_daily", "prompt": "How many hours do you typically study per day?", "type": "float", "group": "Academic"},
+    {"field": "anchor_self_learning_hours", "prompt": "How many extra hours per day do you spend on self-learning outside class? (e.g. online courses, books)", "type": "float", "group": "Academic"},
+    {"field": "anchor_backlog_history", "prompt": "How many backlogs (failed subjects) do you have on record? (0 = none)", "type": "int", "group": "Academic"},
+    # ── Lifestyle ──────────────────────────────────────────────────────────────
+    {"field": "anchor_sleep_hours", "prompt": "How many hours do you sleep on an average night?", "type": "float", "group": "Lifestyle"},
+    {"field": "anchor_screen_time", "prompt": "Roughly how many hours a day do you spend on screens (phone, laptop — not studying)?", "type": "float", "group": "Lifestyle"},
+    {"field": "anchor_gaming_hours", "prompt": "And how many of those are gaming? (0 if none)", "type": "float", "group": "Lifestyle"},
+    {"field": "anchor_stress_level", "prompt": "On a scale of 0–100, how would you rate your current academic stress level?", "type": "float", "group": "Lifestyle"},
+    {"field": "anchor_burnout_score", "prompt": "On a scale of 0–100, how burned out are you feeling right now?", "type": "float", "group": "Lifestyle"},
+    {"field": "anchor_motivation_level", "prompt": "Rate your current motivation to perform academically from 0 to 10.", "type": "float", "group": "Lifestyle"},
+    {"field": "anchor_gym_frequency", "prompt": "How many days per week do you exercise or go to the gym? (0–7)", "type": "float", "group": "Lifestyle"},
+    # ── Career & Skills ────────────────────────────────────────────────────────
+    {"field": "anchor_dsa_problems_solved", "prompt": "How many DSA/coding problems have you solved so far (LeetCode, HackerRank, etc.)?", "type": "int", "group": "Skills"},
+    {"field": "anchor_internships_completed", "prompt": "How many internships have you completed?", "type": "int", "group": "Skills"},
+    {"field": "anchor_communication_skills", "prompt": "On a scale of 0–100, how would you rate your communication skills?", "type": "float", "group": "Skills"},
+    {"field": "anchor_aptitude_score", "prompt": "If you've taken any aptitude tests, what was your approximate score (0–100)?", "type": "float", "group": "Skills"},
+    {"field": "anchor_mock_interview_score", "prompt": "Have you done mock interviews? If yes, approximately how did you score (0–100)? (skip if no)", "type": "float", "group": "Skills"},
+    {"field": "anchor_development_projects_count", "prompt": "How many development projects have you built (web apps, tools, etc.)?", "type": "int", "group": "Skills"},
+    {"field": "anchor_ai_ml_projects", "prompt": "How many AI/ML projects specifically? (0 if none)", "type": "int", "group": "Skills"},
+    {"field": "anchor_git_hub_repos", "prompt": "How many public GitHub repositories do you have?", "type": "int", "group": "Skills"},
+]
+
+_SKIP_PHRASES = {"skip", "idk", "i don't know", "dont know", "not sure", "n/a", "na", "unknown", "pass"}
+
+
+class ChatGuidedRequest(BaseModel):
+    session_id: Optional[str] = Field(None, description="Session ID from previous turn; omit or null to start new session")
+    message: str = Field(..., description="User's response to the last question")
+    student_label: Optional[str] = Field("Assessed Student", description="Optional display name")
+
+
+@app.post("/api/assess/chat-guided")
+def chat_guided(req: ChatGuidedRequest):
+    """
+    Option 3 — Chatbot-guided input.
+    Stateful conversational flow: each call answers one question and receives the next.
+    Replies 'skip' or 'I don't know' to skip a field (it gets median-filled).
+    When all questions are answered, automatically runs run_full_assessment()
+    and returns the full result in the response.
+    Does NOT write to the database.
+    Session state is held in memory; sessions expire after 1 hour.
+    """
+    _cleanup_sessions()
+
+    # ── Start or resume session ───────────────────────────────────────────────
+    session_id = req.session_id
+    is_new = not session_id or session_id not in _SESSION_STORE
+
+    if is_new:
+        session_id = str(uuid.uuid4())
+        _SESSION_STORE[session_id] = {
+            "type": "chat",
+            "created_at": time.time(),
+            "collected_data": {},
+            "question_index": 0,
+            "skipped_fields": [],
+            "student_label": req.student_label or "Assessed Student",
+        }
+        # First call — return the first question without processing message
+        first_q = _CHAT_QUESTIONS[0]
+        return {
+            "session_id": session_id,
+            "is_new_session": True,
+            "bot_message": (
+                f"Welcome to the guided assessment! I'll ask you about {len(_CHAT_QUESTIONS)} topics — "
+                f"you can type 'skip' at any time if you don't know an answer, and I'll use population averages for that field.\n\n"
+                f"Let's begin.\n\n{first_q['prompt']}"
+            ),
+            "current_field": first_q["field"],
+            "question_group": first_q["group"],
+            "question_index": 0,
+            "total_questions": len(_CHAT_QUESTIONS),
+            "progress_pct": 0,
+            "session_complete": False,
+            "collected_data": {},
+        }
+
+    session = _SESSION_STORE[session_id]
+    q_idx = session["question_index"]
+    collected = session["collected_data"]
+    skipped = session["skipped_fields"]
+
+    # ── Process the current answer ────────────────────────────────────────────
+    if q_idx < len(_CHAT_QUESTIONS):
+        current_q = _CHAT_QUESTIONS[q_idx]
+        user_msg = req.message.strip().lower()
+
+        ack_msg = ""
+        if user_msg in _SKIP_PHRASES or not req.message.strip():
+            skipped.append(current_q["field"])
+            ack_msg = f"No problem, I'll use the population average for {current_q['field'].replace('anchor_', '').replace('_', ' ')}.  "
+        else:
+            try:
+                if current_q["type"] == "int":
+                    collected[current_q["field"]] = int(float(req.message.strip()))
+                elif current_q["type"] == "text":
+                    collected[current_q["field"]] = req.message.strip()
+                else:
+                    collected[current_q["field"]] = float(req.message.strip())
+                field_label = current_q["field"].replace("anchor_", "").replace("_", " ").title()
+                ack_msg = f"Got it — {field_label}: {req.message.strip()}.  "
+            except (ValueError, TypeError):
+                return {
+                    "session_id": session_id,
+                    "bot_message": (
+                        f"Hmm, I couldn't parse that as a number. Could you give me a numeric value? "
+                        f"Or type 'skip' to move on.\n\n{current_q['prompt']}"
+                    ),
+                    "current_field": current_q["field"],
+                    "question_group": current_q["group"],
+                    "question_index": q_idx,
+                    "total_questions": len(_CHAT_QUESTIONS),
+                    "session_complete": False,
+                    "collected_data": collected,
+                }
+
+        session["question_index"] = q_idx + 1
+        next_idx = q_idx + 1
+
+        # ── All questions answered → run assessment ───────────────────────────
+        if next_idx >= len(_CHAT_QUESTIONS):
+            student_data = dict(collected)
+            student_data["student_label"] = session["student_label"]
+
+            try:
+                result = run_full_assessment(student_data)
+            except Exception as e:
+                del _SESSION_STORE[session_id]
+                raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
+
+            del _SESSION_STORE[session_id]
+
+            defaulted_display = [f.replace("anchor_", "").replace("_", " ").title() for f in result["defaulted_fields"]]
+            skipped_display = [f.replace("anchor_", "").replace("_", " ").title() for f in skipped]
+
+            completion_msg = (
+                f"{ack_msg}Thank you! I've gathered all the information I need. "
+                f"Running your full assessment now...\n\n"
+                f"✅ **Assessment complete!**\n"
+                f"• Predicted CGPA: **{result['predicted_cgpa']:.2f}** / 10.0\n"
+                f"• At-Risk Probability: **{result['at_risk_probability']:.1%}** ({result['at_risk_label']})\n"
+            )
+            if result.get("career_readiness"):
+                score = result["career_readiness"]["career_readiness_score"]
+                completion_msg += f"• Career Readiness Score: **{score:.1f}** / 100\n"
+
+            if defaulted_display:
+                completion_msg += f"\n⚠️ Fields filled with population averages: {', '.join(defaulted_display[:5])}"
+                if len(defaulted_display) > 5:
+                    completion_msg += f" and {len(defaulted_display) - 5} more."
+
+            return {
+                "session_id": None,
+                "bot_message": completion_msg,
+                "session_complete": True,
+                "skipped_fields": skipped,
+                "collected_data": collected,
+                "assessment_result": result,
+            }
+
+        # ── Return next question ──────────────────────────────────────────────
+        next_q = _CHAT_QUESTIONS[next_idx]
+        progress_pct = round((next_idx / len(_CHAT_QUESTIONS)) * 100)
+
+        # Group transition message
+        group_change = next_q["group"] != _CHAT_QUESTIONS[q_idx]["group"]
+        group_intro = f"\n\n**{next_q['group']} questions:**\n" if group_change else ""
+
+        return {
+            "session_id": session_id,
+            "bot_message": f"{ack_msg}{group_intro}{next_q['prompt']}",
+            "current_field": next_q["field"],
+            "question_group": next_q["group"],
+            "question_index": next_idx,
+            "total_questions": len(_CHAT_QUESTIONS),
+            "progress_pct": progress_pct,
+            "session_complete": False,
+            "collected_data": collected,
+        }
+
+    raise HTTPException(status_code=400, detail="Session in unexpected state. Please start a new session.")
+
+
+# ── Assess Entry Page Route ───────────────────────────────────────────────────
+@app.api_route("/assess", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/assess/", methods=["GET", "HEAD"], include_in_schema=False)
+def serve_assess_page():
+    assess_file = DASHBOARD_DIR / "assess.html"
+    if not assess_file.exists():
+        raise HTTPException(status_code=404, detail="assess.html not found")
+    return FileResponse(str(assess_file))
+
+
 # ── Mount Static Files for Dashboard ──────────────────────────────────────────
 if DASHBOARD_DIR.exists():
     app.mount("/dashboard", StaticFiles(directory=str(DASHBOARD_DIR), html=True), name="dashboard")
+    # Also serve /assess static assets (e.g. assess.js) from the dashboard directory
+    app.mount("/assess", StaticFiles(directory=str(DASHBOARD_DIR), html=False), name="assess")
+
 

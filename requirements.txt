@@ -10,3 +10,4 @@ python-dotenv
 openpyxl
 httpx
 google-genai
+python-multipart

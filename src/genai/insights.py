@@ -610,3 +610,221 @@ Write a warm, encouraging 3-4 sentence career guidance note. Expand on the rule-
     }
     _GENAI_CACHE[ck] = result
     return result
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BYOD DATA-DICT BYPASS FUNCTIONS
+# These accept a pre-built data payload dict instead of a DB student_id lookup.
+# Used exclusively by the assessment engine (assessment_engine.py).
+# The existing student_id-based functions above are unchanged.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def generate_atrisk_brief_from_data(payload: dict) -> dict:
+    """
+    Generates an at-risk brief from a pre-built data dict (no DB lookup).
+    payload keys: student_id, branch, college_tier, at_risk_label,
+                  probability, top_factor, student_value, population_average
+    """
+    sid = str(payload.get("student_id", "BYOD-Student"))
+    branch = str(payload.get("branch", "Engineering"))
+    tier = int(payload.get("college_tier", 2))
+    at_risk_label = str(payload.get("at_risk_label", "Safe"))
+    prob = float(payload.get("probability", 0.0))
+    top_factor = str(payload.get("top_factor", "Academic Workload Imbalance"))
+    stu_val_str = str(payload.get("student_value", "N/A"))
+    pop_avg_str = str(payload.get("population_average", "N/A"))
+
+    ck = _cache_key("atrisk_brief_data", sid, payload)
+    if ck in _GENAI_CACHE:
+        return _GENAI_CACHE[ck]
+
+    prompt = f"""You are writing a brief for a college mentor about one student.
+Use only the facts given below. Do not invent additional facts, causes, or recommendations not grounded in this data.
+
+Student: {sid}, {branch}, Tier {tier}
+Model prediction: {at_risk_label} (probability: {prob:.1%})
+Top contributing factor: {top_factor} (this student's value: {stu_val_str}, population average: {pop_avg_str})
+Model reliability: This model correctly identifies about 45% of genuinely at-risk students and has a 32% precision rate — meaning roughly 2 in 3 flags are false alarms, and more than half of actual at-risk students go unflagged.
+Note: This assessment was run on user-supplied data (Bring Your Own Data flow), not from an existing warehouse record.
+
+Write a 3-4 sentence brief for the mentor covering:
+1. What the model flagged and why (the top contributing factor)
+2. An explicit caveat citing the model's exact reliability calibration (explicitly stating its 45% recall and 32% precision rate, meaning roughly 2 in 3 flags are false alarms)
+3. One concrete, low-effort next step the mentor could take (a check-in conversation, not a diagnosis)
+
+Keep it factual and calm. Do not use clinical/diagnostic language about the student. Do not claim certainty the data doesn't support."""
+
+    fallback_text = (
+        f"The early-warning model flagged {sid} ({branch}, Tier {tier}) as {at_risk_label} "
+        f"with an estimated risk probability of {prob:.1%}, primarily attributed to "
+        f"{top_factor} ({stu_val_str} vs. population average of {pop_avg_str}). "
+        f"This model has an established calibration of 45% recall and 32% precision — "
+        f"meaning approximately two out of three flags are false alarms, while over half "
+        f"of genuinely at-risk students remain unflagged. "
+        f"As a constructive next step, consider scheduling an informal 10-minute check-in "
+        f"to ask how their current schedule and coursework load are feeling."
+    )
+
+    gemini_resp, model_used = _call_gemini(prompt)
+    brief_text = gemini_resp if gemini_resp else fallback_text
+    source = model_used if gemini_resp else "deterministic-template-fallback"
+    is_fallback = not bool(gemini_resp)
+
+    _log_interaction("generate_atrisk_brief_from_data", sid, prompt, brief_text, source)
+
+    result = {
+        "student_id": sid,
+        "brief_text": brief_text,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "model_probability": round(prob, 4),
+        "model_top_factor": top_factor,
+        "is_fallback": is_fallback,
+        "raw_inputs": payload,
+    }
+    _GENAI_CACHE[ck] = result
+    return result
+
+
+def generate_performance_summary_from_data(payload: dict) -> dict:
+    """
+    Generates a performance summary from a pre-built data dict (no DB lookup).
+    payload keys: student_id, current_cgpa (optional), predicted_cgpa,
+                  direction, top_factors (list of {name, student_val, pop_avg})
+    """
+    sid = str(payload.get("student_id", "BYOD-Student"))
+    current_cgpa = payload.get("current_cgpa")  # May be None for BYOD
+    pred_cgpa = float(payload.get("predicted_cgpa", 7.5))
+    direction = str(payload.get("direction", "stable"))
+    top_factors = payload.get("top_factors", [])
+
+    f1 = top_factors[0] if len(top_factors) > 0 else {"name": "DSA Problems Solved", "student_val": "N/A", "pop_avg": "120 problems"}
+    f2 = top_factors[1] if len(top_factors) > 1 else {"name": "Daily Study Hours", "student_val": "N/A", "pop_avg": "4.0 hrs/day"}
+    f3 = top_factors[2] if len(top_factors) > 2 else {"name": "Communication Skills", "student_val": "N/A", "pop_avg": "70.0 pts"}
+
+    cgpa_context = (
+        f"Current CGPA: {current_cgpa:.2f}" if current_cgpa is not None
+        else "Current CGPA: Not provided (BYOD assessment)"
+    )
+
+    ck = _cache_key("performance_summary_data", sid, payload)
+    if ck in _GENAI_CACHE:
+        return _GENAI_CACHE[ck]
+
+    prompt = f"""You are writing a brief for a mentor about a student's predicted academic trajectory. Use only the facts given.
+
+Student: {sid}
+{cgpa_context}
+Model-predicted CGPA (based on study habits/effort): {pred_cgpa:.2f}
+Model reliability: This prediction model explains only about 21% of the variation in student CGPA (R²=0.21) — treat it as a rough directional signal, not an accurate forecast.
+Top factors in this prediction: {f1['name']} ({f1['student_val']} vs population avg {f1['pop_avg']}), {f2['name']} ({f2['student_val']} vs population avg {f2['pop_avg']}), {f3['name']} ({f3['student_val']} vs population avg {f3['pop_avg']})
+Note: This assessment was run on user-supplied data (Bring Your Own Data flow).
+
+Write a 2-3 sentence summary explaining the prediction's direction and which factor is driving it most, with an explicit note that this is a low-confidence directional signal, not a reliable forecast."""
+
+    fallback_text = (
+        f"{sid}'s academic performance trajectory is {direction} "
+        f"(model-predicted CGPA: {pred_cgpa:.2f}/10.0), driven primarily by "
+        f"{f1['name']} ({f1['student_val']} vs. population average {f1['pop_avg']}) "
+        f"alongside {f2['name']} ({f2['student_val']}). "
+        f"Crucially, because this predictive model accounts for only about 21% of CGPA variance (R²=0.21), "
+        f"this trajectory should be understood strictly as a tentative directional indicator rather than a definitive forecast."
+    )
+
+    gemini_resp, model_used = _call_gemini(prompt)
+    summary_text = gemini_resp if gemini_resp else fallback_text
+    source = model_used if gemini_resp else "deterministic-template-fallback"
+    is_fallback = not bool(gemini_resp)
+
+    _log_interaction("generate_performance_summary_from_data", sid, prompt, summary_text, source)
+
+    result = {
+        "student_id": sid,
+        "summary_text": summary_text,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "predicted_cgpa": round(pred_cgpa, 2),
+        "current_cgpa": round(current_cgpa, 2) if current_cgpa is not None else None,
+        "is_fallback": is_fallback,
+        "raw_inputs": payload,
+    }
+    _GENAI_CACHE[ck] = result
+    return result
+
+
+def generate_career_guidance_narrative_from_data(career_data: dict) -> dict:
+    """
+    Generates a career guidance narrative from a pre-built career data dict (no DB lookup).
+    Accepts the same career_data shape as generate_career_guidance_narrative().
+    """
+    sid = str(career_data.get("student_id", "BYOD-Student"))
+    score = float(career_data.get("career_readiness_score", 50.0))
+    peer_info = career_data.get("peer_benchmark", {})
+    peer_avg = float(peer_info.get("peer_avg_readiness") or 50.0)
+    branch = career_data.get("branch", "Engineering")
+    tier = career_data.get("college_tier", 2)
+    peer_group = peer_info.get("peer_group", f"{branch} · Tier {tier}")
+
+    gaps = career_data.get("skill_gap_breakdown", [])
+    g1 = gaps[0] if len(gaps) > 0 else {"label": "Technical Projects", "percentile_in_branch": 25.0}
+    g2 = gaps[1] if len(gaps) > 1 else {"label": "DSA Problem Solving", "percentile_in_branch": 35.0}
+    g3 = gaps[2] if len(gaps) > 2 else {"label": "Industry Internships", "percentile_in_branch": 45.0}
+
+    focus_info = career_data.get("suggested_focus_area", {})
+    rule_sugg = focus_info.get("suggestion", "Focus on consistent daily practice.")
+
+    pref = career_data.get("placement_outcome_reference", {})
+    has_peer_stat = not pref.get("insufficient_peer_data") and pref.get("placement_rate_pct") is not None
+    plc_pct = pref.get("placement_rate_pct")
+    avg_sal = pref.get("avg_salary_lpa")
+
+    if has_peer_stat:
+        peer_ref_line = f"Peer reference: students with similar readiness scores in this branch/tier: {plc_pct}% placed, average package {avg_sal} LPA"
+        peer_fallback_clause = (
+            f"For perspective, peers in this branch with comparable readiness metrics historically observed a {plc_pct}% placement rate "
+            f"with an average package of ₹{avg_sal} LPA; maintaining structured weekly milestones will help sustain this upward momentum."
+        )
+    else:
+        peer_ref_line = "Peer reference: insufficient data for a reliable placement statistic"
+        peer_fallback_clause = "Maintaining structured weekly milestones and building strong portfolio artifacts will ensure competitive readiness for upcoming placement cycles."
+
+    ck = _cache_key("career_guidance_narrative_data", sid, career_data)
+    if ck in _GENAI_CACHE:
+        return _GENAI_CACHE[ck]
+
+    prompt = f"""You are writing career guidance for a mentor to relay to a student.
+Use only the facts given below.
+Note: This assessment was run on user-supplied data (Bring Your Own Data flow), not from an existing warehouse record.
+
+Student: {sid}, {branch}
+Career Readiness Score: {score:.1f}/100 (peers in branch/tier average: {peer_avg:.1f})
+Skill gap ranking (lowest percentile first): {g1.get('label')} at {g1.get('percentile_in_branch', 0):.1f}th percentile, {g2.get('label')} at {g2.get('percentile_in_branch', 0):.1f}th percentile, {g3.get('label')} at {g3.get('percentile_in_branch', 0):.1f}th percentile
+Rule-based suggestion: {rule_sugg}
+{peer_ref_line}
+
+Write a warm, encouraging 3-4 sentence career guidance note. Expand on the rule-based suggestion with a bit more specific advice. Reference the peer statistic as context, not as a guarantee. Do not promise any specific outcome."""
+
+    fallback_text = (
+        f"{sid} currently demonstrates a Career Readiness Score of {score:.1f}/100 against a {peer_group} peer average of {peer_avg:.1f}/100. "
+        f"Their primary area for acceleration is {g1.get('label')} (at the {g1.get('percentile_in_branch', 0):.1f}th percentile), "
+        f"followed by {g2.get('label')} ({g2.get('percentile_in_branch', 0):.1f}th percentile). "
+        f"{rule_sugg} {peer_fallback_clause}"
+    )
+
+    gemini_resp, model_used = _call_gemini(prompt)
+    narrative_text = gemini_resp if gemini_resp else fallback_text
+    source = model_used if gemini_resp else "deterministic-template-fallback"
+    is_fallback = not bool(gemini_resp)
+
+    _log_interaction("generate_career_guidance_narrative_from_data", sid, prompt, narrative_text, source)
+
+    result = {
+        "student_id": sid,
+        "narrative_text": narrative_text,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "career_readiness_score": score,
+        "peer_avg": peer_avg,
+        "suggested_focus_area": rule_sugg,
+        "is_fallback": is_fallback,
+        "raw_inputs": career_data,
+    }
+    _GENAI_CACHE[ck] = result
+    return result

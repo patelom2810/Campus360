@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus360 • Bring Your Own Data Assessment</title>
+  <meta name="description" content="Run a full student risk and career readiness assessment using your own data — upload CSVs, use our guided chat, or fill in a form directly." />
+
+  <link rel="icon" type="image/svg+xml" href="/dashboard/assets/logo-icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            campus: {
+              bg: '#F6F5FC',
+              surface: '#FFFFFF',
+              primary: '#6C5CE7',
+              'primary-dark': '#4B3FA8',
+              lavender: '#EDEBFB',
+              blue: '#E6F0FE',
+              mint: '#E7F8EE',
+              coral: '#FDEDEF',
+              danger: '#E85D75',
+              success: '#4CAF7D',
+              text: '#1E1B2E',
+              muted: '#8A8797',
+            }
+          },
+          fontFamily: {
+            sora: ['Sora', 'sans-serif'],
+            inter: ['Inter', 'sans-serif'],
+          },
+          animation: {
+            'fade-up': 'fadeUp 0.5s ease forwards',
+            'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+            'spin-slow': 'spin 3s linear infinite',
+          },
+          keyframes: {
+            fadeUp: { '0%': { opacity: 0, transform: 'translateY(20px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            pulseSoft: { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.6 } },
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #F6F5FC; color: #1E1B2E; min-height: 100vh; }
+    .sora { font-family: 'Sora', sans-serif; }
+
+    /* Option cards */
+    .option-card {
+      background: white;
+      border: 2px solid #EDEBFB;
+      border-radius: 20px;
+      padding: 2rem;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(.4,0,.2,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .option-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #6C5CE7 0%, #8B7CF7 100%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      border-radius: 18px;
+    }
+    .option-card:hover {
+      transform: translateY(-6px);
+      border-color: #6C5CE7;
+      box-shadow: 0 20px 48px rgba(108,92,231,0.18);
+    }
+    .option-card:hover::before { opacity: 0.04; }
+    .option-card:hover .option-icon { background: #6C5CE7; color: white; }
+    .option-card.selected {
+      border-color: #6C5CE7;
+      box-shadow: 0 0 0 4px rgba(108,92,231,0.15);
+    }
+    .option-icon {
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      background: #EDEBFB;
+      color: #6C5CE7;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.25s;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Flow panels */
+    .flow-panel {
+      display: none;
+      animation: fadeUp 0.4s ease forwards;
+    }
+    .flow-panel.active { display: block; }
+
+    /* Result cards */
+    .result-card {
+      background: white;
+      border-radius: 16px;
+      border: 1.5px solid #EDEBFB;
+      padding: 1.5rem;
+      transition: box-shadow 0.2s;
+    }
+    .result-card:hover { box-shadow: 0 8px 32px rgba(108,92,231,0.10); }
+
+    /* Chat bubbles */
+    .chat-bubble-bot {
+      background: white;
+      border: 1.5px solid #EDEBFB;
+      border-radius: 18px 18px 18px 4px;
+      padding: 1rem 1.25rem;
+      max-width: 80%;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .chat-bubble-user {
+      background: #6C5CE7;
+      color: white;
+      border-radius: 18px 18px 4px 18px;
+      padding: 0.75rem 1.25rem;
+      max-width: 70%;
+      margin-left: auto;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 6px;
+      background: #EDEBFB;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6C5CE7, #8B7CF7);
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+
+    /* Mapping table */
+    .mapping-table th { background: #F6F5FC; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8A8797; }
+    .mapping-table td { border-bottom: 1px solid #F0EDF9; padding: 0.75rem 1rem; font-size: 0.875rem; }
+    .badge-ok { background: #E7F8EE; color: #4CAF7D; border-radius: 999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 600; }
+    .badge-review { background: #FDEDEF; color: #E85D75; border-radius: 999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 600; }
+    .badge-approx { background: #FFF3CD; color: #856404; border-radius: 999px; padding: 3px 12px; font-size: 0.75rem; font-weight: 600; }
+
+    /* At-risk banner */
+    .atrisk-banner-danger { background: #FDEDEF; border: 1.5px solid #E85D75; border-radius: 12px; padding: 1rem 1.25rem; }
+    .atrisk-banner-safe { background: #E7F8EE; border: 1.5px solid #4CAF7D; border-radius: 12px; padding: 1rem 1.25rem; }
+
+    /* Form inputs */
+    .form-input {
+      width: 100%; padding: 0.625rem 0.875rem; background: white;
+      border: 1.5px solid #EDEBFB; border-radius: 10px;
+      font-size: 0.875rem; color: #1E1B2E; transition: border-color 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .form-input:focus { outline: none; border-color: #6C5CE7; box-shadow: 0 0 0 3px rgba(108,92,231,0.12); }
+    .form-label { font-size: 0.8rem; font-weight: 600; color: #1E1B2E; margin-bottom: 0.375rem; display: block; }
+    .form-muted { font-size: 0.72rem; color: #8A8797; margin-top: 0.25rem; }
+
+    /* Primary button */
+    .btn-primary {
+      background: linear-gradient(135deg, #6C5CE7, #8B7CF7);
+      color: white; font-weight: 600; border: none; cursor: pointer;
+      padding: 0.75rem 1.75rem; border-radius: 12px; font-family: 'Sora', sans-serif;
+      transition: all 0.2s; font-size: 0.9rem;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108,92,231,0.35); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-ghost {
+      background: #EDEBFB; color: #6C5CE7; font-weight: 600; border: none; cursor: pointer;
+      padding: 0.75rem 1.5rem; border-radius: 12px; font-family: 'Sora', sans-serif;
+      transition: all 0.2s; font-size: 0.875rem;
+    }
+    .btn-ghost:hover { background: #DDD9FA; }
+
+    /* Drag and drop zone */
+    .drop-zone {
+      border: 2.5px dashed #C4BCED;
+      border-radius: 16px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #FAFAF9;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #6C5CE7;
+      background: #F5F3FF;
+    }
+
+    /* Gauge */
+    .gauge-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+    .gauge-label { position: absolute; text-align: center; }
+
+    /* Batch table rows */
+    .batch-row { border-bottom: 1px solid #F0EDF9; transition: background 0.15s; }
+    .batch-row:hover { background: #FAFAF9; }
+    .batch-row-detail { background: #F9F8FE; border-bottom: 2px solid #EDEBFB; display: none; }
+    .batch-row-detail.open { display: table-row; }
+
+    /* Sticky header nav */
+    .site-header { position: sticky; top: 0; z-index: 40; background: rgba(246,245,252,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid #EDEBFB; }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.4);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Site Header ──────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/dashboard" class="w-9 h-9 flex items-center justify-center cursor-pointer" title="Campus360 Analytics" aria-label="Campus360 Analytics">
+          <img src="/dashboard/assets/logo-icon.svg" alt="Campus360" class="w-9 h-9" />
+        </a>
+        <span class="sora font-bold text-lg text-campus-text">Campus360</span>
+        <span class="text-campus-muted text-sm hidden sm:block">/ Bring Your Own Data</span>
+      </div>
+      <a href="/dashboard" class="text-sm text-campus-muted hover:text-campus-primary transition-colors flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+        Data Dashboard
+      </a>
+    </div>
+  </header>
+
+  <!-- ── Main Content ────────────────────────────────────────────────────── -->
+  <main class="max-w-7xl mx-auto px-6 py-14">
+
+    <!-- Hero -->
+    <div id="hero-section" class="text-center mb-14" style="animation: fadeUp 0.5s ease forwards;">
+      <div class="inline-flex items-center gap-2 bg-campus-lavender text-campus-primary text-xs font-semibold px-4 py-1.5 rounded-full mb-5 sora">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+        No data in our warehouse? No problem.
+      </div>
+      <h1 class="sora text-4xl md:text-5xl font-bold text-campus-text mb-4 leading-tight">
+        How would you like to<br class="hidden md:block" />
+        <span style="background: linear-gradient(135deg, #6C5CE7, #8B7CF7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">provide your data?</span>
+      </h1>
+      <p class="text-campus-muted text-lg max-w-xl mx-auto leading-relaxed">
+        Every path below runs the same Campus360 ML models and GenAI pipeline —
+        your data, your way.
+      </p>
+    </div>
+
+    <!-- Option Cards Grid -->
+    <div id="option-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
+
+      <!-- Option 1: Upload CSV -->
+      <div class="option-card" id="card-csv" onclick="selectOption('csv')" role="button" tabindex="0" aria-label="Upload a CSV">
+        <div class="option-icon">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
+        <div class="text-xs font-semibold text-campus-primary sora mb-1.5 uppercase tracking-wider">Option 1</div>
+        <h2 class="sora text-lg font-bold text-campus-text mb-2">Upload a CSV</h2>
+        <p class="text-campus-muted text-sm leading-relaxed">We'll automatically match your columns to our schema — rename, reorder, no problem.</p>
+        <div class="mt-4 flex items-center gap-1.5 text-campus-primary text-xs font-semibold">
+          Get started <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+
+      <!-- Option 2: Multiple CSVs -->
+      <div class="option-card" id="card-stitch" onclick="selectOption('stitch')" role="button" tabindex="0" aria-label="Upload multiple CSVs">
+        <div class="option-icon">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+        </div>
+        <div class="text-xs font-semibold text-campus-primary sora mb-1.5 uppercase tracking-wider">Option 2</div>
+        <h2 class="sora text-lg font-bold text-campus-text mb-2">Upload Multiple CSVs</h2>
+        <p class="text-campus-muted text-sm leading-relaxed">We'll stitch them together — just like we did with our own 6 datasets.</p>
+        <div class="mt-4 flex items-center gap-1.5 text-campus-primary text-xs font-semibold">
+          Get started <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+
+      <!-- Option 3: Chat Guided -->
+      <div class="option-card" id="card-chat" onclick="selectOption('chat')" role="button" tabindex="0" aria-label="Answer questions via chat">
+        <div class="option-icon">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <div class="text-xs font-semibold text-campus-primary sora mb-1.5 uppercase tracking-wider">Option 3</div>
+        <h2 class="sora text-lg font-bold text-campus-text mb-2">Answer Questions</h2>
+        <p class="text-campus-muted text-sm leading-relaxed">A guided chat walks you through it — type "skip" for anything you don't know.</p>
+        <div class="mt-4 flex items-center gap-1.5 text-campus-primary text-xs font-semibold">
+          Start chat <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+
+      <!-- Option 4: Direct Form -->
+      <div class="option-card" id="card-form" onclick="selectOption('form')" role="button" tabindex="0" aria-label="Enter data directly via form">
+        <div class="option-icon">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <div class="text-xs font-semibold text-campus-primary sora mb-1.5 uppercase tracking-wider">Option 4</div>
+        <h2 class="sora text-lg font-bold text-campus-text mb-2">Enter Data Directly</h2>
+        <p class="text-campus-muted text-sm leading-relaxed">Fill in a structured form for one student — leave blanks and we'll fill population averages.</p>
+        <div class="mt-4 flex items-center gap-1.5 text-campus-primary text-xs font-semibold">
+          Open form <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Flow Panels ─────────────────────────────────────────────────── -->
+
+    <!-- ── OPTION 1: CSV Match ──────────────────────────────────────────── -->
+    <div id="panel-csv" class="flow-panel">
+      <div class="result-card mb-6">
+        <div class="flex items-center gap-3 mb-5">
+          <button onclick="backToCards()" class="w-8 h-8 rounded-lg bg-campus-lavender text-campus-primary flex items-center justify-center hover:bg-campus-primary hover:text-white transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h2 class="sora font-bold text-xl text-campus-text">Upload a CSV</h2>
+            <p class="text-campus-muted text-sm">We'll match your columns automatically — you can review and adjust before processing.</p>
+          </div>
+        </div>
+
+        <!-- Step 1: Upload -->
+        <div id="csv-step-upload">
+          <div class="drop-zone" id="csv-dropzone" onclick="document.getElementById('csv-file-input').click()">
+            <svg class="w-10 h-10 text-campus-primary mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <p class="sora font-semibold text-campus-text mb-1">Drop your CSV here, or click to browse</p>
+            <p class="text-sm text-campus-muted">Any column names are fine — we'll figure out the mapping</p>
+            <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVUpload(event)" />
+          </div>
+          <div id="csv-upload-status" class="mt-4 hidden"></div>
+        </div>
+
+        <!-- Step 2: Mapping Preview -->
+        <div id="csv-step-mapping" class="hidden mt-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="sora font-semibold text-campus-text">Column Mapping Preview</h3>
+            <span id="csv-mapping-stats" class="text-xs text-campus-muted"></span>
+          </div>
+          <div id="csv-review-banner" class="hidden mb-3 p-3 rounded-xl bg-campus-coral border border-campus-danger/30 text-sm text-red-700 flex items-start gap-2">
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span id="csv-review-banner-text"></span>
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-campus-lavender">
+            <table class="w-full mapping-table">
+              <thead>
+                <tr>
+                  <th class="p-3 text-left">Your Column</th>
+                  <th class="p-3 text-left">Matched Feature</th>
+                  <th class="p-3 text-left">Confidence</th>
+                  <th class="p-3 text-left">Sample Values</th>
+                  <th class="p-3 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody id="csv-mapping-tbody"></tbody>
+            </table>
+          </div>
+          <div class="mt-5 flex items-center gap-3">
+            <button id="csv-confirm-btn" class="btn-primary" onclick="confirmCSVMapping()">
+              Run Assessment on All Rows →
+            </button>
+            <button class="btn-ghost" onclick="resetCSVFlow()">Re-upload</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Processing -->
+        <div id="csv-step-processing" class="hidden text-center py-12">
+          <div class="w-14 h-14 rounded-full bg-campus-lavender flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <svg class="w-7 h-7 text-campus-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>
+          </div>
+          <p class="sora font-semibold text-campus-text mb-1">Running assessment…</p>
+          <p class="text-sm text-campus-muted">This may take a moment for large files.</p>
+        </div>
+      </div>
+
+      <!-- Batch Results -->
+      <div id="csv-batch-results" class="hidden"></div>
+    </div>
+
+    <!-- ── OPTION 2: CSV Stitch ─────────────────────────────────────────── -->
+    <div id="panel-stitch" class="flow-panel">
+      <div class="result-card mb-6">
+        <div class="flex items-center gap-3 mb-5">
+          <button onclick="backToCards()" class="w-8 h-8 rounded-lg bg-campus-lavender text-campus-primary flex items-center justify-center hover:bg-campus-primary hover:text-white transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h2 class="sora font-bold text-xl text-campus-text">Upload Multiple CSVs</h2>
+            <p class="text-campus-muted text-sm">Upload 2+ files — we'll join them where possible, and disclose our method honestly.</p>
+          </div>
+        </div>
+
+        <div class="drop-zone mb-4" id="stitch-dropzone" onclick="document.getElementById('stitch-file-input').click()">
+          <svg class="w-10 h-10 text-campus-primary mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+          </svg>
+          <p class="sora font-semibold text-campus-text mb-1">Drop 2 or more CSV files here</p>
+          <p class="text-sm text-campus-muted">If your files share a student ID column, we'll do a real join. Otherwise: approximate matching.</p>
+          <input type="file" id="stitch-file-input" accept=".csv" multiple class="hidden" onchange="handleStitchUpload(event)" />
+        </div>
+
+        <div id="stitch-file-list" class="hidden mb-4"></div>
+
+        <button id="stitch-run-btn" class="btn-primary hidden" onclick="runStitchAssessment()">
+          Stitch & Assess →
+        </button>
+
+        <div id="stitch-status" class="mt-4 hidden"></div>
+      </div>
+
+      <div id="stitch-batch-results" class="hidden"></div>
+    </div>
+
+    <!-- ── OPTION 3: Chat Guided ────────────────────────────────────────── -->
+    <div id="panel-chat" class="flow-panel">
+      <div class="result-card" style="max-width: 680px; margin: 0 auto;">
+        <div class="flex items-center gap-3 mb-5">
+          <button onclick="backToCards()" class="w-8 h-8 rounded-lg bg-campus-lavender text-campus-primary flex items-center justify-center hover:bg-campus-primary hover:text-white transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div class="flex-1">
+            <h2 class="sora font-bold text-xl text-campus-text">Guided Assessment Chat</h2>
+            <p class="text-campus-muted text-sm">Answer at your own pace. Type "skip" to use population averages for any field.</p>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-bar mb-5">
+          <div class="progress-fill" id="chat-progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="text-xs text-campus-muted mb-5" id="chat-progress-label">Ready to begin</div>
+
+        <!-- Chat area -->
+        <div id="chat-messages" class="flex flex-col gap-3 mb-5 overflow-y-auto" style="min-height: 200px; max-height: 440px; padding-right: 4px;"></div>
+
+        <!-- Input -->
+        <div id="chat-input-area" class="flex gap-3">
+          <input type="text" id="chat-input" class="form-input flex-1" placeholder="Type your answer here…" onkeydown="if(event.key==='Enter') sendChatMessage()"/>
+          <button class="btn-primary" onclick="sendChatMessage()" id="chat-send-btn" style="padding: 0.75rem 1.25rem;">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          </button>
+        </div>
+
+        <!-- Start button (before session begins) -->
+        <div id="chat-start-area" class="text-center">
+          <button class="btn-primary" id="chat-start-btn" onclick="startChatSession()">
+            Start Guided Assessment →
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat assessment result -->
+      <div id="chat-result" class="hidden mt-6" style="max-width: 680px; margin: 1.5rem auto 0;"></div>
+    </div>
+
+    <!-- ── OPTION 4: Direct Form ────────────────────────────────────────── -->
+    <div id="panel-form" class="flow-panel">
+      <div class="result-card mb-6">
+        <div class="flex items-center gap-3 mb-5">
+          <button onclick="backToCards()" class="w-8 h-8 rounded-lg bg-campus-lavender text-campus-primary flex items-center justify-center hover:bg-campus-primary hover:text-white transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h2 class="sora font-bold text-xl text-campus-text">Enter Data Directly</h2>
+            <p class="text-campus-muted text-sm">Leave any field blank — we'll fill it with the population median and tell you which ones were defaulted.</p>
+          </div>
+        </div>
+
+        <form id="direct-form" class="space-y-6" onsubmit="submitDirectForm(event)">
+          <!-- Profile -->
+          <fieldset>
+            <legend class="sora font-semibold text-campus-text mb-3 text-base flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-campus-lavender text-campus-primary text-xs flex items-center justify-center font-bold">1</span>
+              Student Profile
+            </legend>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="form-label">Display Name / Label</label>
+                <input type="text" name="student_label" class="form-input" placeholder="e.g. Student A" />
+              </div>
+              <div>
+                <label class="form-label">Branch</label>
+                <select name="branch" class="form-input">
+                  <option value="">Select branch…</option>
+                  <option>CSE</option><option>ECE</option><option>Mechanical</option>
+                  <option>Civil</option><option>Information Technology</option>
+                  <option>Chemical</option><option>Electrical</option><option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">College Tier</label>
+                <select name="tier" class="form-input">
+                  <option value="">Select tier…</option>
+                  <option value="1">Tier 1 — IIT/NIT/Top</option>
+                  <option value="2">Tier 2 — Mid-tier</option>
+                  <option value="3">Tier 3 — Other</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Academic -->
+          <fieldset>
+            <legend class="sora font-semibold text-campus-text mb-3 text-base flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-campus-lavender text-campus-primary text-xs flex items-center justify-center font-bold">2</span>
+              Academic Performance
+            </legend>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="form-label">Attendance %</label>
+                <input type="number" name="anchor_attendance_percentage" class="form-input" min="0" max="100" step="0.1" placeholder="e.g. 82" />
+                <p class="form-muted">0–100</p>
+              </div>
+              <div>
+                <label class="form-label">Study Hours / Day</label>
+                <input type="number" name="anchor_study_hours_daily" class="form-input" min="0" max="16" step="0.5" placeholder="e.g. 4" />
+              </div>
+              <div>
+                <label class="form-label">Self-Learning Hours / Day</label>
+                <input type="number" name="anchor_self_learning_hours" class="form-input" min="0" max="12" step="0.5" placeholder="e.g. 1.5" />
+              </div>
+              <div>
+                <label class="form-label">Backlog Count</label>
+                <input type="number" name="anchor_backlog_history" class="form-input" min="0" step="1" placeholder="0 = none" />
+              </div>
+              <div>
+                <label class="form-label">DSA Problems Solved</label>
+                <input type="number" name="anchor_dsa_problems_solved" class="form-input" min="0" step="1" placeholder="e.g. 120" />
+              </div>
+              <div>
+                <label class="form-label">Internships Completed</label>
+                <input type="number" name="anchor_internships_completed" class="form-input" min="0" step="1" placeholder="e.g. 1" />
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Lifestyle -->
+          <fieldset>
+            <legend class="sora font-semibold text-campus-text mb-3 text-base flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-campus-lavender text-campus-primary text-xs flex items-center justify-center font-bold">3</span>
+              Lifestyle & Wellness
+            </legend>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="form-label">Sleep Hours / Night</label>
+                <input type="number" name="anchor_sleep_hours" class="form-input" min="0" max="16" step="0.5" placeholder="e.g. 7" />
+              </div>
+              <div>
+                <label class="form-label">Screen Time (hrs/day)</label>
+                <input type="number" name="anchor_screen_time" class="form-input" min="0" max="24" step="0.5" placeholder="e.g. 5" />
+              </div>
+              <div>
+                <label class="form-label">Gaming (hrs/day)</label>
+                <input type="number" name="anchor_gaming_hours" class="form-input" min="0" max="16" step="0.5" placeholder="e.g. 1" />
+              </div>
+              <div>
+                <label class="form-label">Stress Level (0–100)</label>
+                <input type="number" name="anchor_stress_level" class="form-input" min="0" max="100" step="1" placeholder="e.g. 54" />
+              </div>
+              <div>
+                <label class="form-label">Burnout Score (0–100)</label>
+                <input type="number" name="anchor_burnout_score" class="form-input" min="0" max="100" step="1" placeholder="e.g. 44" />
+              </div>
+              <div>
+                <label class="form-label">Motivation Level (0–10)</label>
+                <input type="number" name="anchor_motivation_level" class="form-input" min="0" max="10" step="0.5" placeholder="e.g. 6" />
+              </div>
+              <div>
+                <label class="form-label">Adaptability Score (0–10)</label>
+                <input type="number" name="anchor_adaptability_score" class="form-input" min="0" max="10" step="0.5" placeholder="e.g. 7" />
+              </div>
+              <div>
+                <label class="form-label">Gym Frequency (days/week)</label>
+                <input type="number" name="anchor_gym_frequency" class="form-input" min="0" max="7" step="1" placeholder="e.g. 3" />
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Career & Skills -->
+          <fieldset>
+            <legend class="sora font-semibold text-campus-text mb-3 text-base flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-campus-lavender text-campus-primary text-xs flex items-center justify-center font-bold">4</span>
+              Career & Skills
+            </legend>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="form-label">Family Income (LPA)</label>
+                <input type="number" name="anchor_family_income_lpa" class="form-input" min="0" step="0.5" placeholder="e.g. 8" />
+              </div>
+              <div>
+                <label class="form-label">Resume Score (0–100)</label>
+                <input type="number" name="anchor_resume_score" class="form-input" min="0" max="100" step="1" placeholder="e.g. 60" />
+              </div>
+              <div>
+                <label class="form-label">Communication Skills (0–100)</label>
+                <input type="number" name="anchor_communication_skills" class="form-input" min="0" max="100" step="1" placeholder="e.g. 70" />
+              </div>
+              <div>
+                <label class="form-label">Aptitude Score (0–100)</label>
+                <input type="number" name="anchor_aptitude_score" class="form-input" min="0" max="100" step="1" placeholder="e.g. 65" />
+              </div>
+              <div>
+                <label class="form-label">Mock Interview Score (0–100)</label>
+                <input type="number" name="anchor_mock_interview_score" class="form-input" min="0" max="100" step="1" placeholder="e.g. 60" />
+              </div>
+              <div>
+                <label class="form-label">Hackathons Participated</label>
+                <input type="number" name="anchor_hackathons_participated" class="form-input" min="0" step="1" placeholder="e.g. 1" />
+              </div>
+              <div>
+                <label class="form-label">Dev Projects Count</label>
+                <input type="number" name="anchor_development_projects_count" class="form-input" min="0" step="1" placeholder="e.g. 2" />
+              </div>
+              <div>
+                <label class="form-label">AI/ML Projects</label>
+                <input type="number" name="anchor_ai_ml_projects" class="form-input" min="0" step="1" placeholder="e.g. 1" />
+              </div>
+              <div>
+                <label class="form-label">GitHub Repositories</label>
+                <input type="number" name="anchor_git_hub_repos" class="form-input" min="0" step="1" placeholder="e.g. 8" />
+              </div>
+              <div>
+                <label class="form-label">AI Tool Usage Frequency</label>
+                <input type="number" name="anchor_ai_tool_usage_frequency" class="form-input" min="0" step="0.5" placeholder="e.g. 3" />
+              </div>
+              <div>
+                <label class="form-label">Prompt Engineering Skill (0–10)</label>
+                <input type="number" name="anchor_prompt_engineering_skill" class="form-input" min="0" max="10" step="0.5" placeholder="e.g. 5" />
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="flex items-center gap-3 pt-2">
+            <button type="submit" class="btn-primary" id="form-submit-btn">
+              Run Full Assessment →
+            </button>
+            <span class="text-xs text-campus-muted">Empty fields use population medians</span>
+          </div>
+        </form>
+      </div>
+
+      <div id="form-result" class="hidden"></div>
+    </div>
+
+    <!-- ── SHARED SINGLE-STUDENT RESULTS VIEW ─────────────────────────── -->
+    <div id="single-result-container" class="hidden mt-6"></div>
+
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────────────────────── -->
+  <footer class="border-t border-campus-lavender mt-16 py-6">
+    <div class="max-w-7xl mx-auto px-6 flex items-center justify-between">
+      <p class="text-xs text-campus-muted">
+        Campus360 BYOD Assessment · Results are directional signals, not guaranteed predictions.
+      </p>
+      <a href="/dashboard" class="text-xs text-campus-muted hover:text-campus-primary transition-colors flex items-center gap-1.5 font-medium">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+        Our Data Dashboard
+      </a>
+    </div>
+  </footer>
+
+  <script src="/assess/assess.js"></script>
+</body>
+</html>
