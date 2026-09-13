@@ -117,24 +117,91 @@ We report these honestly rather than hide them — see [docs/FINAL_SUBMISSION_AU
 
 ```
 Campus360/
-├── data/       # Raw CSV datasets (70k rows), cleaned interim data, and stitched star-schema tables
-├── src/        # Application source code (ETL pipelines, ML training, GenAI, FastAPI backend, Dashboard)
-├── models/     # Serialized Scikit-Learn model artifacts (.joblib) for performance and risk prediction
-├── docs/       # Comprehensive technical documentation, architecture specs, audits, and deployment guides
-├── tests/      # Automated unit and integration test suites validating warehouse and API integrity
-└── docker/     # Dockerfiles and entrypoint initialization scripts for containerized deployment
+├── docker/                             # Docker configuration and container entrypoints
+│   ├── Dockerfile.api                  # Python 3.11 FastAPI backend container specification
+│   ├── Dockerfile.dashboard            # Lightweight HTTP static frontend dashboard container
+│   └── entrypoint.sh                   # Auto-initialization entrypoint (database setup & ETL loader)
+├── docker-compose.yml                  # Multi-service orchestration (Postgres, API, Dashboard)
+├── docs/                               # Comprehensive technical documentation & audits
+│   ├── SYSTEM_ARCHITECTURE_FLOW.md     # Interactive system architecture & 7 Mermaid data flows
+│   ├── ARCHITECTURE.md                 # Data engineering, stitching methodology & star schema specs
+│   ├── DEPLOYMENT.md                   # Multi-container Docker deployment & SQLite fallback guide
+│   ├── DOCKER_VERIFICATION.md          # Clean-state verification audit & recovery test logs
+│   ├── FINAL_SUBMISSION_AUDIT.md       # Ground-truth submission audit, metrics & rubric verification
+│   └── TECHNICAL_DEEP_DIVE.md          # In-depth algorithmic, statistical & leakage analysis
+├── data/                               # Data storage across raw, interim, and warehouse tiers
+│   ├── raw/                            # 6 untouched original datasets (70k total raw rows)
+│   │   ├── shambhuraje_placement_career_2026.csv   # Master anchor spine (25k rows)
+│   │   ├── kundan_student_performance.csv          # Secondary academics (Math, Science, English)
+│   │   ├── sakharebharat_indian_placement_2025.csv # Engineering placement & skill ratings
+│   │   ├── suvidya_student_performance.csv         # Intermediate marks & pass/fail status
+│   │   ├── sehaj_student_lifestyle.csv             # Lifestyle habits & daily wellness telemetry
+│   │   └── navinpatidar_indian_placement.csv       # Campus recruiters & salary packages
+│   ├── interim/                        # Cleaned, deduplicated & scale-standardized CSVs (0 nulls)
+│   └── processed/                      # Production Star Schema warehouse & training data
+│       ├── dim_student.csv             # Student demographic & institutional dimension (25,000 rows)
+│       ├── fact_performance.csv        # Long-format subject performance fact table (105,000 rows)
+│       ├── fact_lifestyle.csv          # Habits, sleep, stress & wellness fact table (25,000 rows)
+│       ├── fact_career.csv             # Skills, backlogs, placement & salary fact table (25,000 rows)
+│       ├── student_master_wide.csv     # Unified master wide cohort dataset (112 columns)
+│       ├── warehouse.db                # Standalone SQLite database for local fallback
+│       ├── model1_performance_train.csv / test.csv # Stratified 80/20 performance splits
+│       └── model2_atrisk_train.csv / test.csv      # Stratified 80/20 at-risk splits
+├── src/                                # Application source code
+│   ├── etl/                            # Modular data engineering & stitching pipeline
+│   │   ├── extract.py                  # Ingestion profiling & schema discovery
+│   │   ├── clean.py                    # Deduplication, imputation & range clipping
+│   │   ├── stitch.py                   # Attribute-based statistical similarity matching
+│   │   ├── fix_and_prepare.py          # PII removal, at_risk_flag calibration & splits
+│   │   ├── load.py                     # PostgreSQL star schema loader & SQLite fallback
+│   │   └── run_pipeline.py             # CLI runner orchestrating Stages 1-4 end-to-end
+│   ├── models/                         # Machine learning model training scripts
+│   │   ├── train_performance_model.py  # Model 1: Gradient Boosting CGPA regressor
+│   │   ├── train_atrisk_model.py       # Model 2: Balanced Random Forest at-risk classifier
+│   │   ├── train_career_model.py       # Career readiness multi-pillar scoring engine
+│   │   └── train_suvidya_ceiling_test.py # Non-circular ceiling validation harness
+│   ├── api/                            # Production FastAPI backend services
+│   │   ├── main.py                     # REST API endpoints, routing & error handlers
+│   │   └── assessment_engine.py        # Stateless BYOD engine & branch-adaptive weighting
+│   ├── genai/                          # Generative AI copilot layer
+│   │   └── insights.py                 # Google Gemini API client with deterministic fallback
+│   └── dashboard/                      # Web dashboard & presentation layer
+│       ├── index.html                  # Main analytics dashboard UI (7 interactive views)
+│       ├── app.js                      # Dynamic charts (Chart.js), sliders & view state logic
+│       ├── assess.html                 # BYOD interactive assessment studio UI (4 intake flows)
+│       ├── assess.js                   # Assessment client logic, fuzzy matcher & chat flow
+│       ├── arch.html                   # Interactive 11-slide architecture presentation deck
+│       ├── app.py                      # Multi-tab Streamlit warehouse explorer
+│       ├── style.css                   # Custom theme tokens, cards, and transitions
+│       └── assets/                     # Official brand logos, vector SVGs & visual emblems
+├── models/                             # Serialized Scikit-Learn models & evaluation metrics
+│   ├── model1_performance_predictor.joblib   # Trained Model 1 pipeline artifact
+│   ├── model1_performance_metrics.json       # Model 1 evaluation metrics (R², RMSE, MAE)
+│   ├── model2_atrisk_classifier.joblib       # Trained Model 2 pipeline artifact
+│   └── model2_atrisk_metrics.json           # Model 2 evaluation metrics (Recall, Prec, AUC)
+├── model_experiments/                  # Model comparison & benchmarking harness
+│   ├── run_comparison.py               # Evaluates 6 regression & 12 classification models
+│   └── results/comparison_report.md    # Formatted evaluation & production swap policy report
+├── tests/                              # Automated unit, integration & quality test suites
+│   ├── test_assess_api.py              # BYOD assessment endpoints & CS vs non-CS branch tests
+│   ├── test_dashboard_api.py           # Analytics API endpoints & filter validation
+│   ├── test_etl_pipeline.py            # Stitching, row counts, and null integrity tests
+│   ├── test_fix_and_prepare.py         # PII removal audit & label balance tests
+│   ├── test_model_quality.py           # Anti-leakage checks, metric parity & sanity audits
+│   └── test_postgres_migration.py      # PostgreSQL connection, schema, and fallback tests
+└── requirements.txt                    # Project Python dependencies
 ```
-
-For the comprehensive file tree and component breakdown, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
 ## Documentation
 
+- [docs/SYSTEM_ARCHITECTURE_FLOW.md](docs/SYSTEM_ARCHITECTURE_FLOW.md) — Comprehensive end-to-end system architecture with 7 interactive Mermaid data flow diagrams.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture, 6-dataset stitching methodology, 180k-row star schema, and data lineage.
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Multi-container Docker deployment guide, PostgreSQL migration, and SQLite fallback mechanism.
 - [docs/DOCKER_VERIFICATION.md](docs/DOCKER_VERIFICATION.md) — Independent verification log of clean-state Docker execution, auto-ETL timing, and failure-recovery tests.
 - [docs/FINAL_SUBMISSION_AUDIT.md](docs/FINAL_SUBMISSION_AUDIT.md) — Source of truth audit report verifying live row counts, model evaluations, leakage checks, and submission rubric coverage.
+- [docs/TECHNICAL_DEEP_DIVE.md](docs/TECHNICAL_DEEP_DIVE.md) — In-depth algorithmic, statistical, and leakage prevention analysis.
 
 ---
 
