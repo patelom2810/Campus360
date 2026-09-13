@@ -1,9 +1,27 @@
 <div align="center">
 
-# ![Campus360](src/dashboard/assets/logo-full.svg)
+  <img src="src/dashboard/assets/campus360-logo.png" alt="Campus360 Official Logo" width="180" />
 
-### Student Academic Success, Subject Performance & Career Readiness Analytics Platform
-**KDAC-3 — KENEXA AI Hackathon**
+  <br />
+
+  <img src="src/dashboard/assets/logo-full.svg" alt="Campus360 Wordmark" width="320" />
+
+  <br />
+
+  ### Student Academic Success, Subject Performance & Career Readiness Analytics Platform
+
+  **Project: KDAC-3 • Company: Kenexai**  
+  **Team: Neural Nexus • Team ID: 60**  
+  **Authors: Om Patel (Leader) & Rahil Nagariya (Member)**
+
+  <p>
+    <a href="#what-it-does">Features</a> •
+    <a href="#architecture">Architecture</a> •
+    <a href="#quick-start">Quick Start</a> •
+    <a href="#tech-stack">Tech Stack</a> •
+    <a href="#documentation">Documentation</a> •
+    <a href="#team--authors">Team & Authors</a>
+  </p>
 
 </div>
 
@@ -27,7 +45,8 @@ Higher education institutions routinely isolate student data across disconnected
 6 Raw Datasets (70k rows) -> Attribute-Based Stitching -> PostgreSQL Star Schema (180k rows) -> ML Models (Performance Regressor + At-Risk Classifier) -> GenAI Layer (Google Gemini) -> Analytics Dashboard (7 views) -> Dockerized Deployment
 ```
 
-For complete technical specifications, schema definitions, and data lineage, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+For complete technical specifications, schema definitions, and data lineage, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).  
+For the complete end-to-end system architecture and interactive data flow diagrams (ETL, Star Schema, ML Anti-Leakage, Branch-Adaptive Career Engine, BYOD Ingestion, and Docker topology), see [docs/SYSTEM_ARCHITECTURE_FLOW.md](docs/SYSTEM_ARCHITECTURE_FLOW.md).
 
 ---
 
@@ -119,16 +138,29 @@ For the comprehensive file tree and component breakdown, see [docs/ARCHITECTURE.
 
 ---
 
-## Team
+## Team & Authors — Neural Nexus
+**Company:** Kenexai | **Project:** KDAC-3: Student Academic Success, Subject Performance & Career Readiness Analytics Platform  
+**Team Name:** Neural Nexus | **Team ID:** 60
 
+| Contributor | Project Role | Email Contact |
+| :--- | :--- | :--- |
+| **OM PATEL** | Team Leader & Full-Stack Architect | [202500819010034@glsu.edu.in](mailto:202500819010034@glsu.edu.in) |
+| **Rahil Nagariya** | Team Member & Data Engineer | [202500819010024@glsu.edu.in](mailto:202500819010024@glsu.edu.in) |
+
+- **Team Name:** Neural Nexus
 - **Team ID:** 60
-- **Members:** Om Patel & Rahil Nagariya
+- **Company:** Kenexai
 - **Hackathon:** KDAC-3 — KENEXA AI Hackathon
+- **Team Members:**
+  - OM PATEL ([202500819010034@glsu.edu.in](mailto:202500819010034@glsu.edu.in)) [Leader]
+  - Rahil Nagariya ([202500819010024@glsu.edu.in](mailto:202500819010024@glsu.edu.in)) [Member]
 
-<br>
+<br />
 
 <div align="center">
 
-<img src="src/dashboard/assets/logo-icon.svg" alt="Campus360 Logo Mark" width="48" height="48" />
+  <img src="src/dashboard/assets/campus360-logo.png" alt="Campus360 Official Logo Mark" width="80" />
+
+  <p><em>Campus360 • Built with precision by Om Patel & Rahil Nagariya for student academic success and career intelligence.</em></p>
 
 </div>
