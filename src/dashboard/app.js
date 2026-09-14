@@ -154,11 +154,11 @@ function switchView(viewName, updateHistory = true) {
     const pill = btn.querySelector('.nav-pill');
     if (pill) {
       if (isActive) {
-        pill.classList.add('bg-[#EDEBFB]', 'text-[#6C5CE7]');
-        pill.classList.remove('text-[#8A8797]', 'hover:bg-slate-100');
+        pill.classList.add('bg-[var(--pastel-lavender)]', 'text-[var(--primary)]');
+        pill.classList.remove('text-[var(--text-muted)]', 'hover:bg-slate-100');
       } else {
-        pill.classList.remove('bg-[#EDEBFB]', 'text-[#6C5CE7]');
-        pill.classList.add('text-[#8A8797]', 'hover:bg-slate-100');
+        pill.classList.remove('bg-[var(--pastel-lavender)]', 'text-[var(--primary)]');
+        pill.classList.add('text-[var(--text-muted)]', 'hover:bg-slate-100');
       }
     }
   });
@@ -492,7 +492,7 @@ async function loadOverviewAtRiskList() {
     students.forEach((stu) => {
       const row = document.createElement('div');
       row.className =
-        'flex items-center justify-between p-3 rounded-xl bg-white border border-[#EDEBFB] hover:border-[#6C5CE7] hover:shadow-sm cursor-pointer transition-all duration-150';
+        'flex items-center justify-between p-3 rounded-xl bg-white border border-[var(--pastel-lavender)] hover:border-[var(--primary)] hover:shadow-sm cursor-pointer transition-all duration-150';
       row.onclick = () => jumpToStudent(stu.student_id);
 
       row.innerHTML = `
@@ -501,17 +501,17 @@ async function loadOverviewAtRiskList() {
             ${stu.student_id.slice(-3)}
           </div>
           <div>
-            <div class="font-sora font-semibold text-sm text-[#1E1B2E] flex items-center space-x-2">
+            <div class="font-sora font-semibold text-sm text-[var(--text-primary)] flex items-center space-x-2">
               <span>${stu.student_id}</span>
-              <span class="text-xs font-normal text-[#8A8797]">(${stu.stream_branch || 'Eng'})</span>
+              <span class="text-xs font-normal text-[var(--text-muted)]">(${stu.stream_branch || 'Eng'})</span>
             </div>
-            <div class="text-xs text-[#8A8797] truncate max-w-[140px]" title="${stu.top_contributing_factor}">
+            <div class="text-xs text-[var(--text-muted)] truncate max-w-[140px]" title="${stu.top_contributing_factor}">
               ${stu.top_contributing_factor || 'Risk factor identified'}
             </div>
           </div>
         </div>
         <div class="text-right">
-          <div class="font-sora font-semibold text-xs text-[#1E1B2E]">CGPA ${stu.current_cgpa.toFixed(2)}</div>
+          <div class="font-sora font-semibold text-xs text-[var(--text-primary)]">CGPA ${stu.current_cgpa.toFixed(2)}</div>
           <span class="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#FDEDEF] text-[#E85D75]">
             At-Risk
           </span>
@@ -601,7 +601,7 @@ function renderHeatmapGrid(data) {
     <div class="overflow-x-auto">
       <table class="w-full text-xs text-left">
         <thead>
-          <tr class="border-b border-[#EDEBFB] text-[#8A8797]">
+          <tr class="border-b border-[var(--pastel-lavender)] text-[var(--text-muted)]">
             <th class="py-2.5 px-3 font-semibold">Subject</th>
             ${branches.map((b) => `<th class="py-2.5 px-3 font-semibold text-center">${b}</th>`).join('')}
           </tr>
@@ -611,13 +611,13 @@ function renderHeatmapGrid(data) {
 
   matrix.forEach((row) => {
     html += `
-      <tr class="border-b border-[#F6F5FC] hover:bg-[#FAF9FD]">
-        <td class="py-2 px-3 font-medium text-[#1E1B2E]">${row.subject}</td>
+      <tr class="border-b border-[var(--bg)] hover:bg-[#FAF9FD]">
+        <td class="py-2 px-3 font-medium text-[var(--text-primary)]">${row.subject}</td>
     `;
     branches.forEach((b) => {
       const score = row[b];
       if (score === null || score === undefined) {
-        html += `<td class="py-2 px-3 text-center text-[#8A8797]">—</td>`;
+        html += `<td class="py-2 px-3 text-center text-[var(--text-muted)]">—</td>`;
       } else {
         // Color scale: Coral (low, ~63) to Mint (high, ~80)
         let bgStyle = '';
@@ -666,13 +666,13 @@ function renderSubjectGapsTable(gaps) {
   container.innerHTML = sorted
     .map(
       (item) => `
-    <tr class="border-b border-[#F6F5FC] hover:bg-[#FAF9FD]">
-      <td class="py-3 px-4 font-medium text-[#1E1B2E]">${item.stream_branch}</td>
+    <tr class="border-b border-[var(--bg)] hover:bg-[#FAF9FD]">
+      <td class="py-3 px-4 font-medium text-[var(--text-primary)]">${item.stream_branch}</td>
       <td class="py-3 px-4 font-semibold text-[#E85D75]">${item.lowest_subject}</td>
-      <td class="py-3 px-4 font-sora font-bold text-[#1E1B2E]">${item.avg_normalized_pct.toFixed(2)}%</td>
+      <td class="py-3 px-4 font-sora font-bold text-[var(--text-primary)]">${item.avg_normalized_pct.toFixed(2)}%</td>
       <td class="py-3 px-4">
         <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-          item.gap_severity === 'High Gap' ? 'bg-[#FDEDEF] text-[#E85D75]' : 'bg-[#EDEBFB] text-[#6C5CE7]'
+          item.gap_severity === 'High Gap' ? 'bg-[#FDEDEF] text-[#E85D75]' : 'bg-[var(--pastel-lavender)] text-[var(--primary)]'
         }">
           ${item.gap_severity}
         </span>
@@ -832,8 +832,8 @@ function renderAtRiskTableRows() {
   if (sorted.length === 0) {
     container.innerHTML = `
       <tr>
-        <td colspan="6" class="py-8 text-center text-xs text-[#8A8797]">
-          <div class="w-8 h-8 mx-auto mb-1.5 flex items-center justify-center text-[#8A8797]">
+        <td colspan="6" class="py-8 text-center text-xs text-[var(--text-muted)]">
+          <div class="w-8 h-8 mx-auto mb-1.5 flex items-center justify-center text-[var(--text-muted)]">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
           No students match the current filter parameters.
@@ -846,21 +846,21 @@ function renderAtRiskTableRows() {
   container.innerHTML = sorted
     .map(
       (stu) => `
-    <tr class="border-b border-[#F6F5FC] hover:bg-[#FAF9FD] cursor-pointer transition-colors" onclick="jumpToStudent('${stu.student_id}')">
-      <td class="py-3 px-4 font-sora font-semibold text-sm text-[#6C5CE7] hover:underline">${stu.student_id}</td>
+    <tr class="border-b border-[var(--bg)] hover:bg-[#FAF9FD] cursor-pointer transition-colors" onclick="jumpToStudent('${stu.student_id}')">
+      <td class="py-3 px-4 font-sora font-semibold text-sm text-[var(--primary)] hover:underline">${stu.student_id}</td>
       <td class="py-3 px-4">
         <div class="flex items-center space-x-2">
           <span class="font-sora font-bold text-xs ${stu.predicted_risk_probability >= 0.5 ? 'text-[#E85D75]' : 'text-[#4CAF7D]'}">
             ${(stu.predicted_risk_probability * 100).toFixed(1)}%
           </span>
-          <div class="w-16 bg-[#EDEBFB] h-1.5 rounded-full overflow-hidden">
+          <div class="w-16 bg-[var(--pastel-lavender)] h-1.5 rounded-full overflow-hidden">
             <div class="h-full ${stu.predicted_risk_probability >= 0.5 ? 'bg-[#E85D75]' : 'bg-[#4CAF7D]'}" style="width: ${stu.predicted_risk_probability * 100}%"></div>
           </div>
         </div>
       </td>
-      <td class="py-3 px-4 font-sora font-medium text-xs text-[#1E1B2E]">${stu.current_cgpa.toFixed(2)}</td>
-      <td class="py-3 px-4 text-xs text-[#1E1B2E]">
-        <span class="inline-block px-2 py-0.5 rounded-md bg-[#EDEBFB] text-[#6C5CE7] font-medium text-[11px]">
+      <td class="py-3 px-4 font-sora font-medium text-xs text-[var(--text-primary)]">${stu.current_cgpa.toFixed(2)}</td>
+      <td class="py-3 px-4 text-xs text-[var(--text-primary)]">
+        <span class="inline-block px-2 py-0.5 rounded-md bg-[var(--pastel-lavender)] text-[var(--primary)] font-medium text-[11px]">
           ${stu.top_contributing_factor}
         </span>
       </td>
@@ -874,7 +874,7 @@ function renderAtRiskTableRows() {
       <td class="py-3 px-4 text-right">
         <button
           onclick="event.stopPropagation(); showAtRiskMentorBrief('${stu.student_id}')"
-          class="px-2.5 py-1 rounded-lg bg-[#EDEBFB] hover:bg-[#6C5CE7] text-[#6C5CE7] hover:text-white font-sora font-semibold text-[11px] transition-all shadow-sm inline-flex items-center space-x-1.5 cursor-pointer"
+          class="px-2.5 py-1 rounded-lg bg-[var(--pastel-lavender)] hover:bg-[var(--primary)] text-[var(--primary)] hover:text-white font-sora font-semibold text-[11px] transition-all shadow-sm inline-flex items-center space-x-1.5 cursor-pointer"
           title="Open AI Assistant for ${stu.student_id}">
           <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
@@ -927,36 +927,36 @@ window.showAtRiskMentorBrief = function (studentId) {
 
   // Render on-demand assistant standby prompt — DO NOT call GenAI directly
   body.innerHTML = `
-    <div class="rounded-2xl p-5 border border-purple-100 mb-5" style="background: linear-gradient(135deg, #EDEBFB 0%, #F6F5FC 100%)">
+    <div class="rounded-2xl p-5 border border-purple-100 mb-5" style="background: linear-gradient(135deg, var(--pastel-lavender) 0%, var(--bg) 100%)">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <span class="font-sora font-bold text-sm text-[#1E1B2E]">Student Early-Warning Indicators</span>
+        <span class="font-sora font-bold text-sm text-[var(--text-primary)]">Student Early-Warning Indicators</span>
         <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
           Risk Probability: ${prob}%
         </span>
       </div>
       <div class="grid grid-cols-2 gap-3 text-xs mb-3">
         <div class="bg-white/85 p-3 rounded-xl border border-purple-50 shadow-2xs">
-          <div class="text-[11px] text-[#8A8797]">Current Academic Standing</div>
-          <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-0.5">${cgpaDisplay} CGPA</div>
+          <div class="text-[11px] text-[var(--text-muted)]">Current Academic Standing</div>
+          <div class="font-sora font-bold text-sm text-[var(--text-primary)] mt-0.5">${cgpaDisplay} CGPA</div>
         </div>
         <div class="bg-white/85 p-3 rounded-xl border border-purple-50 shadow-2xs">
-          <div class="text-[11px] text-[#8A8797]">Primary Contributing Factor</div>
-          <div class="font-sora font-bold text-sm text-[#6C5CE7] mt-0.5">${stu.top_contributing_factor}</div>
+          <div class="text-[11px] text-[var(--text-muted)]">Primary Contributing Factor</div>
+          <div class="font-sora font-bold text-sm text-[var(--primary)] mt-0.5">${stu.top_contributing_factor}</div>
         </div>
       </div>
-      <p class="text-xs text-[#8A8797] leading-relaxed">
+      <p class="text-xs text-[var(--text-muted)] leading-relaxed">
         GenAI Assistant is on standby. Click the assist button below to synthesize an actionable, tailored faculty mentor brief grounded in Model 2 early-warning indicators.
       </p>
     </div>
 
     <div class="flex items-center justify-end space-x-3">
-      <button onclick="closeAiModal()" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#8A8797] hover:bg-[#F6F5FC] transition-colors cursor-pointer">
+      <button onclick="closeAiModal()" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:bg-[var(--bg)] transition-colors cursor-pointer">
         Cancel
       </button>
       <button
         id="btn-execute-modal-ai-assist"
         onclick="executeModalAiAssist('${studentId}')"
-        class="px-5 py-2.5 rounded-xl bg-[#6C5CE7] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 cursor-pointer">
+        class="px-5 py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 cursor-pointer">
         <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
         </svg>
@@ -972,8 +972,8 @@ window.executeModalAiAssist = async function (studentId) {
 
   body.innerHTML = `
     <div class="py-8 text-center">
-      <div class="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-[#6C5CE7]"></div>
-      <div class="mt-3 text-xs text-[#8A8797]">Synthesizing mentor brief for ${studentId}...</div>
+      <div class="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-[var(--primary)]"></div>
+      <div class="mt-3 text-xs text-[var(--text-muted)]">Synthesizing mentor brief for ${studentId}...</div>
     </div>
   `;
 
@@ -999,34 +999,34 @@ window.executeModalAiAssist = async function (studentId) {
 
     body.innerHTML = `
       ${fallbackModalNotice}
-      <div class="rounded-2xl p-5 border border-purple-100" style="background: linear-gradient(135deg, #EDEBFB 0%, #F6F5FC 100%)">
+      <div class="rounded-2xl p-5 border border-purple-100" style="background: linear-gradient(135deg, var(--pastel-lavender) 0%, var(--bg) 100%)">
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
             Risk Probability: ${prob}%
           </span>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#6C5CE7]">
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[var(--primary)]">
             Top Factor: ${data.model_top_factor}
           </span>
-          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
+          ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[var(--primary)]">Gemini Live</span>'}
         </div>
-        <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-4">
+        <p class="text-sm text-[var(--text-primary)] font-medium leading-relaxed mb-4">
           ${data.brief_text}
         </p>
-        <div class="pt-3 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
+        <div class="pt-3 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
           <span>Generated: ${new Date(data.generated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           <span class="italic font-medium">${data.is_fallback ? 'Statistical rules fallback' : 'Gemini AI generated'}</span>
         </div>
       </div>
       <div class="mt-5 flex items-center justify-between">
-        <button onclick="executeModalAiAssist('${studentId}')" class="text-[11px] text-[#6C5CE7] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
+        <button onclick="executeModalAiAssist('${studentId}')" class="text-[11px] text-[var(--primary)] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
           Re-synthesize Brief
         </button>
         <div class="flex items-center space-x-3">
-          <button onclick="closeAiModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-[#8A8797] hover:bg-[#F6F5FC] transition-colors cursor-pointer">
+          <button onclick="closeAiModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:bg-[var(--bg)] transition-colors cursor-pointer">
             Close
           </button>
-          <button onclick="closeAiModal(); jumpToStudent('${studentId}')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-[#6C5CE7] hover:bg-[#4B3FA8] text-white transition-all shadow-sm cursor-pointer">
+          <button onclick="closeAiModal(); jumpToStudent('${studentId}')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--primary)] hover:bg-[#4B3FA8] text-white transition-all shadow-sm cursor-pointer">
             View 360° Profile
           </button>
         </div>
@@ -1039,7 +1039,7 @@ window.executeModalAiAssist = async function (studentId) {
         Failed to load mentor brief for ${studentId}. Please ensure backend API is running.
       </div>
       <div class="mt-3 flex justify-center">
-        <button onclick="showAtRiskMentorBrief('${studentId}')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
+        <button onclick="showAtRiskMentorBrief('${studentId}')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--pastel-lavender)] text-[var(--primary)]">
           Back
         </button>
       </div>
@@ -1129,7 +1129,7 @@ async function runPrediction() {
     communication_skills: parseFloat(document.getElementById('slider-comms')?.value || 70),
   };
 
-  if (numberEl) numberEl.innerHTML = '<span class="text-2xl text-[#8A8797]">Calculating...</span>';
+  if (numberEl) numberEl.innerHTML = '<span class="text-2xl text-[var(--text-muted)]">Calculating...</span>';
 
   try {
     const res = await fetch(`${API_BASE}/api/models/predict-performance`, {
@@ -1143,7 +1143,7 @@ async function runPrediction() {
       numberEl.textContent = data.predicted_cgpa.toFixed(2);
     }
     if (noteEl) {
-      noteEl.innerHTML = `Model R² = <span class="font-semibold text-[#6C5CE7]">${data.model_r2.toFixed(2)}</span> (RMSE ${data.model_rmse.toFixed(2)}) — provides directional guidance.`;
+      noteEl.innerHTML = `Model R² = <span class="font-semibold text-[var(--primary)]">${data.model_r2.toFixed(2)}</span> (RMSE ${data.model_rmse.toFixed(2)}) — provides directional guidance.`;
     }
   } catch (err) {
     console.error('Error running prediction:', err);
@@ -1171,8 +1171,8 @@ async function loadStudentView(studentId) {
 
   container.innerHTML = `
     <div class="p-8 text-center">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#6C5CE7]"></div>
-      <div class="mt-2 text-xs text-[#8A8797]">Loading comprehensive 360° record for ${studentId}...</div>
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
+      <div class="mt-2 text-xs text-[var(--text-muted)]">Loading comprehensive 360° record for ${studentId}...</div>
     </div>
   `;
 
@@ -1180,12 +1180,12 @@ async function loadStudentView(studentId) {
     const res = await fetch(`${API_BASE}/api/students/${encodeURIComponent(studentId)}`);
     if (!res.ok) {
       container.innerHTML = `
-        <div class="p-12 text-center bg-white rounded-2xl border border-[#EDEBFB]">
-          <div class="w-12 h-12 mx-auto mb-2 text-[#8A8797] flex items-center justify-center">
+        <div class="p-12 text-center bg-white rounded-2xl border border-[var(--pastel-lavender)]">
+          <div class="w-12 h-12 mx-auto mb-2 text-[var(--text-muted)] flex items-center justify-center">
             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
-          <div class="font-sora font-semibold text-lg text-[#1E1B2E]">Student ${studentId} not found</div>
-          <div class="text-xs text-[#8A8797] mt-1">Please try one of the demo IDs: STU00001, STU15140, STU16970, STU08983.</div>
+          <div class="font-sora font-semibold text-lg text-[var(--text-primary)]">Student ${studentId} not found</div>
+          <div class="text-xs text-[var(--text-muted)] mt-1">Please try one of the demo IDs: STU00001, STU15140, STU16970, STU08983.</div>
         </div>
       `;
       return;
@@ -1212,7 +1212,7 @@ function renderStudent360(data) {
   // Graceful Null Helper
   const val = (v, suffix = '') => {
     if (v === null || v === undefined || v === '') {
-      return '<span class="text-[#8A8797] italic font-normal text-xs">Not available</span>';
+      return '<span class="text-[var(--text-muted)] italic font-normal text-xs">Not available</span>';
     }
     return `${v}${suffix}`;
   };
@@ -1230,61 +1230,61 @@ function renderStudent360(data) {
 
   container.innerHTML = `
     <!-- Demographics Header -->
-    <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div class="flex items-center space-x-4">
-        <div class="w-14 h-14 rounded-2xl bg-[#EDEBFB] text-[#6C5CE7] flex items-center justify-center font-sora font-bold text-xl">
+        <div class="w-14 h-14 rounded-2xl bg-[var(--pastel-lavender)] text-[var(--primary)] flex items-center justify-center font-sora font-bold text-xl">
           ${d.student_id ? d.student_id.slice(-2) : 'ST'}
         </div>
         <div>
           <div class="flex items-center space-x-3">
-            <h2 class="font-sora font-bold text-xl text-[#1E1B2E]">${val(d.student_id)}</h2>
+            <h2 class="font-sora font-bold text-xl text-[var(--text-primary)]">${val(d.student_id)}</h2>
             ${riskBadge}
           </div>
-          <p class="text-xs text-[#8A8797] mt-0.5">
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">
             ${val(d.stream_branch)} • Tier ${val(d.college_tier)} • ${val(d.degree)} • ${val(d.gender)} • ${val(d.state)}
           </p>
         </div>
       </div>
-      <div class="flex items-center space-x-3 bg-[#F6F5FC] px-4 py-2.5 rounded-xl text-xs">
+      <div class="flex items-center space-x-3 bg-[var(--bg)] px-4 py-2.5 rounded-xl text-xs">
         <div>
-          <span class="text-[#8A8797]">Family Income:</span>
-          <span class="font-sora font-semibold text-[#1E1B2E] ml-1">${val(d.family_income_lpa, ' LPA')}</span>
+          <span class="text-[var(--text-muted)]">Family Income:</span>
+          <span class="font-sora font-semibold text-[var(--text-primary)] ml-1">${val(d.family_income_lpa, ' LPA')}</span>
         </div>
         <span class="text-slate-300">|</span>
         <div>
-          <span class="text-[#8A8797]">City Tier:</span>
-          <span class="font-sora font-semibold text-[#1E1B2E] ml-1">Tier ${val(d.city_tier)}</span>
+          <span class="text-[var(--text-muted)]">City Tier:</span>
+          <span class="font-sora font-semibold text-[var(--text-primary)] ml-1">Tier ${val(d.city_tier)}</span>
         </div>
       </div>
     </div>
 
     <!-- AI Mentor Insights Callout Card -->
-    <div id="student-mentor-brief-card" class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+    <div id="student-mentor-brief-card" class="bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-2xl bg-[#EDEBFB] flex items-center justify-center text-[#6C5CE7]">
+          <div class="w-10 h-10 rounded-2xl bg-[var(--pastel-lavender)] flex items-center justify-center text-[var(--primary)]">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
           <div>
-            <h3 class="font-sora font-bold text-base text-[#1E1B2E]">Faculty & Mentor Insights</h3>
-            <p class="text-xs text-[#8A8797]">AI-synthesized explanations from calibrated predictive models</p>
+            <h3 class="font-sora font-bold text-base text-[var(--text-primary)]">Faculty & Mentor Insights</h3>
+            <p class="text-xs text-[var(--text-muted)]">AI-synthesized explanations from calibrated predictive models</p>
           </div>
         </div>
         <div class="flex items-center space-x-2">
-          <button id="btn-tab-atrisk" onclick="switchStudentBriefTab('${d.student_id}', 'atrisk')" class="px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[#6C5CE7] text-white transition-all shadow-sm">
+          <button id="btn-tab-atrisk" onclick="switchStudentBriefTab('${d.student_id}', 'atrisk')" class="px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[var(--primary)] text-white transition-all shadow-sm">
             At-Risk Brief
           </button>
-          <button id="btn-tab-perf" onclick="switchStudentBriefTab('${d.student_id}', 'perf')" class="px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[#F6F5FC] text-[#8A8797] hover:bg-[#EDEBFB] hover:text-[#6C5CE7] transition-all">
+          <button id="btn-tab-perf" onclick="switchStudentBriefTab('${d.student_id}', 'perf')" class="px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[var(--bg)] text-[var(--text-muted)] hover:bg-[var(--pastel-lavender)] hover:text-[var(--primary)] transition-all">
             Performance Trajectory
           </button>
         </div>
       </div>
-      <div id="student-brief-content" class="rounded-xl p-5 border border-purple-100" style="background: linear-gradient(135deg, #EDEBFB 0%, #F6F5FC 100%)">
+      <div id="student-brief-content" class="rounded-xl p-5 border border-purple-100" style="background: linear-gradient(135deg, var(--pastel-lavender) 0%, var(--bg) 100%)">
         <div class="flex items-center justify-center py-3">
-          <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[#6C5CE7]"></div>
-          <span class="ml-2 text-xs text-[#8A8797]">Synthesizing mentor brief for ${d.student_id}...</span>
+          <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--primary)]"></div>
+          <span class="ml-2 text-xs text-[var(--text-muted)]">Synthesizing mentor brief for ${d.student_id}...</span>
         </div>
       </div>
     </div>
@@ -1293,15 +1293,15 @@ function renderStudent360(data) {
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       
       <!-- Academic Performance Mini-Table (7 cols) -->
-      <div class="lg:col-span-7 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+      <div class="lg:col-span-7 bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Academic Assessment Breakdown</h3>
-          <span class="text-xs text-[#8A8797]">${academics.length} Assessments</span>
+          <h3 class="font-sora font-semibold text-base text-[var(--text-primary)]">Academic Assessment Breakdown</h3>
+          <span class="text-xs text-[var(--text-muted)]">${academics.length} Assessments</span>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-xs text-left">
             <thead>
-              <tr class="border-b border-[#EDEBFB] text-[#8A8797]">
+              <tr class="border-b border-[var(--pastel-lavender)] text-[var(--text-muted)]">
                 <th class="pb-2 font-semibold">Subject</th>
                 <th class="pb-2 font-semibold text-center">Marks</th>
                 <th class="pb-2 font-semibold text-center">Norm %</th>
@@ -1312,15 +1312,15 @@ function renderStudent360(data) {
             <tbody>
               ${
                 academics.length === 0
-                  ? '<tr><td colspan="5" class="py-4 text-center text-[#8A8797]">No assessment records found</td></tr>'
+                  ? '<tr><td colspan="5" class="py-4 text-center text-[var(--text-muted)]">No assessment records found</td></tr>'
                   : academics
                       .map(
                         (a) => `
-                <tr class="border-b border-[#F6F5FC] hover:bg-[#FAF9FD]">
-                  <td class="py-2.5 font-medium text-[#1E1B2E]">${val(a.subject)}</td>
+                <tr class="border-b border-[var(--bg)] hover:bg-[#FAF9FD]">
+                  <td class="py-2.5 font-medium text-[var(--text-primary)]">${val(a.subject)}</td>
                   <td class="py-2.5 text-center font-sora">${val(a.marks)} / ${val(a.max_marks)}</td>
-                  <td class="py-2.5 text-center font-sora font-semibold text-[#6C5CE7]">${val(a.normalized_pct, '%')}</td>
-                  <td class="py-2.5 text-center text-[#8A8797]">${val(a.attendance_pct, '%')}</td>
+                  <td class="py-2.5 text-center font-sora font-semibold text-[var(--primary)]">${val(a.normalized_pct, '%')}</td>
+                  <td class="py-2.5 text-center text-[var(--text-muted)]">${val(a.attendance_pct, '%')}</td>
                   <td class="py-2.5 text-right font-medium">${val(a.grade_or_status)}</td>
                 </tr>
               `
@@ -1333,67 +1333,67 @@ function renderStudent360(data) {
       </div>
 
       <!-- Career Readiness (5 cols) -->
-      <div class="lg:col-span-5 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
-        <h3 class="font-sora font-semibold text-base text-[#1E1B2E] mb-4">Career Readiness & Placement</h3>
+      <div class="lg:col-span-5 bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm">
+        <h3 class="font-sora font-semibold text-base text-[var(--text-primary)] mb-4">Career Readiness & Placement</h3>
         <div class="space-y-3">
-          <div class="flex items-center justify-between p-3 rounded-xl bg-[#EDEBFB]">
-            <span class="text-xs text-[#6C5CE7] font-medium">Degree CGPA</span>
-            <span class="font-sora font-bold text-base text-[#6C5CE7]">${val(c.cgpa)} / 10</span>
+          <div class="flex items-center justify-between p-3 rounded-xl bg-[var(--pastel-lavender)]">
+            <span class="text-xs text-[var(--primary)] font-medium">Degree CGPA</span>
+            <span class="font-sora font-bold text-base text-[var(--primary)]">${val(c.cgpa)} / 10</span>
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 rounded-xl bg-[#F6F5FC]">
-              <span class="text-[11px] text-[#8A8797]">Placement Status</span>
-              <div class="font-sora font-semibold text-xs text-[#1E1B2E] mt-0.5">${val(c.placement_status)}</div>
+            <div class="p-3 rounded-xl bg-[var(--bg)]">
+              <span class="text-[11px] text-[var(--text-muted)]">Placement Status</span>
+              <div class="font-sora font-semibold text-xs text-[var(--text-primary)] mt-0.5">${val(c.placement_status)}</div>
             </div>
-            <div class="p-3 rounded-xl bg-[#F6F5FC]">
-              <span class="text-[11px] text-[#8A8797]">Annual Package</span>
-              <div class="font-sora font-semibold text-xs text-[#1E1B2E] mt-0.5">${val(c.salary_lpa, ' LPA')}</div>
+            <div class="p-3 rounded-xl bg-[var(--bg)]">
+              <span class="text-[11px] text-[var(--text-muted)]">Annual Package</span>
+              <div class="font-sora font-semibold text-xs text-[var(--text-primary)] mt-0.5">${val(c.salary_lpa, ' LPA')}</div>
             </div>
           </div>
           <div class="grid grid-cols-3 gap-2 text-center">
-            <div class="p-2.5 rounded-xl border border-[#EDEBFB]">
-              <div class="text-[10px] text-[#8A8797]">Backlogs</div>
-              <div class="font-sora font-bold text-xs text-[#1E1B2E] mt-0.5">${val(c.backlogs)}</div>
+            <div class="p-2.5 rounded-xl border border-[var(--pastel-lavender)]">
+              <div class="text-[10px] text-[var(--text-muted)]">Backlogs</div>
+              <div class="font-sora font-bold text-xs text-[var(--text-primary)] mt-0.5">${val(c.backlogs)}</div>
             </div>
-            <div class="p-2.5 rounded-xl border border-[#EDEBFB]">
-              <div class="text-[10px] text-[#8A8797]">Internships</div>
-              <div class="font-sora font-bold text-xs text-[#1E1B2E] mt-0.5">${val(c.internships)}</div>
+            <div class="p-2.5 rounded-xl border border-[var(--pastel-lavender)]">
+              <div class="text-[10px] text-[var(--text-muted)]">Internships</div>
+              <div class="font-sora font-bold text-xs text-[var(--text-primary)] mt-0.5">${val(c.internships)}</div>
             </div>
-            <div class="p-2.5 rounded-xl border border-[#EDEBFB]">
-              <div class="text-[10px] text-[#8A8797]">DSA Problems</div>
-              <div class="font-sora font-bold text-xs text-[#1E1B2E] mt-0.5">${val(c.dsa_problems_solved)}</div>
+            <div class="p-2.5 rounded-xl border border-[var(--pastel-lavender)]">
+              <div class="text-[10px] text-[var(--text-muted)]">DSA Problems</div>
+              <div class="font-sora font-bold text-xs text-[var(--text-primary)] mt-0.5">${val(c.dsa_problems_solved)}</div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Lifestyle & Behavioral Profile (Full 12 cols) -->
-      <div class="lg:col-span-12 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
-        <h3 class="font-sora font-semibold text-base text-[#1E1B2E] mb-4">Lifestyle, Wellness & Behavioral Habits</h3>
+      <div class="lg:col-span-12 bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm">
+        <h3 class="font-sora font-semibold text-base text-[var(--text-primary)] mb-4">Lifestyle, Wellness & Behavioral Habits</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <div class="p-3.5 rounded-xl bg-[#E6F0FE]">
             <span class="text-[11px] text-[#2F64C8]">Daily Sleep</span>
-            <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">${val(life.sleep_hours, ' hrs')}</div>
+            <div class="font-sora font-bold text-sm text-[var(--text-primary)] mt-1">${val(life.sleep_hours, ' hrs')}</div>
           </div>
-          <div class="p-3.5 rounded-xl bg-[#EDEBFB]">
-            <span class="text-[11px] text-[#6C5CE7]">Study Time</span>
-            <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">${val(life.study_hours_daily, ' hrs/day')}</div>
+          <div class="p-3.5 rounded-xl bg-[var(--pastel-lavender)]">
+            <span class="text-[11px] text-[var(--primary)]">Study Time</span>
+            <div class="font-sora font-bold text-sm text-[var(--text-primary)] mt-1">${val(life.study_hours_daily, ' hrs/day')}</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#FDEDEF]">
             <span class="text-[11px] text-[#E85D75]">Screen Time</span>
-            <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">${val(life.screen_time_hours, ' hrs/day')}</div>
+            <div class="font-sora font-bold text-sm text-[var(--text-primary)] mt-1">${val(life.screen_time_hours, ' hrs/day')}</div>
           </div>
-          <div class="p-3.5 rounded-xl bg-[#F6F5FC]">
-            <span class="text-[11px] text-[#8A8797]">Gaming Hours</span>
-            <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">${val(life.gaming_hours, ' hrs')}</div>
+          <div class="p-3.5 rounded-xl bg-[var(--bg)]">
+            <span class="text-[11px] text-[var(--text-muted)]">Gaming Hours</span>
+            <div class="font-sora font-bold text-sm text-[var(--text-primary)] mt-1">${val(life.gaming_hours, ' hrs')}</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#FDEDEF]">
             <span class="text-[11px] text-[#E85D75]">Stress Level</span>
-            <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">${val(life.stress_level, ' / 100')}</div>
+            <div class="font-sora font-bold text-sm text-[var(--text-primary)] mt-1">${val(life.stress_level, ' / 100')}</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#E7F8EE]">
             <span class="text-[11px] text-[#2E8555]">Burnout Score</span>
-            <div class="font-sora font-bold text-sm text-[#1E1B2E] mt-1">${val(life.burnout_score, ' / 100')}</div>
+            <div class="font-sora font-bold text-sm text-[var(--text-primary)] mt-1">${val(life.burnout_score, ' / 100')}</div>
           </div>
         </div>
       </div>
@@ -1421,23 +1421,23 @@ window.renderStudentAiStandby = function (studentId, tab = 'atrisk') {
   container.innerHTML = `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
       <div class="flex items-center space-x-3.5">
-        <div class="w-10 h-10 rounded-xl bg-white shadow-xs border border-purple-100 flex items-center justify-center text-[#6C5CE7] flex-shrink-0">
-          <svg class="w-5 h-5 text-[#6C5CE7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="w-10 h-10 rounded-xl bg-white shadow-xs border border-purple-100 flex items-center justify-center text-[var(--primary)] flex-shrink-0">
+          <svg class="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
         <div>
-          <div class="text-xs font-semibold text-[#1E1B2E] flex items-center gap-1.5">
+          <div class="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
             <span>GenAI Assistant Standby</span>
-            <span class="px-2 py-0.5 rounded-md bg-white border border-purple-100 text-[10px] text-[#6C5CE7] font-medium">${tabLabel}</span>
+            <span class="px-2 py-0.5 rounded-md bg-white border border-purple-100 text-[10px] text-[var(--primary)] font-medium">${tabLabel}</span>
           </div>
-          <div class="text-[11px] text-[#8A8797] mt-0.5 max-w-xl">${tabDesc}</div>
+          <div class="text-[11px] text-[var(--text-muted)] mt-0.5 max-w-xl">${tabDesc}</div>
         </div>
       </div>
       <button
         id="btn-assist-student-ai"
         onclick="executeStudentAiAssist('${studentId}')"
-        class="px-5 py-2.5 rounded-xl bg-[#6C5CE7] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 flex-shrink-0 cursor-pointer">
+        class="px-5 py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 flex-shrink-0 cursor-pointer">
         <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
         </svg>
@@ -1453,11 +1453,11 @@ window.switchStudentBriefTab = function (studentId, tab) {
 
   if (btnAtRisk && btnPerf) {
     if (tab === 'atrisk') {
-      btnAtRisk.className = 'px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[#6C5CE7] text-white transition-all shadow-sm';
-      btnPerf.className = 'px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[#F6F5FC] text-[#8A8797] hover:bg-[#EDEBFB] hover:text-[#6C5CE7] transition-all';
+      btnAtRisk.className = 'px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[var(--primary)] text-white transition-all shadow-sm';
+      btnPerf.className = 'px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[var(--bg)] text-[var(--text-muted)] hover:bg-[var(--pastel-lavender)] hover:text-[var(--primary)] transition-all';
     } else {
-      btnPerf.className = 'px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[#6C5CE7] text-white transition-all shadow-sm';
-      btnAtRisk.className = 'px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[#F6F5FC] text-[#8A8797] hover:bg-[#EDEBFB] hover:text-[#6C5CE7] transition-all';
+      btnPerf.className = 'px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[var(--primary)] text-white transition-all shadow-sm';
+      btnAtRisk.className = 'px-3.5 py-1.5 rounded-xl font-sora font-semibold text-xs bg-[var(--bg)] text-[var(--text-muted)] hover:bg-[var(--pastel-lavender)] hover:text-[var(--primary)] transition-all';
     }
   }
 
@@ -1481,8 +1481,8 @@ window.executeStudentAiAssist = async function (studentId) {
   const tab = state.activeStudentAiTab || 'atrisk';
   container.innerHTML = `
     <div class="flex items-center justify-center py-4">
-      <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[#6C5CE7]"></div>
-      <span class="ml-2 text-xs text-[#8A8797]">Synthesizing ${tab === 'atrisk' ? 'early-warning at-risk' : 'academic trajectory'} brief for ${studentId}...</span>
+      <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--primary)]"></div>
+      <span class="ml-2 text-xs text-[var(--text-muted)]">Synthesizing ${tab === 'atrisk' ? 'early-warning at-risk' : 'academic trajectory'} brief for ${studentId}...</span>
     </div>
   `;
 
@@ -1506,7 +1506,7 @@ window.executeStudentAiAssist = async function (studentId) {
     container.innerHTML = `
       <div class="py-3 text-center text-xs text-red-500">
         Failed to load brief for ${studentId}.
-        <button onclick="executeStudentAiAssist('${studentId}')" class="ml-2 text-[#6C5CE7] underline font-semibold cursor-pointer">Retry</button>
+        <button onclick="executeStudentAiAssist('${studentId}')" class="ml-2 text-[var(--primary)] underline font-semibold cursor-pointer">Retry</button>
       </div>
     `;
   }
@@ -1534,18 +1534,18 @@ function renderStudentAiBriefContent(studentId, tab, data) {
         <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
           Model Probability: ${prob}%
         </span>
-        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#6C5CE7]">
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[var(--primary)]">
           Top Factor: ${data.model_top_factor}
         </span>
-        ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
+        ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[var(--primary)]">Gemini Live</span>'}
       </div>
-      <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">
+      <p class="text-sm text-[var(--text-primary)] font-medium leading-relaxed mb-3">
         ${data.brief_text}
       </p>
-      <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
+      <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
         <span>Source: Model 2 Early-Warning Classifier (50.22% Recall, 33.46% Precision)</span>
         <div class="flex items-center gap-3">
-          <button onclick="executeStudentAiAssist('${studentId}')" class="text-[#6C5CE7] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
+          <button onclick="executeStudentAiAssist('${studentId}')" class="text-[var(--primary)] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             Re-synthesize
           </button>
@@ -1559,21 +1559,21 @@ function renderStudentAiBriefContent(studentId, tab, data) {
     container.innerHTML = `
       ${fallbackPill}
       <div class="flex flex-wrap items-center gap-2 mb-3">
-        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#1E1B2E]">
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[var(--text-primary)]">
           Current: ${currCgpaStr} → Predicted: <strong class="${dirColor}">${data.predicted_cgpa.toFixed(2)}</strong>
         </span>
-        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--pastel-lavender)] text-[var(--primary)]">
           R² = 0.21 Calibration
         </span>
-        ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#6C5CE7]">Gemini Live</span>'}
+        ${data.is_fallback ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 border border-amber-200">Rule-Grounded Fallback</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[var(--primary)]">Gemini Live</span>'}
       </div>
-      <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">
+      <p class="text-sm text-[var(--text-primary)] font-medium leading-relaxed mb-3">
         ${data.summary_text}
       </p>
-      <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#8A8797]">
+      <div class="pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
         <span>Source: Model 1 Trajectory Predictor (R²=0.21 directional signal)</span>
         <div class="flex items-center gap-3">
-          <button onclick="executeStudentAiAssist('${studentId}')" class="text-[#6C5CE7] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
+          <button onclick="executeStudentAiAssist('${studentId}')" class="text-[var(--primary)] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             Re-synthesize
           </button>
@@ -1605,8 +1605,8 @@ async function loadCareerView(studentId) {
 
   container.innerHTML = `
     <div class="p-8 text-center">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#6C5CE7]"></div>
-      <div class="mt-2 text-xs text-[#8A8797]">Computing career readiness for ${studentId}...</div>
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
+      <div class="mt-2 text-xs text-[var(--text-muted)]">Computing career readiness for ${studentId}...</div>
     </div>
   `;
 
@@ -1615,12 +1615,12 @@ async function loadCareerView(studentId) {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       container.innerHTML = `
-        <div class="p-12 text-center bg-white rounded-2xl border border-[#EDEBFB]">
-          <div class="w-12 h-12 mx-auto mb-2 text-[#8A8797] flex items-center justify-center">
+        <div class="p-12 text-center bg-white rounded-2xl border border-[var(--pastel-lavender)]">
+          <div class="w-12 h-12 mx-auto mb-2 text-[var(--text-muted)] flex items-center justify-center">
             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           </div>
-          <div class="font-sora font-semibold text-lg text-[#1E1B2E]">Student ${studentId} not found</div>
-          <div class="text-xs text-[#8A8797] mt-1">Please try: STU00001, STU15140, STU08983, STU16970.</div>
+          <div class="font-sora font-semibold text-lg text-[var(--text-primary)]">Student ${studentId} not found</div>
+          <div class="text-xs text-[var(--text-muted)] mt-1">Please try: STU00001, STU15140, STU08983, STU16970.</div>
         </div>
       `;
       return;
@@ -1663,19 +1663,19 @@ function renderCareerGuidance(data) {
   let placementPanel = '';
   if (placement.insufficient_peer_data) {
     placementPanel = `
-      <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col justify-center h-full">
+      <div class="bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm flex flex-col justify-center h-full">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Peer Outcome Reference</h3>
-          <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F6F5FC] text-[#8A8797]">Insufficient Cohort</span>
+          <h3 class="font-sora font-semibold text-base text-[var(--text-primary)]">Peer Outcome Reference</h3>
+          <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--bg)] text-[var(--text-muted)]">Insufficient Cohort</span>
         </div>
         <div class="py-6 text-center">
-          <div class="w-10 h-10 mx-auto mb-2 text-[#8A8797] flex items-center justify-center">
+          <div class="w-10 h-10 mx-auto mb-2 text-[var(--text-muted)] flex items-center justify-center">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           </div>
-          <p class="text-xs text-[#8A8797] font-medium leading-relaxed max-w-sm mx-auto">
+          <p class="text-xs text-[var(--text-muted)] font-medium leading-relaxed max-w-sm mx-auto">
             Not enough comparable students in your branch/tier to show a reliable reference.
           </p>
-          <p class="text-[11px] text-[#8A8797] mt-3 italic">${data.disclosure}</p>
+          <p class="text-[11px] text-[var(--text-muted)] mt-3 italic">${data.disclosure}</p>
         </div>
       </div>
     `;
@@ -1689,25 +1689,25 @@ function renderCareerGuidance(data) {
       : `Among <strong>${placement.peer_count}</strong> students in <strong>${peerGroup}</strong> with a similar Career Readiness Score (${placement.readiness_band}/100):`;
 
     placementPanel = `
-      <div class="bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+      <div class="bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Peer Outcome Reference</h3>
+          <h3 class="font-sora font-semibold text-base text-[var(--text-primary)]">Peer Outcome Reference</h3>
           ${bandBadge}
         </div>
-        <p class="text-xs text-[#8A8797] mb-4">${subtext}</p>
+        <p class="text-xs text-[var(--text-muted)] mb-4">${subtext}</p>
         <div class="grid grid-cols-2 gap-4">
           <div class="bg-[#E7F8EE] rounded-xl p-4 text-center">
             <div class="text-[11px] font-semibold text-[#2E8555] uppercase tracking-wider">Placement Rate</div>
-            <div class="font-sora font-bold text-3xl text-[#1E1B2E] mt-1">${placement.placement_rate_pct}%</div>
+            <div class="font-sora font-bold text-3xl text-[var(--text-primary)] mt-1">${placement.placement_rate_pct}%</div>
           </div>
           <div class="bg-[#E6F0FE] rounded-xl p-4 text-center">
             <div class="text-[11px] font-semibold text-[#2F64C8] uppercase tracking-wider">Avg Package</div>
-            <div class="font-sora font-bold text-3xl text-[#1E1B2E] mt-1">
+            <div class="font-sora font-bold text-3xl text-[var(--text-primary)] mt-1">
               ${placement.avg_salary_lpa ? '&#8377;' + placement.avg_salary_lpa.toFixed(1) + ' LPA' : 'N/A'}
             </div>
           </div>
         </div>
-        <p class="text-[11px] text-[#8A8797] mt-3 italic">${data.disclosure}</p>
+        <p class="text-[11px] text-[var(--text-muted)] mt-3 italic">${data.disclosure}</p>
       </div>
     `;
   }
@@ -1717,12 +1717,12 @@ function renderCareerGuidance(data) {
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
       <!-- Gauge / Score Card (5 cols) -->
-      <div class="lg:col-span-5 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm flex flex-col">
+      <div class="lg:col-span-5 bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm flex flex-col">
         <div class="flex items-center justify-between mb-2">
-          <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Career Readiness Score</h3>
-          <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#EDEBFB] text-[#6C5CE7]">0 – 100</span>
+          <h3 class="font-sora font-semibold text-base text-[var(--text-primary)]">Career Readiness Score</h3>
+          <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--pastel-lavender)] text-[var(--primary)]">0 – 100</span>
         </div>
-        <p class="text-xs text-[#8A8797] mb-5">
+        <p class="text-xs text-[var(--text-muted)] mb-5">
           Weighted composite across 6 career skills, normalized against the full 25,000-student population.
         </p>
 
@@ -1730,46 +1730,46 @@ function renderCareerGuidance(data) {
         <div class="relative h-[200px] w-full flex items-center justify-center">
           <canvas id="careerGaugeChart"></canvas>
           <div class="absolute text-center pointer-events-none">
-            <div class="font-sora font-bold text-4xl text-[#1E1B2E]">${score}</div>
+            <div class="font-sora font-bold text-4xl text-[var(--text-primary)]">${score}</div>
             <div class="text-xs font-semibold mt-0.5" style="color:${gaugeColor}">${gaugeLabel}</div>
           </div>
         </div>
 
         <!-- Peer Benchmark row -->
-        <div class="mt-5 pt-4 border-t border-[#EDEBFB]">
+        <div class="mt-5 pt-4 border-t border-[var(--pastel-lavender)]">
           <div class="flex items-center justify-between text-sm">
             <div class="text-left">
-              <div class="text-[11px] text-[#8A8797] uppercase tracking-wider">You</div>
-              <div class="font-sora font-bold text-2xl text-[#6C5CE7]">${score}</div>
+              <div class="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">You</div>
+              <div class="font-sora font-bold text-2xl text-[var(--primary)]">${score}</div>
             </div>
             <div class="flex-1 mx-4">
-              <div class="relative h-2 bg-[#EDEBFB] rounded-full overflow-hidden">
-                <div class="absolute h-full bg-[#6C5CE7] rounded-full" style="width:${score}%"></div>
+              <div class="relative h-2 bg-[var(--pastel-lavender)] rounded-full overflow-hidden">
+                <div class="absolute h-full bg-[var(--primary)] rounded-full" style="width:${score}%"></div>
                 <!-- Peer marker -->
-                <div class="absolute top-[-4px] h-[16px] w-[2px] bg-[#8A8797]" style="left:${peer.peer_avg_readiness}%;transform:translateX(-50%)" title="Peer avg: ${peer.peer_avg_readiness}"></div>
+                <div class="absolute top-[-4px] h-[16px] w-[2px] bg-[var(--text-muted)]" style="left:${peer.peer_avg_readiness}%;transform:translateX(-50%)" title="Peer avg: ${peer.peer_avg_readiness}"></div>
               </div>
-              <div class="flex justify-between text-[10px] text-[#8A8797] mt-1">
+              <div class="flex justify-between text-[10px] text-[var(--text-muted)] mt-1">
                 <span>0</span><span>50</span><span>100</span>
               </div>
             </div>
             <div class="text-right">
-              <div class="text-[11px] text-[#8A8797] uppercase tracking-wider">Peers</div>
-              <div class="font-sora font-bold text-2xl text-[#8A8797]">${peer.peer_avg_readiness}</div>
+              <div class="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Peers</div>
+              <div class="font-sora font-bold text-2xl text-[var(--text-muted)]">${peer.peer_avg_readiness}</div>
             </div>
           </div>
-          <div class="text-[11px] text-[#8A8797] mt-2 text-center">
+          <div class="text-[11px] text-[var(--text-muted)] mt-2 text-center">
             Benchmark: <strong>${peerGroup}</strong> (${peer.peer_count} students)
           </div>
         </div>
       </div>
 
       <!-- Skill Gaps Horizontal Bar Chart (7 cols) -->
-      <div class="lg:col-span-7 bg-white rounded-2xl p-6 border border-[#EDEBFB] shadow-sm">
+      <div class="lg:col-span-7 bg-white rounded-2xl p-6 border border-[var(--pastel-lavender)] shadow-sm">
         <div class="flex items-center justify-between mb-1">
-          <h3 class="font-sora font-semibold text-base text-[#1E1B2E]">Skill Gap Breakdown</h3>
-          <span class="text-xs text-[#8A8797]">Lowest percentile = biggest gap</span>
+          <h3 class="font-sora font-semibold text-base text-[var(--text-primary)]">Skill Gap Breakdown</h3>
+          <span class="text-xs text-[var(--text-muted)]">Lowest percentile = biggest gap</span>
         </div>
-        <p class="text-xs text-[#8A8797] mb-4">Percentile rank within your engineering branch — gaps sorted top (worst) to bottom.</p>
+        <p class="text-xs text-[var(--text-muted)] mb-4">Percentile rank within your engineering branch — gaps sorted top (worst) to bottom.</p>
         <div class="h-[250px] w-full relative">
           <canvas id="careerSkillGapChart"></canvas>
         </div>
@@ -1781,17 +1781,17 @@ function renderCareerGuidance(data) {
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
       <!-- Suggested Focus Area Callout -->
-      <div class="lg:col-span-${showPlacementCard ? '7' : '12'} rounded-2xl p-6 border border-purple-100 shadow-sm" style="background: linear-gradient(135deg, #EDEBFB 0%, #F6F5FC 100%)">
+      <div class="lg:col-span-${showPlacementCard ? '7' : '12'} rounded-2xl p-6 border border-purple-100 shadow-sm" style="background: linear-gradient(135deg, var(--pastel-lavender) 0%, var(--bg) 100%)">
         <div class="flex items-start space-x-4">
           <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
-            <svg class="w-6 h-6 text-[#6C5CE7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
           </div>
           <div>
-            <div class="text-[11px] font-semibold text-[#6C5CE7] uppercase tracking-wider mb-1">Suggested Focus Area</div>
-            <div class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[#6C5CE7] mb-2">${focus.label}</div>
-            <p class="text-sm font-medium text-[#1E1B2E] leading-relaxed">${focus.suggestion}</p>
+            <div class="text-[11px] font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">Suggested Focus Area</div>
+            <div class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-[var(--primary)] mb-2">${focus.label}</div>
+            <p class="text-sm font-medium text-[var(--text-primary)] leading-relaxed">${focus.suggestion}</p>
           </div>
         </div>
       </div>
@@ -1802,33 +1802,33 @@ function renderCareerGuidance(data) {
     </div>
 
     <!-- Row 3: AI Career Guidance Narrative (Auto-Generated) -->
-    <div id="career-narrative-card" class="rounded-2xl p-6 border border-purple-100 shadow-sm" style="background: linear-gradient(135deg, #EDEBFB 0%, #F6F5FC 100%)">
+    <div id="career-narrative-card" class="rounded-2xl p-6 border border-purple-100 shadow-sm" style="background: linear-gradient(135deg, var(--pastel-lavender) 0%, var(--bg) 100%)">
       <div class="flex items-start space-x-4">
-        <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center flex-shrink-0 text-[#6C5CE7]">
+        <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center flex-shrink-0 text-[var(--primary)]">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
         </div>
         <div class="flex-1">
           <div class="flex items-center justify-between mb-1.5">
-            <div class="text-[11px] font-semibold text-[#6C5CE7] uppercase tracking-wider">AI Career Guidance Narrative</div>
-            <span class="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-white text-[#6C5CE7]">Synthesized by Gemini 2.5 Flash</span>
+            <div class="text-[11px] font-semibold text-[var(--primary)] uppercase tracking-wider">AI Career Guidance Narrative</div>
+            <span class="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-white text-[var(--primary)]">Synthesized by Gemini 2.5 Flash</span>
           </div>
-          <div id="career-narrative-text" class="text-sm font-medium text-[#1E1B2E] leading-relaxed">
+          <div id="career-narrative-text" class="text-sm font-medium text-[var(--text-primary)] leading-relaxed">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
               <div>
-                <div class="text-xs font-semibold text-[#1E1B2E] flex items-center gap-1.5 mb-1">
+                <div class="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 mb-1">
                   <span>GenAI Career Assistant Standby</span>
-                  <span class="px-2 py-0.5 rounded-md bg-white border border-purple-100 text-[10px] text-[#6C5CE7] font-medium">Placement Guidance</span>
+                  <span class="px-2 py-0.5 rounded-md bg-white border border-purple-100 text-[10px] text-[var(--primary)] font-medium">Placement Guidance</span>
                 </div>
-                <p class="text-xs text-[#8A8797] leading-relaxed max-w-xl">
+                <p class="text-xs text-[var(--text-muted)] leading-relaxed max-w-xl">
                   Click assist to synthesize personalized benchmark percentiles, skill gap mitigation steps, and career path recommendations for ${data.student_id}.
                 </p>
               </div>
               <button
                 id="btn-assist-career-ai"
                 onclick="executeCareerAiAssist('${data.student_id}')"
-                class="px-5 py-2.5 rounded-xl bg-[#6C5CE7] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 flex-shrink-0 cursor-pointer">
+                class="px-5 py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[#5A4AD1] text-white font-sora font-semibold text-xs transition-all shadow-md hover:shadow-lg inline-flex items-center space-x-2 flex-shrink-0 cursor-pointer">
                 <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                 </svg>
@@ -1836,7 +1836,7 @@ function renderCareerGuidance(data) {
               </button>
             </div>
           </div>
-          <div class="text-[11px] text-[#8A8797] mt-3 pt-2 border-t border-purple-200/60 flex items-center justify-between">
+          <div class="text-[11px] text-[var(--text-muted)] mt-3 pt-2 border-t border-purple-200/60 flex items-center justify-between">
             <span>Contextual peer benchmarking for ${peerGroup}</span>
             <span class="italic font-medium">AI-generated — verify before acting</span>
           </div>
@@ -1924,8 +1924,8 @@ window.executeCareerAiAssist = async function (studentId) {
 
   textEl.innerHTML = `
     <div class="flex items-center py-3">
-      <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[#6C5CE7] mr-3"></div>
-      <span class="text-xs text-[#8A8797]">Synthesizing personalized career narrative for ${studentId}...</span>
+      <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--primary)] mr-3"></div>
+      <span class="text-xs text-[var(--text-muted)]">Synthesizing personalized career narrative for ${studentId}...</span>
     </div>
   `;
 
@@ -1946,9 +1946,9 @@ window.executeCareerAiAssist = async function (studentId) {
       </div>` : '';
     textEl.innerHTML = `
       ${fallbackBanner}
-      <p class="text-sm text-[#1E1B2E] font-medium leading-relaxed mb-3">${data.narrative_text}</p>
+      <p class="text-sm text-[var(--text-primary)] font-medium leading-relaxed mb-3">${data.narrative_text}</p>
       <div class="flex justify-end">
-        <button onclick="executeCareerAiAssist('${studentId}')" class="text-[11px] text-[#6C5CE7] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
+        <button onclick="executeCareerAiAssist('${studentId}')" class="text-[11px] text-[var(--primary)] hover:underline flex items-center gap-1 font-semibold cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
           Re-synthesize Career Narrative
         </button>
@@ -1959,7 +1959,7 @@ window.executeCareerAiAssist = async function (studentId) {
     textEl.innerHTML = `
       <div class="py-2 text-xs text-red-500 flex items-center justify-between">
         <span>Failed to load AI career narrative for ${studentId}.</span>
-        <button onclick="executeCareerAiAssist('${studentId}')" class="text-[#6C5CE7] font-semibold hover:underline cursor-pointer">Retry</button>
+        <button onclick="executeCareerAiAssist('${studentId}')" class="text-[var(--primary)] font-semibold hover:underline cursor-pointer">Retry</button>
       </div>
     `;
   }
@@ -2078,7 +2078,7 @@ async function loadPipelineView(isSilent = false) {
     if (progressBar) {
       progressBar.style.width = `${pct}%`;
       if (data.overall_status === 'healthy') {
-        progressBar.className = 'h-full rounded-full bg-gradient-to-r from-[#6C5CE7] via-[#8E7CF3] to-[#4CAF7D] transition-all duration-500';
+        progressBar.className = 'h-full rounded-full bg-gradient-to-r from-[var(--primary)] via-[#8E7CF3] to-[#4CAF7D] transition-all duration-500';
       } else {
         progressBar.className = 'h-full rounded-full bg-gradient-to-r from-[#E17055] to-[#F39C12] transition-all duration-500';
       }
@@ -2097,8 +2097,8 @@ async function loadPipelineView(isSilent = false) {
       container.innerHTML = `
         <div class="p-6 rounded-3xl bg-[#FDEDEF] border border-[#FADBD8] text-[#E17055] text-center">
           <p class="font-sora font-bold text-base">Pipeline Status Offline</p>
-          <p class="text-xs mt-1 text-[#8A8797]">Unable to inspect pipeline health. Ensure the Campus360 API server is running on port 8000.</p>
-          <button onclick="refreshPipelineView()" class="mt-4 px-4 py-2 bg-white rounded-xl border border-[#EDEBFB] text-xs font-semibold text-[#1E1B2E] shadow-sm hover:bg-[#FAFAFE]">Retry Inspection</button>
+          <p class="text-xs mt-1 text-[var(--text-muted)]">Unable to inspect pipeline health. Ensure the Campus360 API server is running on port 8000.</p>
+          <button onclick="refreshPipelineView()" class="mt-4 px-4 py-2 bg-white rounded-xl border border-[var(--pastel-lavender)] text-xs font-semibold text-[var(--text-primary)] shadow-sm hover:bg-[#FAFAFE]">Retry Inspection</button>
         </div>
       `;
     }
@@ -2117,7 +2117,7 @@ function renderPipelineStages(stages) {
     // Status styling tokens
     let statusPillClass = 'bg-[#E7F8EE] text-[#4CAF7D]';
     let statusText = 'Healthy';
-    let nodeBgClass = 'bg-[#EDEBFB] text-[#6C5CE7] border-2 border-[#6C5CE7]';
+    let nodeBgClass = 'bg-[var(--pastel-lavender)] text-[var(--primary)] border-2 border-[var(--primary)]';
     let dotClass = 'bg-[#4CAF7D]';
 
     if (isDegraded) {
@@ -2144,27 +2144,27 @@ function renderPipelineStages(stages) {
         </div>
 
         <!-- Stage Card Box -->
-        <div class="flex-1 bg-white rounded-3xl border border-[#EDEBFB] shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+        <div class="flex-1 bg-white rounded-3xl border border-[var(--pastel-lavender)] shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
           <!-- Accordion Header -->
           <button type="button" onclick="toggleStageAccordion(${stage.stage_number})" class="w-full text-left p-4 md:p-5 flex items-center justify-between gap-3 cursor-pointer focus:outline-none select-none hover:bg-[#FAFAFE]/60 transition-colors">
             <div class="flex-1 min-w-0">
               <div class="flex flex-wrap items-center gap-2 mb-1">
-                <span class="font-sora font-bold text-base text-[#1E1B2E]">${stage.stage_name}</span>
-                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EDEBFB] text-[#6C5CE7]">${stage.category}</span>
+                <span class="font-sora font-bold text-base text-[var(--text-primary)]">${stage.stage_name}</span>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--pastel-lavender)] text-[var(--primary)]">${stage.category}</span>
                 <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${statusPillClass} flex items-center space-x-1">
                   <span class="w-1.5 h-1.5 rounded-full ${dotClass}"></span>
                   <span>${statusText}</span>
                 </span>
               </div>
-              <div class="flex flex-wrap items-center gap-2 text-xs text-[#8A8797]">
-                <span class="font-medium text-[#1E1B2E]">${stage.key_metric}</span>
-                <span class="hidden sm:inline text-[#EDEBFB]">•</span>
+              <div class="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
+                <span class="font-medium text-[var(--text-primary)]">${stage.key_metric}</span>
+                <span class="hidden sm:inline text-[var(--pastel-lavender)]">•</span>
                 <span class="text-[11px] hidden sm:inline">${stage.summary}</span>
               </div>
             </div>
 
             <!-- Accordion Chevron -->
-            <div class="flex-shrink-0 ml-2 p-1 text-[#8A8797]">
+            <div class="flex-shrink-0 ml-2 p-1 text-[var(--text-muted)]">
               <svg id="stage-chevron-${stage.stage_number}" class="w-5 h-5 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
@@ -2172,7 +2172,7 @@ function renderPipelineStages(stages) {
           </button>
 
           <!-- Accordion Content Drawer -->
-          <div id="stage-detail-${stage.stage_number}" class="border-t border-[#EDEBFB] p-4 md:p-6 bg-[#FAFAFE] ${isExpanded ? '' : 'hidden'}">
+          <div id="stage-detail-${stage.stage_number}" class="border-t border-[var(--pastel-lavender)] p-4 md:p-6 bg-[#FAFAFE] ${isExpanded ? '' : 'hidden'}">
             ${detailsContent}
           </div>
         </div>
@@ -2191,14 +2191,14 @@ function renderStageDetailsHtml(stage) {
     const files = d.files || [];
     return `
       <div class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-[#8A8797]">
-          <span>Canonical multi-cohort raw CSV inputs located in <code class="px-1.5 py-0.5 bg-white rounded border border-[#EDEBFB] text-[#6C5CE7] font-mono">data/raw/</code></span>
-          <span class="font-semibold text-[#1E1B2E]">Total Records: ${d.total_raw_records?.toLocaleString() || '70,000'} across ${d.total_files || 6} files</span>
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+          <span>Canonical multi-cohort raw CSV inputs located in <code class="px-1.5 py-0.5 bg-white rounded border border-[var(--pastel-lavender)] text-[var(--primary)] font-mono">data/raw/</code></span>
+          <span class="font-semibold text-[var(--text-primary)]">Total Records: ${d.total_raw_records?.toLocaleString() || '70,000'} across ${d.total_files || 6} files</span>
         </div>
-        <div class="overflow-x-auto bg-white rounded-2xl border border-[#EDEBFB]">
+        <div class="overflow-x-auto bg-white rounded-2xl border border-[var(--pastel-lavender)]">
           <table class="w-full text-left text-xs">
             <thead>
-              <tr class="bg-[#F6F5FC] text-[#8A8797] border-b border-[#EDEBFB]">
+              <tr class="bg-[var(--bg)] text-[var(--text-muted)] border-b border-[var(--pastel-lavender)]">
                 <th class="p-3 font-semibold">Source File</th>
                 <th class="p-3 font-semibold">Cohort Role</th>
                 <th class="p-3 font-semibold text-right">Rows</th>
@@ -2207,14 +2207,14 @@ function renderStageDetailsHtml(stage) {
                 <th class="p-3 font-semibold text-center">Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#EDEBFB]/70 font-sans">
+            <tbody class="divide-y divide-[var(--pastel-lavender)]/70 font-sans">
               ${files.map((f) => `
                 <tr class="hover:bg-[#FAFAFE]">
-                  <td class="p-3 font-mono font-medium text-[#1E1B2E] text-[11px]">${f.filename}</td>
-                  <td class="p-3 text-[#8A8797]">${f.role}</td>
-                  <td class="p-3 text-right font-semibold text-[#1E1B2E]">${f.rows.toLocaleString()}</td>
-                  <td class="p-3 text-right text-[#8A8797]">${f.size_kb ? `${f.size_kb} KB` : '-'}</td>
-                  <td class="p-3 text-right text-[#8A8797] text-[11px]">${f.last_modified ? f.last_modified.replace('T', ' ').substring(0, 19) : '-'}</td>
+                  <td class="p-3 font-mono font-medium text-[var(--text-primary)] text-[11px]">${f.filename}</td>
+                  <td class="p-3 text-[var(--text-muted)]">${f.role}</td>
+                  <td class="p-3 text-right font-semibold text-[var(--text-primary)]">${f.rows.toLocaleString()}</td>
+                  <td class="p-3 text-right text-[var(--text-muted)]">${f.size_kb ? `${f.size_kb} KB` : '-'}</td>
+                  <td class="p-3 text-right text-[var(--text-muted)] text-[11px]">${f.last_modified ? f.last_modified.replace('T', ' ').substring(0, 19) : '-'}</td>
                   <td class="p-3 text-center">
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F8EE] text-[#4CAF7D]">PASS</span>
                   </td>
@@ -2232,21 +2232,21 @@ function renderStageDetailsHtml(stage) {
     const checks = d.checks || [];
     return `
       <div class="space-y-4">
-        <div class="flex items-center justify-between text-xs text-[#8A8797]">
-          <span>Schema profile, null bounds, and UTF-8 encoding validation from <code class="px-1.5 py-0.5 bg-white rounded border border-[#EDEBFB] text-[#6C5CE7] font-mono">src/etl/extract.py</code></span>
+        <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
+          <span>Schema profile, null bounds, and UTF-8 encoding validation from <code class="px-1.5 py-0.5 bg-white rounded border border-[var(--pastel-lavender)] text-[var(--primary)] font-mono">src/etl/extract.py</code></span>
           <span class="font-semibold text-[#4CAF7D]">0 File Corruptions Detected</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           ${checks.map((c) => `
-            <div class="p-3.5 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs flex flex-col justify-between space-y-2">
+            <div class="p-3.5 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs flex flex-col justify-between space-y-2">
               <div class="flex items-center justify-between">
-                <span class="font-mono text-xs font-bold text-[#6C5CE7]">${c.source}</span>
+                <span class="font-mono text-xs font-bold text-[var(--primary)]">${c.source}</span>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F8EE] text-[#4CAF7D]">${c.status}</span>
               </div>
-              <p class="text-[11px] font-mono text-[#8A8797] truncate" title="${c.file}">${c.file}</p>
-              <div class="flex items-center justify-between text-xs pt-1 border-t border-[#EDEBFB]/60 text-[#1E1B2E]">
+              <p class="text-[11px] font-mono text-[var(--text-muted)] truncate" title="${c.file}">${c.file}</p>
+              <div class="flex items-center justify-between text-xs pt-1 border-t border-[var(--pastel-lavender)]/60 text-[var(--text-primary)]">
                 <span>Parsed Rows: <strong>${c.parsed_rows?.toLocaleString()}</strong></span>
-                <span class="text-[11px] text-[#8A8797]">${c.encoding}</span>
+                <span class="text-[11px] text-[var(--text-muted)]">${c.encoding}</span>
               </div>
             </div>
           `).join('')}
@@ -2260,14 +2260,14 @@ function renderStageDetailsHtml(stage) {
     const datasets = d.datasets || [];
     return `
       <div class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-[#8A8797]">
-          <span>Deterministic handlers in <code class="px-1.5 py-0.5 bg-white rounded border border-[#EDEBFB] text-[#6C5CE7] font-mono">src/etl/clean.py</code>: snake_case casing, duplicate pruning & outlier clamps</span>
-          <span class="font-semibold text-[#1E1B2E]">${d.total_duplicates_pruned?.toLocaleString() || '10,000'} Duplicates Pruned</span>
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+          <span>Deterministic handlers in <code class="px-1.5 py-0.5 bg-white rounded border border-[var(--pastel-lavender)] text-[var(--primary)] font-mono">src/etl/clean.py</code>: snake_case casing, duplicate pruning & outlier clamps</span>
+          <span class="font-semibold text-[var(--text-primary)]">${d.total_duplicates_pruned?.toLocaleString() || '10,000'} Duplicates Pruned</span>
         </div>
-        <div class="overflow-x-auto bg-white rounded-2xl border border-[#EDEBFB]">
+        <div class="overflow-x-auto bg-white rounded-2xl border border-[var(--pastel-lavender)]">
           <table class="w-full text-left text-xs">
             <thead>
-              <tr class="bg-[#F6F5FC] text-[#8A8797] border-b border-[#EDEBFB]">
+              <tr class="bg-[var(--bg)] text-[var(--text-muted)] border-b border-[var(--pastel-lavender)]">
                 <th class="p-3 font-semibold">Clean File (data/interim/)</th>
                 <th class="p-3 font-semibold">Transformation Applied</th>
                 <th class="p-3 font-semibold text-right">Raw Rows</th>
@@ -2276,19 +2276,19 @@ function renderStageDetailsHtml(stage) {
                 <th class="p-3 font-semibold text-center">Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#EDEBFB]/70 font-sans">
+            <tbody class="divide-y divide-[var(--pastel-lavender)]/70 font-sans">
               ${datasets.map((item) => {
                 const isKundan = item.source === 'kundan';
                 return `
-                  <tr class="${isKundan ? 'bg-[#EDEBFB]/30' : 'hover:bg-[#FAFAFE]'}">
-                    <td class="p-3 font-mono font-medium text-[#1E1B2E] text-[11px]">
+                  <tr class="${isKundan ? 'bg-[var(--pastel-lavender)]/30' : 'hover:bg-[#FAFAFE]'}">
+                    <td class="p-3 font-mono font-medium text-[var(--text-primary)] text-[11px]">
                       ${item.clean_file}
-                      ${isKundan ? '<span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#EDEBFB] text-[#6C5CE7]">Key Dedup Pass</span>' : ''}
+                      ${isKundan ? '<span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--pastel-lavender)] text-[var(--primary)]">Key Dedup Pass</span>' : ''}
                     </td>
-                    <td class="p-3 text-[#8A8797] text-[11px]">${item.rule_applied}</td>
-                    <td class="p-3 text-right text-[#8A8797]">${item.raw_rows?.toLocaleString()}</td>
-                    <td class="p-3 text-right font-semibold text-[#1E1B2E]">${item.clean_rows?.toLocaleString()}</td>
-                    <td class="p-3 text-right font-bold ${item.rows_removed > 0 ? 'text-[#6C5CE7]' : 'text-[#8A8797]'}">
+                    <td class="p-3 text-[var(--text-muted)] text-[11px]">${item.rule_applied}</td>
+                    <td class="p-3 text-right text-[var(--text-muted)]">${item.raw_rows?.toLocaleString()}</td>
+                    <td class="p-3 text-right font-semibold text-[var(--text-primary)]">${item.clean_rows?.toLocaleString()}</td>
+                    <td class="p-3 text-right font-bold ${item.rows_removed > 0 ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'}">
                       ${item.rows_removed > 0 ? `-${item.rows_removed.toLocaleString()} (${item.dedup_pct}%)` : '0 (0%)'}
                     </td>
                     <td class="p-3 text-center">
@@ -2311,41 +2311,41 @@ function renderStageDetailsHtml(stage) {
     return `
       <div class="space-y-4">
         <!-- Master Wide Summary Pill -->
-        <div class="p-4 bg-white rounded-2xl border border-[#EDEBFB] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div class="p-4 bg-white rounded-2xl border border-[var(--pastel-lavender)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
           <div>
             <div class="flex items-center space-x-2">
-              <span class="font-mono text-sm font-bold text-[#1E1B2E]">student_master_wide.csv</span>
+              <span class="font-mono text-sm font-bold text-[var(--text-primary)]">student_master_wide.csv</span>
               <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E7F8EE] text-[#4CAF7D]">Single Source of Truth</span>
             </div>
-            <p class="text-xs text-[#8A8797] mt-1">Attribute-based joining of 5 secondary sources onto Shambhuraje anchor without replacement.</p>
+            <p class="text-xs text-[var(--text-muted)] mt-1">Attribute-based joining of 5 secondary sources onto Shambhuraje anchor without replacement.</p>
           </div>
           <div class="flex items-center space-x-4 text-right">
             <div>
-              <span class="text-[10px] text-[#8A8797] uppercase tracking-wider block">Master Records</span>
-              <span class="font-sora font-bold text-base text-[#6C5CE7]">${d.master_student_rows?.toLocaleString() || '25,000'}</span>
+              <span class="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Master Records</span>
+              <span class="font-sora font-bold text-base text-[var(--primary)]">${d.master_student_rows?.toLocaleString() || '25,000'}</span>
             </div>
-            <div class="border-l border-[#EDEBFB] pl-4">
-              <span class="text-[10px] text-[#8A8797] uppercase tracking-wider block">Total Features</span>
-              <span class="font-sora font-bold text-base text-[#1E1B2E]">${d.column_count || 116} Cols</span>
+            <div class="border-l border-[var(--pastel-lavender)] pl-4">
+              <span class="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Total Features</span>
+              <span class="font-sora font-bold text-base text-[var(--text-primary)]">${d.column_count || 116} Cols</span>
             </div>
           </div>
         </div>
 
         <!-- 5 Match Coverage Cards -->
-        <div class="text-xs font-semibold text-[#1E1B2E] mb-1">Secondary Source Matching Coverage</div>
+        <div class="text-xs font-semibold text-[var(--text-primary)] mb-1">Secondary Source Matching Coverage</div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           ${sources.map((src) => {
             const m = matchCov[src];
             return `
-              <div class="p-3.5 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs space-y-2">
+              <div class="p-3.5 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs space-y-2">
                 <div class="flex items-center justify-between">
-                  <span class="font-mono text-xs font-bold text-[#1E1B2E] capitalize">${src} Cohort</span>
-                  <span class="text-xs font-bold text-[#6C5CE7]">${m.coverage_pct}%</span>
+                  <span class="font-mono text-xs font-bold text-[var(--text-primary)] capitalize">${src} Cohort</span>
+                  <span class="text-xs font-bold text-[var(--primary)]">${m.coverage_pct}%</span>
                 </div>
-                <div class="w-full bg-[#F6F5FC] rounded-full h-2 overflow-hidden border border-[#EDEBFB]/50">
-                  <div class="h-full rounded-full bg-gradient-to-r from-[#6C5CE7] to-[#8E7CF3]" style="width: ${m.coverage_pct}%"></div>
+                <div class="w-full bg-[var(--bg)] rounded-full h-2 overflow-hidden border border-[var(--pastel-lavender)]/50">
+                  <div class="h-full rounded-full bg-gradient-to-r from-[var(--primary)] to-[#8E7CF3]" style="width: ${m.coverage_pct}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-[11px] text-[#8A8797]">
+                <div class="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
                   <span>Matched: <strong>${m.matched_students?.toLocaleString()}</strong></span>
                   <span>Target: ${m.expected_count?.toLocaleString()}</span>
                 </div>
@@ -2364,16 +2364,16 @@ function renderStageDetailsHtml(stage) {
     return `
       <div class="space-y-4">
         <!-- Class Balance & Distribution Card -->
-        <div class="p-4 bg-white rounded-2xl border border-[#EDEBFB] space-y-3">
+        <div class="p-4 bg-white rounded-2xl border border-[var(--pastel-lavender)] space-y-3">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-semibold text-[#1E1B2E]">Target Variable Class Balance (at_risk_flag)</span>
+            <span class="font-semibold text-[var(--text-primary)]">Target Variable Class Balance (at_risk_flag)</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F8EE] text-[#4CAF7D]">Safe/At-Risk Distribution Balanced</span>
           </div>
-          <div class="w-full bg-[#FDEDEF] rounded-full h-3 overflow-hidden flex border border-[#EDEBFB]">
+          <div class="w-full bg-[#FDEDEF] rounded-full h-3 overflow-hidden flex border border-[var(--pastel-lavender)]">
             <div class="bg-[#4CAF7D] h-full transition-all" style="width: ${cb.safe_class_pct || 68.1}%;" title="Safe (${cb.safe_class_pct}%)"></div>
             <div class="bg-[#E17055] h-full transition-all" style="width: ${cb.at_risk_class_pct || 31.9}%;" title="At-Risk (${cb.at_risk_class_pct}%)"></div>
           </div>
-          <div class="flex items-center justify-between text-xs text-[#8A8797]">
+          <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
             <div class="flex items-center space-x-2">
               <span class="w-2.5 h-2.5 rounded-full bg-[#4CAF7D]"></span>
               <span>Safe / On Track: <strong>${cb.safe_class_pct || 68.1}%</strong></span>
@@ -2382,42 +2382,42 @@ function renderStageDetailsHtml(stage) {
               <span class="w-2.5 h-2.5 rounded-full bg-[#E17055]"></span>
               <span>At-Risk Flagged: <strong>${cb.at_risk_class_pct || 31.9}%</strong></span>
             </div>
-            <span class="text-[11px] text-[#8A8797]">Target Range: ${cb.target_range || '65/35 to 80/20'}</span>
+            <span class="text-[11px] text-[var(--text-muted)]">Target Range: ${cb.target_range || '65/35 to 80/20'}</span>
           </div>
         </div>
 
         <!-- Train/Test Splits Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="p-3.5 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs">
+          <div class="p-3.5 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs">
             <div class="flex items-center justify-between mb-2">
-              <span class="font-semibold text-xs text-[#1E1B2E]">Model 1: CGPA Trajectory Splits</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EDEBFB] text-[#6C5CE7]">80 / 20 Split</span>
+              <span class="font-semibold text-xs text-[var(--text-primary)]">Model 1: CGPA Trajectory Splits</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--pastel-lavender)] text-[var(--primary)]">80 / 20 Split</span>
             </div>
             <div class="grid grid-cols-2 gap-2 text-center text-xs">
-              <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                <span class="text-[10px] text-[#8A8797] block">Train Rows</span>
-                <span class="font-bold text-[#1E1B2E]">${splits.model1_train_rows?.toLocaleString() || '20,000'}</span>
+              <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                <span class="text-[10px] text-[var(--text-muted)] block">Train Rows</span>
+                <span class="font-bold text-[var(--text-primary)]">${splits.model1_train_rows?.toLocaleString() || '20,000'}</span>
               </div>
-              <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                <span class="text-[10px] text-[#8A8797] block">Test Rows</span>
-                <span class="font-bold text-[#1E1B2E]">${splits.model1_test_rows?.toLocaleString() || '5,000'}</span>
+              <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                <span class="text-[10px] text-[var(--text-muted)] block">Test Rows</span>
+                <span class="font-bold text-[var(--text-primary)]">${splits.model1_test_rows?.toLocaleString() || '5,000'}</span>
               </div>
             </div>
           </div>
 
-          <div class="p-3.5 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs">
+          <div class="p-3.5 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs">
             <div class="flex items-center justify-between mb-2">
-              <span class="font-semibold text-xs text-[#1E1B2E]">Model 2: At-Risk Classifier Splits</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EDEBFB] text-[#6C5CE7]">80 / 20 Split</span>
+              <span class="font-semibold text-xs text-[var(--text-primary)]">Model 2: At-Risk Classifier Splits</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--pastel-lavender)] text-[var(--primary)]">80 / 20 Split</span>
             </div>
             <div class="grid grid-cols-2 gap-2 text-center text-xs">
-              <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                <span class="text-[10px] text-[#8A8797] block">Train Rows</span>
-                <span class="font-bold text-[#1E1B2E]">${splits.model2_train_rows?.toLocaleString() || '20,000'}</span>
+              <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                <span class="text-[10px] text-[var(--text-muted)] block">Train Rows</span>
+                <span class="font-bold text-[var(--text-primary)]">${splits.model2_train_rows?.toLocaleString() || '20,000'}</span>
               </div>
-              <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                <span class="text-[10px] text-[#8A8797] block">Test Rows</span>
-                <span class="font-bold text-[#1E1B2E]">${splits.model2_test_rows?.toLocaleString() || '5,000'}</span>
+              <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                <span class="text-[10px] text-[var(--text-muted)] block">Test Rows</span>
+                <span class="font-bold text-[var(--text-primary)]">${splits.model2_test_rows?.toLocaleString() || '5,000'}</span>
               </div>
             </div>
           </div>
@@ -2425,11 +2425,11 @@ function renderStageDetailsHtml(stage) {
 
         <!-- Governance Checks -->
         <div class="flex flex-wrap items-center gap-3 text-xs">
-          <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#EDEBFB] text-[#4CAF7D] font-medium">
+          <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white border border-[var(--pastel-lavender)] text-[#4CAF7D] font-medium">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             <span>${d.pii_audit || '0 PII columns (navin_name, navin_email dropped)'}</span>
           </div>
-          <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#EDEBFB] text-[#6C5CE7] font-medium">
+          <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white border border-[var(--pastel-lavender)] text-[var(--primary)] font-medium">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             <span>${d.leakage_audit || 'Model 2 strictly isolated to lifestyle features'}</span>
           </div>
@@ -2444,39 +2444,39 @@ function renderStageDetailsHtml(stage) {
     const engine = d.active_database_engine || 'postgres';
     return `
       <div class="space-y-4">
-        <div class="flex items-center justify-between text-xs text-[#8A8797]">
-          <span>Live SQL <code class="px-1.5 py-0.5 bg-white rounded border border-[#EDEBFB] text-[#6C5CE7] font-mono">SELECT COUNT(*)</code> against active connection engine</span>
+        <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
+          <span>Live SQL <code class="px-1.5 py-0.5 bg-white rounded border border-[var(--pastel-lavender)] text-[var(--primary)] font-mono">SELECT COUNT(*)</code> against active connection engine</span>
           <span class="px-2.5 py-1 rounded-full text-xs font-bold ${engine === 'postgres' ? 'bg-[#E7F8EE] text-[#4CAF7D]' : 'bg-[#FEF3C7] text-[#D97706]'} uppercase">
             Active Engine: ${engine}
           </span>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="p-3.5 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs text-center">
-            <span class="text-[11px] font-mono text-[#8A8797] block">dim_student</span>
-            <span class="font-sora font-bold text-lg text-[#1E1B2E]">${tbls.dim_student?.toLocaleString() || '25,000'}</span>
-            <span class="text-[10px] text-[#8A8797] block mt-0.5">Anchor Dimension</span>
+          <div class="p-3.5 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs text-center">
+            <span class="text-[11px] font-mono text-[var(--text-muted)] block">dim_student</span>
+            <span class="font-sora font-bold text-lg text-[var(--text-primary)]">${tbls.dim_student?.toLocaleString() || '25,000'}</span>
+            <span class="text-[10px] text-[var(--text-muted)] block mt-0.5">Anchor Dimension</span>
           </div>
-          <div class="p-3.5 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs text-center">
-            <span class="text-[11px] font-mono text-[#8A8797] block">fact_performance</span>
-            <span class="font-sora font-bold text-lg text-[#6C5CE7]">${tbls.fact_performance?.toLocaleString() || '105,000'}</span>
-            <span class="text-[10px] text-[#8A8797] block mt-0.5">Multi-Term Exams</span>
+          <div class="p-3.5 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs text-center">
+            <span class="text-[11px] font-mono text-[var(--text-muted)] block">fact_performance</span>
+            <span class="font-sora font-bold text-lg text-[var(--primary)]">${tbls.fact_performance?.toLocaleString() || '105,000'}</span>
+            <span class="text-[10px] text-[var(--text-muted)] block mt-0.5">Multi-Term Exams</span>
           </div>
-          <div class="p-3.5 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs text-center">
-            <span class="text-[11px] font-mono text-[#8A8797] block">fact_lifestyle</span>
-            <span class="font-sora font-bold text-lg text-[#1E1B2E]">${tbls.fact_lifestyle?.toLocaleString() || '25,000'}</span>
-            <span class="text-[10px] text-[#8A8797] block mt-0.5">Wellness Metrics</span>
+          <div class="p-3.5 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs text-center">
+            <span class="text-[11px] font-mono text-[var(--text-muted)] block">fact_lifestyle</span>
+            <span class="font-sora font-bold text-lg text-[var(--text-primary)]">${tbls.fact_lifestyle?.toLocaleString() || '25,000'}</span>
+            <span class="text-[10px] text-[var(--text-muted)] block mt-0.5">Wellness Metrics</span>
           </div>
-          <div class="p-3.5 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs text-center">
-            <span class="text-[11px] font-mono text-[#8A8797] block">fact_career</span>
-            <span class="font-sora font-bold text-lg text-[#1E1B2E]">${tbls.fact_career?.toLocaleString() || '25,000'}</span>
-            <span class="text-[10px] text-[#8A8797] block mt-0.5">Readiness & Package</span>
+          <div class="p-3.5 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs text-center">
+            <span class="text-[11px] font-mono text-[var(--text-muted)] block">fact_career</span>
+            <span class="font-sora font-bold text-lg text-[var(--text-primary)]">${tbls.fact_career?.toLocaleString() || '25,000'}</span>
+            <span class="text-[10px] text-[var(--text-muted)] block mt-0.5">Readiness & Package</span>
           </div>
         </div>
 
-        <div class="p-3 bg-white rounded-xl border border-[#EDEBFB] flex items-center justify-between text-xs text-[#8A8797]">
+        <div class="p-3 bg-white rounded-xl border border-[var(--pastel-lavender)] flex items-center justify-between text-xs text-[var(--text-muted)]">
           <span>Foreign Key Constraints: <strong>${d.foreign_key_enforcement || 'dim_student(student_id) -> fact tables (VERIFIED)'}</strong></span>
-          <span class="font-semibold text-[#1E1B2E]">Total Warehouse Records: ${d.total_warehouse_rows?.toLocaleString() || '180,000'}</span>
+          <span class="font-semibold text-[var(--text-primary)]">Total Warehouse Records: ${d.total_warehouse_rows?.toLocaleString() || '180,000'}</span>
         </div>
       </div>
     `;
@@ -2493,22 +2493,22 @@ function renderStageDetailsHtml(stage) {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           <!-- Model 1 Card -->
-          <div class="p-4 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs space-y-3 flex flex-col justify-between">
+          <div class="p-4 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs space-y-3 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-1">
-                <span class="font-sora font-bold text-sm text-[#1E1B2E]">Model 1: CGPA Trajectory</span>
+                <span class="font-sora font-bold text-sm text-[var(--text-primary)]">Model 1: CGPA Trajectory</span>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F8EE] text-[#4CAF7D]">${m1.status || 'LOADED'}</span>
               </div>
-              <p class="text-[11px] font-mono text-[#8A8797]">${m1.name || 'GradientBoostingRegressor (anchor_cgpa)'}</p>
+              <p class="text-[11px] font-mono text-[var(--text-muted)]">${m1.name || 'GradientBoostingRegressor (anchor_cgpa)'}</p>
               
               <div class="grid grid-cols-2 gap-2 mt-3 text-center">
-                <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                  <span class="text-[10px] text-[#8A8797] block">Test R² Score</span>
-                  <span class="font-sora font-bold text-sm text-[#6C5CE7]">${m1.r2_score !== undefined ? m1.r2_score : 0.2117}</span>
+                <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                  <span class="text-[10px] text-[var(--text-muted)] block">Test R² Score</span>
+                  <span class="font-sora font-bold text-sm text-[var(--primary)]">${m1.r2_score !== undefined ? m1.r2_score : 0.2096}</span>
                 </div>
-                <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                  <span class="text-[10px] text-[#8A8797] block">RMSE Error</span>
-                  <span class="font-sora font-bold text-sm text-[#1E1B2E]">${m1.rmse || 0.9416}</span>
+                <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                  <span class="text-[10px] text-[var(--text-muted)] block">RMSE Error</span>
+                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m1.rmse || 0.7581}</span>
                 </div>
               </div>
             </div>
@@ -2528,26 +2528,26 @@ function renderStageDetailsHtml(stage) {
           </div>
 
           <!-- Model 2 Card -->
-          <div class="p-4 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs space-y-3 flex flex-col justify-between">
+          <div class="p-4 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs space-y-3 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-1">
-                <span class="font-sora font-bold text-sm text-[#1E1B2E]">Model 2: At-Risk Classifier</span>
+                <span class="font-sora font-bold text-sm text-[var(--text-primary)]">Model 2: At-Risk Classifier</span>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E7F8EE] text-[#4CAF7D]">${m2.status || 'LOADED'}</span>
               </div>
-              <p class="text-[11px] font-mono text-[#8A8797]">${m2.name || 'RandomForestClassifier (at_risk_flag)'}</p>
+              <p class="text-[11px] font-mono text-[var(--text-muted)]">${m2.name || 'LogisticRegression (at_risk_flag)'}</p>
               
               <div class="grid grid-cols-3 gap-2 mt-3 text-center">
-                <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                  <span class="text-[10px] text-[#8A8797] block">Recall (Risk)</span>
-                  <span class="font-sora font-bold text-sm text-[#6C5CE7]">${m2.recall_class1 !== undefined ? (m2.recall_class1 * 100).toFixed(1) : 45.1}%</span>
+                <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                  <span class="text-[10px] text-[var(--text-muted)] block">Recall (Risk)</span>
+                  <span class="font-sora font-bold text-sm text-[var(--primary)]">${m2.recall_class1 !== undefined ? (m2.recall_class1 * 100).toFixed(2) : 50.22}%</span>
                 </div>
-                <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                  <span class="text-[10px] text-[#8A8797] block">Precision</span>
-                  <span class="font-sora font-bold text-sm text-[#1E1B2E]">${m2.precision_class1 !== undefined ? (m2.precision_class1 * 100).toFixed(1) : 32.0}%</span>
+                <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                  <span class="text-[10px] text-[var(--text-muted)] block">Precision</span>
+                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m2.precision_class1 !== undefined ? (m2.precision_class1 * 100).toFixed(2) : 33.46}%</span>
                 </div>
-                <div class="p-2 bg-[#F6F5FC] rounded-xl border border-[#EDEBFB]/50">
-                  <span class="text-[10px] text-[#8A8797] block">ROC-AUC</span>
-                  <span class="font-sora font-bold text-sm text-[#1E1B2E]">${m2.roc_auc || 0.5312}</span>
+                <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
+                  <span class="text-[10px] text-[var(--text-muted)] block">ROC-AUC</span>
+                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m2.roc_auc || 0.5190}</span>
                 </div>
               </div>
             </div>
@@ -2569,23 +2569,23 @@ function renderStageDetailsHtml(stage) {
         </div>
 
         <!-- GenAI Service Card -->
-        <div class="p-4 bg-white rounded-2xl border border-[#EDEBFB] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="p-4 bg-white rounded-2xl border border-[var(--pastel-lavender)] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-[#EDEBFB] text-[#6C5CE7] flex items-center justify-center font-bold text-sm">
+            <div class="w-10 h-10 rounded-xl bg-[var(--pastel-lavender)] text-[var(--primary)] flex items-center justify-center font-bold text-sm">
               AI
             </div>
             <div>
               <div class="flex items-center space-x-2">
-                <span class="font-semibold text-xs text-[#1E1B2E]">GenAI Synthesis Engine</span>
+                <span class="font-semibold text-xs text-[var(--text-primary)]">GenAI Synthesis Engine</span>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${genai.connectivity === 'api_connected' ? 'bg-[#E7F8EE] text-[#4CAF7D]' : 'bg-[#FEF3C7] text-[#D97706]'}">
                   ${genai.connectivity === 'api_connected' ? 'Google Gemini Connected' : 'Fallback Templates Active'}
                 </span>
               </div>
-              <p class="text-[11px] text-[#8A8797] mt-0.5">Active model: <code class="font-mono text-[#6C5CE7]">${genai.active_engine || 'gemini-3.6-flash'}</code></p>
+              <p class="text-[11px] text-[var(--text-muted)] mt-0.5">Active model: <code class="font-mono text-[var(--primary)]">${genai.active_engine || 'gemini-3.5-flash-lite'}</code></p>
             </div>
           </div>
           <div class="text-right text-xs">
-            <span class="px-2.5 py-1 rounded-lg bg-[#F6F5FC] border border-[#EDEBFB] text-[#8A8797] text-[11px]">
+            <span class="px-2.5 py-1 rounded-lg bg-[var(--bg)] border border-[var(--pastel-lavender)] text-[var(--text-muted)] text-[11px]">
               Offline Fallbacks Ready: <strong>Yes</strong>
             </span>
           </div>
@@ -2595,6 +2595,6 @@ function renderStageDetailsHtml(stage) {
     `;
   }
 
-  return `<div class="text-xs text-[#8A8797]">No additional details for this stage.</div>`;
+  return `<div class="text-xs text-[var(--text-muted)]">No additional details for this stage.</div>`;
 }
 

@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -1465,6 +1465,7 @@ def get_pipeline_status():
     m2_loaded = m2_path.exists()
 
     m1_r2 = 0.2096
+    m1_rmse = 0.7581
     m2_recall = 0.5022
     m2_precision = 0.3346
     m2_auc = 0.5190
@@ -1475,6 +1476,7 @@ def get_pipeline_status():
             with open(m1_meta, "r", encoding="utf-8") as f:
                 d = json.load(f)
                 m1_r2 = d.get("test_r2", m1_r2)
+                m1_rmse = d.get("test_rmse", m1_rmse)
         except Exception:
             pass
 
@@ -1504,7 +1506,7 @@ def get_pipeline_status():
                 from google import genai
                 _client = genai.Client(api_key=api_key)
                 genai_status = "api_connected"
-                genai_model = "gemini-3.6-flash"
+                genai_model = "gemini-3.5-flash-lite"
             except Exception as e:
                 genai_status = "fallback_templates"
                 genai_model = f"fallback ({str(e)[:30]})"
@@ -1526,7 +1528,7 @@ def get_pipeline_status():
                 "name": "GradientBoostingRegressor (anchor_cgpa)",
                 "status": "LOADED" if m1_loaded else "MISSING",
                 "r2_score": round(m1_r2, 4),
-                "rmse": 0.9416,
+                "rmse": round(m1_rmse, 4),
                 "limitation_badge": "Directional Signal Only (R²≈0.21 explains ~21% variance)",
             },
             "model2_atrisk": {
@@ -1859,7 +1861,7 @@ class NewStudentRequest(BaseModel):
 
 
 @app.post("/api/assess/new-student")
-def assess_new_student(req: NewStudentRequest):
+def assess_new_student(req: NewStudentRequest, include_genai: bool = Query(True)):
     """
     Option 4 — Direct form entry.
     Accepts all student fields as optional body parameters.
@@ -1869,9 +1871,100 @@ def assess_new_student(req: NewStudentRequest):
     """
     student_data = {k: v for k, v in req.model_dump().items() if v is not None}
     try:
-        return run_full_assessment(student_data)
+        return run_full_assessment(student_data, include_genai=include_genai)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
+
+
+class GenAIInsightsRequest(BaseModel):
+    atrisk_payload: Optional[Dict[str, Any]] = None
+    perf_payload: Optional[Dict[str, Any]] = None
+    career_payload: Optional[Dict[str, Any]] = None
+
+
+@app.post("/api/assess/genai-insights")
+def assess_genai_insights(req: GenAIInsightsRequest):
+    """
+    Runs Gemini GenAI generation concurrently across at-risk brief,
+    performance trajectory summary, and career guidance narrative.
+    Used for progressive single-student loading and on-demand batch detail expansion.
+    """
+    import concurrent.futures
+    from src.genai.insights import (
+        generate_atrisk_brief_from_data,
+        generate_performance_summary_from_data,
+        generate_career_guidance_narrative_from_data,
+        is_gemini_token_available,
+    )
+    from src.api.assessment_engine import _fallback_atrisk_brief, _fallback_performance_summary
+
+    t_start = time.perf_counter()
+    t_atrisk, t_perf, t_career = 0.0, 0.0, 0.0
+    atrisk_brief = None
+    performance_summary = None
+    career_narrative = None
+
+    def _timed(fn, payload):
+        t0 = time.perf_counter()
+        res = fn(payload)
+        return res, (time.perf_counter() - t0) * 1000
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        fut_atrisk = executor.submit(_timed, generate_atrisk_brief_from_data, req.atrisk_payload) if req.atrisk_payload else None
+        fut_perf = executor.submit(_timed, generate_performance_summary_from_data, req.perf_payload) if req.perf_payload else None
+        fut_career = executor.submit(_timed, generate_career_guidance_narrative_from_data, req.career_payload) if req.career_payload else None
+
+        if fut_atrisk:
+            try:
+                atrisk_brief, t_atrisk = fut_atrisk.result(timeout=6.0)
+            except Exception as e:
+                logger.warning("GenAI at-risk brief failed: %s", e)
+                atrisk_brief = _fallback_atrisk_brief(req.atrisk_payload)
+
+        if fut_perf:
+            try:
+                performance_summary, t_perf = fut_perf.result(timeout=6.0)
+            except Exception as e:
+                logger.warning("GenAI performance summary failed: %s", e)
+                performance_summary = _fallback_performance_summary(req.perf_payload)
+
+        if fut_career:
+            try:
+                career_narrative, t_career = fut_career.result(timeout=6.0)
+            except Exception as e:
+                logger.warning("GenAI career narrative failed: %s", e)
+                career_narrative = None
+
+    token_ok, _ = is_gemini_token_available()
+    gemini_fallback_active = bool(
+        (atrisk_brief and atrisk_brief.get("is_fallback")) or
+        (performance_summary and performance_summary.get("is_fallback")) or
+        (career_narrative and career_narrative.get("is_fallback"))
+    )
+    if gemini_fallback_active:
+        if not token_ok:
+            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Real-time deterministic statistical fallback was applied."
+        else:
+            fallback_notice = "Gemini AI was not responding or rate-limited. Real-time deterministic statistical fallback was applied."
+    else:
+        fallback_notice = None
+
+    t_total = (time.perf_counter() - t_start) * 1000
+
+    return {
+        "atrisk_brief": atrisk_brief,
+        "performance_summary": performance_summary,
+        "career_narrative": career_narrative,
+        "timing_ms": {
+            "genai_atrisk_ms": round(t_atrisk, 2),
+            "genai_perf_ms": round(t_perf, 2),
+            "genai_career_ms": round(t_career, 2),
+            "total_ms": round(t_total, 2),
+        },
+        "gemini_fallback_active": gemini_fallback_active,
+        "token_available": token_ok,
+        "fallback_notice": fallback_notice,
+    }
 
 
 # ── Option 1: CSV Upload with Auto Column Matching ─────────────────────────────
@@ -1969,20 +2062,33 @@ def csv_match_confirm(req: CSVMatchConfirmRequest):
 # ── Option 2: Multiple CSVs with Stitching ─────────────────────────────────────
 @app.post("/api/assess/csv-stitch")
 async def csv_stitch(
+    request: Request,
     files: List[UploadFile] = File(...),
+    allow_partial: bool = Form(False),
 ):
     """
     Option 2 — Accepts 2+ CSV uploads.
-    Independently fuzzy-matches each file's columns, attempts to find a shared
-    join key (ID column with overlapping values). If found, joins on that key
-    (real join). If not, falls back to tertile/performance-band approximate
-    matching (same methodology as the platform's stitch.py). Clearly discloses
-    which join method was used. Then runs all stitched records through
-    run_full_assessment() and returns batch results.
+    Validates that rows are common across all uploaded files before assessment.
+    If real ID columns exist across all files:
+      - Computes intersection of IDs.
+      - If any file contains IDs missing from other files, halts with HTTP 422
+        (unless allow_partial=True).
+      - Stitches all N files for each common student ID.
+    If no shared ID exists:
+      - Checks row counts across files.
+      - If counts differ, halts with HTTP 422 (unless allow_partial=True).
+      - Falls back to tertile/performance-band approximate matching.
+    Returns batch results with lineage details disclosing join method and exclusions.
     Does NOT write to the database.
     """
     if len(files) < 2:
         raise HTTPException(status_code=400, detail="Please upload at least 2 CSV files")
+
+    # Check query params for allow_partial fallback as well
+    if not allow_partial:
+        q_partial = request.query_params.get("allow_partial", "").lower()
+        if q_partial in ("true", "1", "yes"):
+            allow_partial = True
 
     # Parse all files
     parsed_files: List[Dict[str, Any]] = []
@@ -2014,77 +2120,158 @@ async def csv_stitch(
             "col_mapping": col_mapping,
         })
 
-    # ── Attempt to find a shared join key ──────────────────────────────────────
-    ID_LIKE_NAMES = {"id", "student_id", "roll_no", "roll_number", "student_no",
-                     "studentid", "enrollment_id", "reg_no", "registration_no"}
+    # ── Detect shared join key across files ───────────────────────────────────
+    ID_LIKE_NAMES = {
+        "id", "student_id", "roll_no", "roll_number", "student_no",
+        "studentid", "enrollment_id", "reg_no", "registration_no",
+        "sr_no", "srno", "uid", "student_uid"
+    }
 
-    shared_key: Optional[str] = None
-    join_method = "approximate_matching"
-    join_files_involved: List[str] = []
-    matched_count = 0
-    unmatched_count = 0
-
-    # Check every pair for a shared key column with overlapping values
-    for i in range(len(parsed_files)):
-        for j in range(i + 1, len(parsed_files)):
-            fi = parsed_files[i]
-            fj = parsed_files[j]
-            hi_norm = {h.strip().lower().replace(" ", "_") for h in fi["headers"]}
-            hj_norm = {h.strip().lower().replace(" ", "_") for h in fj["headers"]}
-            common_cols = hi_norm & hj_norm & ID_LIKE_NAMES
-            if common_cols:
-                candidate_key = next(iter(common_cols))
-                # Get the actual header name in each file
-                key_i = next((h for h in fi["headers"] if h.strip().lower().replace(" ", "_") == candidate_key), None)
-                key_j = next((h for h in fj["headers"] if h.strip().lower().replace(" ", "_") == candidate_key), None)
-                if key_i and key_j:
-                    vals_i = {str(r.get(key_i, "")).strip() for r in fi["all_records"]}
-                    vals_j = {str(r.get(key_j, "")).strip() for r in fj["all_records"]}
-                    overlap = vals_i & vals_j
-                    if len(overlap) > 0:
-                        shared_key = candidate_key
-                        join_method = "real_key_join"
-                        join_files_involved = [fi["filename"], fj["filename"]]
-                        break
-            if shared_key:
+    id_col_by_file: Dict[str, Optional[str]] = {}
+    for pf in parsed_files:
+        found_col = None
+        for h in pf["headers"]:
+            h_norm = h.strip().lower().replace(" ", "_").replace("-", "_")
+            if h_norm in ID_LIKE_NAMES or h_norm.endswith("_id") or h_norm.startswith("id_"):
+                found_col = h
                 break
+        id_col_by_file[pf["filename"]] = found_col
 
-    # ── Perform the join / stitch ──────────────────────────────────────────────
-    stitched_records: List[Dict[str, Any]] = []
+    all_have_id = all(id_col_by_file[pf["filename"]] is not None for pf in parsed_files)
 
+    ids_by_file: Dict[str, set] = {}
+    common_ids: set = set()
+    join_method = "approximate_matching"
+    shared_key_name: Optional[str] = None
+
+    if all_have_id:
+        for pf in parsed_files:
+            fname = pf["filename"]
+            col = id_col_by_file[fname]
+            ids_by_file[fname] = {
+                str(r.get(col, "")).strip()
+                for r in pf["all_records"]
+                if str(r.get(col, "")).strip()
+            }
+
+        common_ids = set.intersection(*ids_by_file.values())
+        if len(common_ids) > 0:
+            join_method = "real_key_join"
+            shared_key_name = id_col_by_file[parsed_files[0]["filename"]]
+
+    # ── Validation Pass BEFORE Assessment ────────────────────────────────────
     if join_method == "real_key_join":
-        # Real key join: use the first two files that share the key
-        fi_name = join_files_involved[0]
-        fj_name = join_files_involved[1]
-        fi_data = next(pf for pf in parsed_files if pf["filename"] == fi_name)
-        fj_data = next(pf for pf in parsed_files if pf["filename"] == fj_name)
+        # Calculate per-file mismatch
+        per_file_mismatch = []
+        for pf in parsed_files:
+            fname = pf["filename"]
+            file_ids = ids_by_file[fname]
+            missing = file_ids - common_ids
+            if missing:
+                per_file_mismatch.append({
+                    "filename": fname,
+                    "missing_from_other_files": sorted(list(missing)),
+                    "count": len(missing),
+                })
 
-        key_col_i = next((h for h in fi_data["headers"] if h.strip().lower().replace(" ", "_") == shared_key), None)
-        key_col_j = next((h for h in fj_data["headers"] if h.strip().lower().replace(" ", "_") == shared_key), None)
-
-        index_j = {str(r.get(key_col_j, "")).strip(): r for r in fj_data["all_records"]}
-
-        for row_i in fi_data["all_records"]:
-            key_val = str(row_i.get(key_col_i, "")).strip()
-            row_j = index_j.get(key_val)
-            if row_j:
-                merged = {**row_i, **row_j}  # row_j fields win on conflict
-                stitched_records.append(merged)
-                matched_count += 1
-            else:
-                stitched_records.append(dict(row_i))
-                unmatched_count += 1
-
-        # Also apply auto-mapping from both files to build combined mapping
-        combined_mapping = fi_data["col_mapping"] + [
-            m for m in fj_data["col_mapping"]
-            if m["uploaded_column"] not in [cm["uploaded_column"] for cm in fi_data["col_mapping"]]
-        ]
+        if per_file_mismatch and not allow_partial:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": "row_mismatch",
+                    "message": (
+                        "Not all rows are common across every uploaded file. "
+                        f"Every student must appear in all {len(parsed_files)} files to be assessed."
+                    ),
+                    "total_files": len(parsed_files),
+                    "common_row_count": len(common_ids),
+                    "is_approximate": False,
+                    "per_file_mismatch": per_file_mismatch,
+                },
+            )
 
     else:
-        # Approximate matching: tertile/performance-band matching across all files
-        # Strategy: identify the best performance-like column in each file and bin into tertiles (L/M/H)
-        # Then cross-join records within the same tertile band (same approach as stitch.py)
+        # Approximate matching mode validation: row counts must match across all files
+        min_rows = min(len(pf["all_records"]) for pf in parsed_files)
+        max_rows = max(len(pf["all_records"]) for pf in parsed_files)
+
+        per_file_mismatch = []
+        if min_rows != max_rows:
+            for pf in parsed_files:
+                fname = pf["filename"]
+                count = len(pf["all_records"])
+                if count > min_rows:
+                    unmatched_rows = [f"Row #{r_idx + 1}" for r_idx in range(min_rows, count)]
+                    per_file_mismatch.append({
+                        "filename": fname,
+                        "missing_from_other_files": unmatched_rows,
+                        "count": len(unmatched_rows),
+                    })
+
+        if per_file_mismatch and not allow_partial:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": "row_mismatch",
+                    "message": (
+                        "Uploaded files have unequal row counts for approximate matching. "
+                        f"Every student record must have a corresponding entry across all {len(parsed_files)} files to be assessed."
+                    ),
+                    "total_files": len(parsed_files),
+                    "common_row_count": min_rows,
+                    "is_approximate": True,
+                    "per_file_mismatch": per_file_mismatch,
+                },
+            )
+
+    # ── Perform the join / stitch ──────────────────────────────────────────
+    stitched_records: List[Dict[str, Any]] = []
+    matched_count = 0
+    unmatched_count = 0
+    all_unique_students = 0
+
+    # Build combined mapping across all files
+    seen_cols = set()
+    combined_mapping = []
+    for pf in parsed_files:
+        for m in pf["col_mapping"]:
+            if m["uploaded_column"] not in seen_cols:
+                combined_mapping.append(m)
+                seen_cols.add(m["uploaded_column"])
+
+    if join_method == "real_key_join":
+        all_ids_union = set.union(*ids_by_file.values())
+        all_unique_students = len(all_ids_union)
+        unmatched_count = all_unique_students - len(common_ids)
+
+        # Build index for each file by ID
+        indexes_by_file = {}
+        for pf in parsed_files:
+            fname = pf["filename"]
+            col = id_col_by_file[fname]
+            indexes_by_file[fname] = {
+                str(r.get(col, "")).strip(): r
+                for r in pf["all_records"]
+                if str(r.get(col, "")).strip()
+            }
+
+        # Stitch all N files for each common student ID
+        for sid in sorted(list(common_ids)):
+            merged: Dict[str, Any] = {}
+            for pf in parsed_files:
+                fname = pf["filename"]
+                row_data = indexes_by_file[fname].get(sid, {})
+                merged.update(row_data)
+            stitched_records.append(merged)
+            matched_count += 1
+
+    else:
+        # Approximate matching
+        min_rows = min(len(pf["all_records"]) for pf in parsed_files)
+        max_rows = max(len(pf["all_records"]) for pf in parsed_files)
+        all_unique_students = max_rows
+        unmatched_count = max_rows - min_rows
+
         def _find_performance_col(headers: List[str]) -> Optional[str]:
             performance_keywords = ["cgpa", "gpa", "marks", "score", "grade", "performance",
                                     "study", "attendance", "dsa", "aptitude"]
@@ -2094,8 +2281,15 @@ async def csv_stitch(
                     return h
             return headers[0] if headers else None
 
-        # Use first file as anchor
-        anchor = parsed_files[0]
+        # Truncate each file to min_rows to guarantee 1:1 matching honesty
+        truncated_files = []
+        for pf in parsed_files:
+            truncated_files.append({
+                **pf,
+                "all_records": pf["all_records"][:min_rows]
+            })
+
+        anchor = truncated_files[0]
         perf_col_anchor = _find_performance_col(anchor["headers"])
 
         if perf_col_anchor and anchor["all_records"]:
@@ -2106,7 +2300,6 @@ async def csv_stitch(
                 except ValueError:
                     anchor_vals.append(0.0)
 
-            # Assign tertiles
             if len(anchor_vals) >= 3:
                 t33 = float(np.percentile(anchor_vals, 33))
                 t66 = float(np.percentile(anchor_vals, 66))
@@ -2118,8 +2311,7 @@ async def csv_stitch(
                 for r, v in zip(anchor["all_records"], anchor_vals):
                     anchor_by_tertile[_tertile(v)].append(r)
 
-                # Merge subsequent files within each tertile band
-                for sec_file in parsed_files[1:]:
+                for sec_file in truncated_files[1:]:
                     sec_perf_col = _find_performance_col(sec_file["headers"])
                     if not sec_perf_col:
                         continue
@@ -2148,7 +2340,6 @@ async def csv_stitch(
                         s_rows = sec_by_tertile[band]
                         if not a_rows or not s_rows:
                             continue
-                        # Round-robin merge within band
                         for k, a_row in enumerate(a_rows):
                             s_row = s_rows[k % len(s_rows)]
                             anchor_by_tertile[band][k] = {**a_row, **s_row}
@@ -2158,28 +2349,21 @@ async def csv_stitch(
                     matched_count += len(anchor_by_tertile[band])
             else:
                 stitched_records = anchor["all_records"]
+                matched_count = len(stitched_records)
         else:
             stitched_records = anchor["all_records"]
+            matched_count = len(stitched_records)
 
-        # Build combined mapping from all files
-        seen_cols: set = set()
-        combined_mapping = []
-        for pf in parsed_files:
-            for m in pf["col_mapping"]:
-                if m["uploaded_column"] not in seen_cols:
-                    combined_mapping.append(m)
-                    seen_cols.add(m["uploaded_column"])
-
-    # ── Run batch assessment on stitched records ───────────────────────────────
+    # ── Run batch assessment on stitched records ───────────────────────────
     batch_result = _apply_mapping_and_assess_batch(
         stitched_records, combined_mapping, label_prefix="Stitched"
     )
 
-    # ── Build lineage summary ──────────────────────────────────────────────────
+    # ── Build lineage summary ──────────────────────────────────────────────
     lineage = {
         "join_method": join_method,
         "join_method_label": (
-            f"Real key join on '{shared_key}' column"
+            f"Real key join on shared ID across all {len(parsed_files)} files"
             if join_method == "real_key_join"
             else "Approximate matching (tertile/performance-band) — no shared ID column found across your files"
         ),
@@ -2195,7 +2379,11 @@ async def csv_stitch(
             )
         ),
         "files_uploaded": [pf["filename"] for pf in parsed_files],
-        "files_in_join": join_files_involved if join_method == "real_key_join" else [pf["filename"] for pf in parsed_files],
+        "files_in_join": [pf["filename"] for pf in parsed_files],
+        "common_row_count": len(stitched_records),
+        "total_unique_students": all_unique_students,
+        "excluded_count": unmatched_count,
+        "is_partial_opt_in": bool(unmatched_count > 0 and allow_partial),
         "matched_rows": matched_count,
         "unmatched_rows": unmatched_count,
         "stitched_total_rows": len(stitched_records),

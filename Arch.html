@@ -3263,12 +3263,12 @@
                 </div>
                 <div style="margin-top: 8px; font-size: 0.85rem; line-height: 1.55; color: var(--text);">
                   <div style="margin-bottom: 6px;">
-                    <strong>Decision Verdict:</strong> Cleared all swap criteria with margin &mdash; <strong>exceeded recall threshold by 2.38x</strong>.
+                    <strong>Decision Verdict:</strong> Cleared all swap criteria with margin &mdash; <strong>exceeded recall threshold by 2.54x</strong>.
                   </div>
                   <ul style="padding-left: 18px; margin: 6px 0; font-size: 0.82rem; color: var(--text-secondary);">
                     <li><strong>Stated Operational Swap Threshold:</strong> Requires &Delta;Recall &ge; +0.020 (+200 bps) with no degradation in ROC AUC (&Delta;AUC &ge; 0.000) or Precision (&Delta;Prec &ge; 0.000).</li>
-                    <li><strong>Actual Measured Gains:</strong> &Delta;Recall = <strong>+0.0477</strong> (0.4991 vs 0.4514, <strong>2.38x threshold</strong>), &Delta;AUC = <strong>+0.0146</strong> (0.5190 vs 0.5044), &Delta;Precision = <strong>+0.0103</strong> (0.3333 vs 0.3230). All 3 conditions cleared with margin.</li>
-                    <li><strong>Institutional Yield:</strong> Flags <strong>+76 additional at-risk students</strong> (796 vs 720) on the 5,000-student test split, cutting undetected false negatives from 875 to 799.</li>
+                    <li><strong>Actual Measured Gains:</strong> &Delta;Recall = <strong>+0.0508</strong> (0.5022 vs 0.4514, <strong>2.54x threshold</strong>), &Delta;AUC = <strong>+0.0146</strong> (0.5190 vs 0.5044), &Delta;Precision = <strong>+0.0116</strong> (0.3346 vs 0.3230). All 3 conditions cleared with margin.</li>
+                    <li><strong>Institutional Yield:</strong> Flags <strong>+81 additional at-risk students</strong> (801 vs 720) on the 5,000-student test split, cutting undetected false negatives from 875 to 794.</li>
                     <li><strong>Operational Advantages:</strong> Shrinks artifact size from 4.6 MB to &lt;3 KB, slashes latency from 12 ms to &lt;0.2 ms, and replaces black-box trees with transparent signed log-odds coefficients (<code>.coef_</code>).</li>
                   </ul>
                 </div>
@@ -3497,15 +3497,15 @@
                   <td style="text-align: center;">#1</td>
                   <td><strong>Logistic Regression</strong></td>
                   <td><span class="chip chip-green" style="font-weight: 700;">SWAPPED PRODUCTION</span></td>
-                  <td class="numeric" style="color: var(--primary); font-weight: 700;">0.4991 (49.9%)</td>
+                  <td class="numeric" style="color: var(--primary); font-weight: 700;">0.5022 (50.22%)</td>
                   <td class="numeric">0.5190</td>
-                  <td class="numeric">0.3333</td>
-                  <td class="numeric">0.3997</td>
-                  <td class="numeric">0.5218</td>
-                  <td class="numeric">796</td>
-                  <td class="numeric">799</td>
-                  <td class="numeric" style="font-family: 'JetBrains Mono', monospace; font-weight: 600;">+0.0477</td>
-                  <td><span class="chip chip-green" style="font-weight: 700;">Winner (Cleared 2.38x)</span></td>
+                  <td class="numeric">0.3346</td>
+                  <td class="numeric">0.4016</td>
+                  <td class="numeric">0.5226</td>
+                  <td class="numeric">801</td>
+                  <td class="numeric">794</td>
+                  <td class="numeric" style="font-family: 'JetBrains Mono', monospace; font-weight: 600;">+0.0508</td>
+                  <td><span class="chip chip-green" style="font-weight: 700;">Winner (Cleared 2.54x)</span></td>
                 </tr>
                 <tr >
                   <td style="text-align: center;">#2</td>
@@ -3664,6 +3664,9 @@
                 </tbody>
               </table>
             </div>
+            <p style="margin-top: 8px; font-size: 0.78rem; color: var(--muted); font-style: italic;">
+              * Note: Logistic Regression metrics (Recall=0.5022, Precision=0.3346, Accuracy=0.5226) reflect the final production retrain and tuning pass of the same algorithm, superseding initial benchmark exploration figures.
+            </p>
           </div>
 
           <!-- DEGENERATE CANDIDATES CALLOUT -->
@@ -3827,7 +3830,7 @@
             </div>
             <div class="flow-ribbon-step highlight">
               <span class="step-badge">Stage 3 · Generation</span>
-              <div class="step-title">gemini-3.6-flash</div>
+              <div class="step-title">gemini-3.5-flash-lite</div>
               <div class="step-sub">Zero-hallucination prompt bounds</div>
             </div>
             <div class="flow-pipe-h">
@@ -3847,7 +3850,7 @@
           <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
             <div class="stat-card" style="flex: 1; min-width: 220px;">
               <div class="stat-label">Active Gemini Model</div>
-              <div class="stat-val" style="font-size: 1.15rem; color: var(--primary);">gemini-3.6-flash</div>
+              <div class="stat-val" style="font-size: 1.15rem; color: var(--primary);">gemini-3.5-flash-lite</div>
               <div class="stat-desc">Configured in insights.py with flash fallback list</div>
             </div>
             <div class="stat-card" style="flex: 1; min-width: 220px;">

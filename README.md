@@ -58,8 +58,8 @@ For the complete end-to-end system architecture and interactive data flow diagra
 | Layer | Technologies |
 | :--- | :--- |
 | **Data Engineering** | Python 3.11, Pandas, PostgreSQL 16 (Star Schema), SQLite fallback, Docker Compose |
-| **Machine Learning** | Scikit-Learn (GradientBoostingRegressor, RandomForestClassifier), Joblib |
-| **Generative AI** | Google Gemini API (with deterministic offline fallback engine) |
+| **Machine Learning** | Scikit-Learn (GradientBoostingRegressor, LogisticRegression), Joblib |
+| **Generative AI** | Google Gemini API (`gemini-3.5-flash-lite`, with deterministic offline fallback engine) |
 | **Backend API** | FastAPI, Uvicorn, SQLAlchemy, Pydantic |
 | **Frontend Dashboard** | HTML5, Tailwind CSS, Vanilla JavaScript, Chart.js |
 
@@ -161,7 +161,7 @@ Campus360/
 │   │   └── run_pipeline.py             # CLI runner orchestrating Stages 1-4 end-to-end
 │   ├── models/                         # Machine learning model training scripts
 │   │   ├── train_performance_model.py  # Model 1: Gradient Boosting CGPA regressor
-│   │   ├── train_atrisk_model.py       # Model 2: Balanced Random Forest at-risk classifier
+│   │   ├── train_atrisk_model.py       # Model 2: Balanced Logistic Regression at-risk classifier
 │   │   ├── train_career_model.py       # Career readiness multi-pillar scoring engine
 │   │   └── train_suvidya_ceiling_test.py # Non-circular ceiling validation harness
 │   ├── api/                            # Production FastAPI backend services

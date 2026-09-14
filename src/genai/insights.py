@@ -1,6 +1,6 @@
 """
 src/genai/insights.py
-GenAI Insights Layer for Campus360 using Google Gemini API (gemini-2.5-flash).
+GenAI Insights Layer for Campus360 using Google Gemini API (gemini-3.5-flash-lite).
 Generates faculty/mentor-facing summaries from pre-computed model outputs.
 Gemini synthesizes and explains — it never generates new predictions or numbers of its own.
 
@@ -91,7 +91,7 @@ def _get_model1() -> Tuple[Any, dict, dict]:
 
 
 def _get_model2() -> Tuple[Any, dict]:
-    """Loads Model 2 (RandomForestClassifier) and metadata."""
+    """Loads Model 2 (LogisticRegression) and metadata."""
     global _MODEL2_CACHE
     if _MODEL2_CACHE is not None:
         return _MODEL2_CACHE
@@ -139,6 +139,21 @@ def is_gemini_token_available() -> Tuple[bool, str]:
 
 # Circuit breaker for quota exhaustion (prevents blocking subsequent requests when rate limited)
 _QUOTA_CIRCUIT_BREAKER_UNTIL = 0.0
+_GEMINI_CLIENT = None
+_GEMINI_CLIENT_KEY = None
+
+
+def _get_gemini_client():
+    """Returns cached genai.Client instance, re-initializing only if key changes."""
+    global _GEMINI_CLIENT, _GEMINI_CLIENT_KEY
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return None
+    if _GEMINI_CLIENT is None or _GEMINI_CLIENT_KEY != api_key:
+        from google import genai
+        _GEMINI_CLIENT = genai.Client(api_key=api_key)
+        _GEMINI_CLIENT_KEY = api_key
+    return _GEMINI_CLIENT
 
 
 def _call_gemini(prompt: str, timeout_sec: float = 7.0) -> Tuple[Optional[str], Optional[str], Optional[str]]:
@@ -158,8 +173,9 @@ def _call_gemini(prompt: str, timeout_sec: float = 7.0) -> Tuple[Optional[str], 
         return None, None, token_msg
 
     try:
-        from google import genai
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY", "").strip())
+        client = _get_gemini_client()
+        if client is None:
+            return None, None, "Gemini client could not be initialized."
         candidate_models = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.7-flash"]
 
         def _do_call(m_name: str):
@@ -195,6 +211,7 @@ def _call_gemini(prompt: str, timeout_sec: float = 7.0) -> Tuple[Optional[str], 
                     last_reason = "Gemini API quota exhausted (429 rate limit). Cooling off for 60s."
                     return None, None, last_reason
                 if "404" in err_str or "not found" in err_str.lower() or "no longer available" in err_str.lower():
+                    print(f"[genai] Model {m} unavailable ({err_str[:60]}). Falling back to next candidate model.", file=sys.stderr)
                     continue
                 print(f"[genai] Gemini model {m} call error: {model_err}", file=sys.stderr)
                 last_reason = f"Gemini model {m} error: {err_str[:60]}"

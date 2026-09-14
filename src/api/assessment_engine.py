@@ -765,25 +765,29 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
             else:
                 career_narrative = None
     else:
-        atrisk_brief = _fallback_atrisk_brief(atrisk_payload)
-        performance_summary = _fallback_performance_summary(perf_payload)
+        atrisk_brief = None
+        performance_summary = None
         career_narrative = None
 
     # Compute if any AI insight fell back
     from src.genai.insights import is_gemini_token_available
     token_ok, _ = is_gemini_token_available()
 
-    gemini_fallback_active = bool(
-        (atrisk_brief and atrisk_brief.get("is_fallback")) or
-        (performance_summary and performance_summary.get("is_fallback")) or
-        (career_narrative and career_narrative.get("is_fallback"))
-    )
-    if gemini_fallback_active:
-        if not token_ok:
-            fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Real-time deterministic statistical fallback was applied."
+    if include_genai:
+        gemini_fallback_active = bool(
+            (atrisk_brief and atrisk_brief.get("is_fallback")) or
+            (performance_summary and performance_summary.get("is_fallback")) or
+            (career_narrative and career_narrative.get("is_fallback"))
+        )
+        if gemini_fallback_active:
+            if not token_ok:
+                fallback_notice = "Gemini token is not available (GEMINI_API_KEY unset). Real-time deterministic statistical fallback was applied."
+            else:
+                fallback_notice = "Gemini AI was not responding or rate-limited. Real-time deterministic statistical fallback was applied."
         else:
-            fallback_notice = "Gemini AI was not responding or rate-limited. Real-time deterministic statistical fallback was applied."
+            fallback_notice = None
     else:
+        gemini_fallback_active = False
         fallback_notice = None
 
     t_total = (time.perf_counter() - t_start) * 1000
@@ -811,6 +815,11 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         "atrisk_brief": atrisk_brief,
         "performance_summary": performance_summary,
         "career_narrative": career_narrative,
+        "genai_payloads": {
+            "atrisk_payload": atrisk_payload,
+            "perf_payload": perf_payload,
+            "career_payload": career_payload,
+        },
         "gemini_fallback_active": gemini_fallback_active,
         "token_available": token_ok,
         "fallback_notice": fallback_notice,

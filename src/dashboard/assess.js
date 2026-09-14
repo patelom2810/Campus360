@@ -183,7 +183,7 @@ function renderRealProgressBar(containerId, options = {}) {
       <div class="grid grid-cols-4 gap-2 mt-3.5 text-[11px] text-campus-muted font-medium">
         ${stepLabels.map((s, idx) => `
           <div id="${prefix}-step-${idx+1}" class="flex items-center gap-1.5 ${idx === 0 ? 'text-campus-primary font-semibold' : ''}">
-            <span class="w-2 h-2 rounded-full ${idx === 0 ? 'bg-campus-primary' : 'bg-[#EDEBFB]'} flex-shrink-0"></span>
+            <span class="w-2 h-2 rounded-full ${idx === 0 ? 'bg-campus-primary' : 'bg-[var(--pastel-lavender)]'} flex-shrink-0"></span>
             <span class="truncate">${s}</span>
           </div>
         `).join('')}
@@ -216,7 +216,7 @@ function renderRealProgressBar(containerId, options = {}) {
             if (dot) dot.className = 'w-2 h-2 rounded-full bg-campus-primary flex-shrink-0';
           } else {
             stepEl.className = 'flex items-center gap-1.5 text-campus-muted font-medium';
-            if (dot) dot.className = 'w-2 h-2 rounded-full bg-[#EDEBFB] flex-shrink-0';
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-[var(--pastel-lavender)] flex-shrink-0';
           }
         }
       }
@@ -245,7 +245,7 @@ function formatFloat(val, decimals = 2) {
  * Renders a full single-student assessment result into a container element.
  * Used by Option 3 (chat), Option 4 (form), and batch row expansion.
  */
-function renderSingleResult(containerId, data, label = null) {
+function renderSingleResult(containerId, data, label = null, shouldScroll = true) {
   const el = document.getElementById(containerId);
   if (!el) return;
 
@@ -268,32 +268,31 @@ function renderSingleResult(containerId, data, label = null) {
   if (career) {
     const score = career.career_readiness_score;
     const peerAvg = career.peer_benchmark?.peer_avg_readiness;
-    const peerGroup = career.peer_benchmark?.peer_group || 'Population';
-    const topGap = career.skill_gap_breakdown?.[0];
-    const suggestion = career.suggested_focus_area?.suggestion || '';
-    const gaugeColor = score >= 65 ? '#4CAF7D' : score >= 40 ? '#F59E0B' : '#E85D75';
+    const gaps = career.skill_gap_breakdown || [];
+    const suggestion = career.suggested_focus_area?.suggestion;
 
-    // Skill gap bars
-    const gapBars = (career.skill_gap_breakdown || []).slice(0, 6).map(g => {
-      const pct = g.percentile_in_branch;
-      const barColor = pct >= 60 ? '#4CAF7D' : pct >= 35 ? '#F59E0B' : '#E85D75';
+    const gaugeColor = score >= 65 ? '#4CAF7D' : score >= 40 ? '#F59E0B' : '#E85D75';
+    const gaugeClass = score >= 65 ? 'gauge-fill-high' : score >= 40 ? 'gauge-fill-medium' : 'gauge-fill-low';
+
+    const gapBars = gaps.map(g => {
+      const p = Math.round(g.percentile_in_branch);
+      const barColor = p >= 65 ? 'bg-campus-success' : p >= 40 ? 'bg-campus-warning' : 'bg-campus-danger';
       return `
         <div class="mb-2">
           <div class="flex justify-between text-xs mb-1">
-            <span class="text-campus-text">${g.label}</span>
-            <span class="text-campus-muted font-medium">${formatFloat(pct, 0)}th %ile</span>
+            <span class="text-campus-text font-medium">${g.label}</span>
+            <span class="text-campus-muted font-mono">${p}th percentile</span>
           </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+          <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="${barColor} h-full rounded-full transition-all duration-500" style="width:${p}%"></div>
+          </div>
         </div>`;
     }).join('');
 
     careerSection = `
-      <div class="result-card mt-4">
-        <div class="flex items-center justify-between mb-4">
-          <h4 class="sora font-semibold text-campus-text">Career Readiness</h4>
-          <span class="text-xs text-campus-muted">${peerGroup}</span>
-        </div>
-        <div class="flex items-center gap-6 mb-4">
+      <div class="result-card mb-4">
+        <h4 class="sora font-semibold text-campus-text mb-4 text-base">Career Readiness Benchmark</h4>
+        <div class="flex items-center justify-around mb-6 p-4 bg-campus-lavender rounded-2xl">
           <div class="text-center">
             <div class="sora text-3xl font-bold" style="color:${gaugeColor}">${formatFloat(score, 1)}</div>
             <div class="text-xs text-campus-muted mt-0.5">/ 100</div>
@@ -320,7 +319,7 @@ function renderSingleResult(containerId, data, label = null) {
   if (defaulted.length > 0) {
     const fieldLabels = defaulted.map(f => f.replace('anchor_', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
     defaultedSection = `
-      <div class="p-3 rounded-xl bg-campus-lavender border border-[#EDEBFB] text-xs text-campus-muted mt-4">
+      <div class="p-3 rounded-xl bg-campus-lavender border border-[var(--pastel-lavender)] text-xs text-campus-muted mt-4">
         <span class="font-semibold text-campus-primary inline-flex items-center gap-1.5">
           <svg class="w-3.5 h-3.5 text-campus-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
           Fields filled with population medians:
@@ -330,11 +329,14 @@ function renderSingleResult(containerId, data, label = null) {
   }
 
   // GenAI brief cards & fallback detection
+  const isPending = Boolean(data.genai_pending);
   const isFallback = Boolean(
-    data.gemini_fallback_active ||
-    data.atrisk_brief?.is_fallback ||
-    data.performance_summary?.is_fallback ||
-    data.career_narrative?.is_fallback
+    !isPending && (
+      data.gemini_fallback_active ||
+      data.atrisk_brief?.is_fallback ||
+      data.performance_summary?.is_fallback ||
+      data.career_narrative?.is_fallback
+    )
   );
 
   if (isFallback) {
@@ -395,17 +397,77 @@ function renderSingleResult(containerId, data, label = null) {
     } : null,
   ].filter(Boolean);
 
-  const genaiHtml = genaiCards.map(card => `
-    <div class="result-card" style="border-color:${card.border}40;background:${card.color}40;">
-      <div class="flex items-center justify-between mb-2">
-        <h4 class="sora font-semibold text-campus-text text-sm">${card.title}</h4>
-        ${card.isFallback
-          ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">Rule Fallback</span>`
-          : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-[#6C5CE7] border border-purple-200">Gemini Live</span>`}
-      </div>
-      <p class="text-sm text-campus-text leading-relaxed">${card.text}</p>
-      ${card.isFallback ? `<p class="text-xs text-amber-800/80 mt-2 inline-flex items-center gap-1"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> Statistical rules template used (Gemini not responding)</p>` : ''}
-    </div>`).join('');
+  let genaiHtml = '';
+  if (isPending) {
+    genaiHtml = `
+      <div class="mt-4" id="genai-section-${containerId}">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="sora font-semibold text-campus-text text-sm flex items-center gap-2">
+            <span>AI Mentor & Trajectory Insights</span>
+          </h4>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-[var(--primary)] border border-purple-200">
+            <span class="w-2 h-2 rounded-full bg-[var(--primary)] animate-ping"></span>
+            Generating live Gemini insights...
+          </span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="genai-cards-${containerId}">
+          <div class="result-card p-4 border border-purple-200/60 bg-purple-50/30 animate-pulse">
+            <div class="flex items-center justify-between mb-3">
+              <span class="sora font-semibold text-xs text-purple-900">At-Risk Mentor Brief</span>
+              <span class="h-3 w-16 bg-purple-200 rounded"></span>
+            </div>
+            <div class="space-y-2">
+              <div class="h-2.5 bg-purple-200/70 rounded w-full"></div>
+              <div class="h-2.5 bg-purple-200/60 rounded w-5/6"></div>
+              <div class="h-2.5 bg-purple-200/50 rounded w-4/6"></div>
+            </div>
+          </div>
+          <div class="result-card p-4 border border-blue-200/60 bg-blue-50/30 animate-pulse">
+            <div class="flex items-center justify-between mb-3">
+              <span class="sora font-semibold text-xs text-blue-900">Academic Trajectory</span>
+              <span class="h-3 w-16 bg-blue-200 rounded"></span>
+            </div>
+            <div class="space-y-2">
+              <div class="h-2.5 bg-blue-200/70 rounded w-full"></div>
+              <div class="h-2.5 bg-blue-200/60 rounded w-5/6"></div>
+              <div class="h-2.5 bg-blue-200/50 rounded w-3/6"></div>
+            </div>
+          </div>
+          <div class="result-card p-4 border border-green-200/60 bg-green-50/30 animate-pulse">
+            <div class="flex items-center justify-between mb-3">
+              <span class="sora font-semibold text-xs text-green-900">Career Guidance</span>
+              <span class="h-3 w-16 bg-green-200 rounded"></span>
+            </div>
+            <div class="space-y-2">
+              <div class="h-2.5 bg-green-200/70 rounded w-full"></div>
+              <div class="h-2.5 bg-green-200/60 rounded w-5/6"></div>
+              <div class="h-2.5 bg-green-200/50 rounded w-4/6"></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  } else if (genaiCards.length > 0) {
+    const cardsHtml = genaiCards.map(card => `
+      <div class="result-card" style="border-color:${card.border}40;background:${card.color}40;">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="sora font-semibold text-campus-text text-sm">${card.title}</h4>
+          ${card.isFallback
+            ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">Rule Fallback</span>`
+            : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-[var(--primary)] border border-purple-200">Gemini Live</span>`}
+        </div>
+        <p class="text-sm text-campus-text leading-relaxed">${card.text}</p>
+        ${card.isFallback ? `<p class="text-xs text-amber-800/80 mt-2 inline-flex items-center gap-1"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> Statistical rules template used (Gemini not responding)</p>` : ''}
+      </div>`).join('');
+
+    genaiHtml = `
+      <div class="mt-4" id="genai-section-${containerId}">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="sora font-semibold text-campus-text text-sm">AI Mentor & Trajectory Insights</h4>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-[var(--primary)] border border-purple-200">Gemini Live</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="genai-cards-${containerId}">${cardsHtml}</div>
+      </div>`;
+  }
 
   el.innerHTML = `
     <div style="animation: fadeUp 0.4s ease forwards;">
@@ -455,11 +517,7 @@ function renderSingleResult(containerId, data, label = null) {
       ${careerSection}
 
       <!-- GenAI Briefs -->
-      ${genaiHtml ? `
-      <div class="mt-4">
-        <h4 class="sora font-semibold text-campus-text mb-3">GenAI Insights</h4>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">${genaiHtml}</div>
-      </div>` : ''}
+      ${genaiHtml}
 
       ${defaultedSection}
     </div>`;
@@ -498,7 +556,23 @@ function renderBatchResults(containerId, data, source = 'csv') {
   let lineageHtml = '';
   if (lineage) {
     const isApprox = lineage.is_approximate;
+    const isPartial = Boolean(lineage.is_partial_opt_in || (lineage.excluded_count && lineage.excluded_count > 0));
+    const partialBanner = isPartial ? `
+      <div class="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between shadow-xs">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-amber-200/80 text-amber-800 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 text-amber-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </div>
+          <div>
+            <span class="font-bold text-amber-950">Common Subset Assessed:</span>
+            <span class="text-amber-900 ml-1">Assessed <strong>${summary.successfully_assessed || summary.total_rows}</strong> of <strong>${lineage.total_unique_students || (summary.total_rows + lineage.excluded_count)}</strong> uploaded students — <strong>${lineage.excluded_count}</strong> were excluded due to missing data in one or more files.</span>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 rounded-lg bg-amber-200/70 text-amber-900 font-semibold text-[10px] uppercase tracking-wider flex-shrink-0">Filtered Subset</span>
+      </div>` : '';
+
     lineageHtml = `
+      ${partialBanner}
       <div class="mb-5 p-4 rounded-xl ${isApprox ? 'bg-yellow-50 border border-yellow-200' : 'bg-campus-mint border border-green-200'}">
         <div class="flex items-start gap-2">
           <span class="${isApprox ? 'badge-approx' : 'badge-ok'} mt-0.5">${isApprox ? 'Approximate' : 'Real Join'}</span>
@@ -605,11 +679,67 @@ function toggleBatchDetail(detailRowId, containerId, idx) {
     // Render the single-student result into the detail content
     const result = el._batchResults?.[idx];
     if (result?.assessment) {
-      // We need to render into the contentEl
       const tempId = `temp-${detailRowId}`;
       contentEl.innerHTML = `<div id="${tempId}"></div>`;
-      renderSingleResult(tempId, result.assessment, `Row ${result.row_index}`);
+      renderSingleResult(tempId, result.assessment, `Row ${result.row_index}`, false);
+
+      // If GenAI briefs not yet generated for this batch row, show the on-demand generation action
+      if (!result.assessment.atrisk_brief && result.assessment.genai_payloads) {
+        const onDemandCard = document.createElement('div');
+        onDemandCard.id = `ondemand-box-${tempId}`;
+        onDemandCard.className = 'mt-4 p-4 rounded-xl bg-purple-50/70 border border-purple-200 flex flex-col sm:flex-row items-center justify-between gap-3';
+        onDemandCard.innerHTML = `
+          <div class="flex items-center gap-2.5 text-xs text-purple-900">
+            <span class="text-base">✨</span>
+            <div>
+              <span class="font-bold">Live Gemini Mentor Briefs Available:</span>
+              <span class="ml-1">Generate personalized AI narrative briefs and trajectory forecasts for Student #${result.row_index}.</span>
+            </div>
+          </div>
+          <button type="button" id="btn-ondemand-${tempId}" onclick="generateBatchRowGenAI('${tempId}', '${containerId}', ${idx})" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold hover:bg-[#5b4bc4] transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 shadow-xs">
+            <span>✨ Generate Live Gemini Brief</span>
+          </button>
+        `;
+        contentEl.appendChild(onDemandCard);
+      }
     }
+  }
+}
+
+// ── On-demand GenAI Brief Generator for Batch Rows ─────────────────────────────
+async function generateBatchRowGenAI(tempId, containerId, idx) {
+  const el = document.getElementById(containerId);
+  const result = el?._batchResults?.[idx];
+  if (!result?.assessment?.genai_payloads) return;
+
+  const btn = document.getElementById(`btn-ondemand-${tempId}`);
+  showLoading(btn, 'Generating with Gemini…');
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/assess/genai-insights`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(result.assessment.genai_payloads),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const insights = await resp.json();
+
+    // Cache insights on the result object
+    result.assessment.atrisk_brief = insights.atrisk_brief;
+    result.assessment.performance_summary = insights.performance_summary;
+    result.assessment.career_narrative = insights.career_narrative;
+    result.assessment.gemini_fallback_active = insights.gemini_fallback_active;
+    result.assessment.token_available = insights.token_available;
+    result.assessment.fallback_notice = insights.fallback_notice;
+
+    // Remove ondemand box and re-render single result inside tempId
+    const ondemandBox = document.getElementById(`ondemand-box-${tempId}`);
+    if (ondemandBox) ondemandBox.remove();
+    renderSingleResult(tempId, result.assessment, `Row ${result.row_index}`, false);
+    showToast(`Live Gemini briefs generated for Student #${result.row_index}`, 'success', 3000);
+  } catch (err) {
+    restoreButton(btn);
+    showToast('Failed to generate GenAI briefs: ' + err.message, 'error', 4000);
   }
 }
 
@@ -622,7 +752,7 @@ async function handleCSVUpload(event) {
 
   const statusEl = document.getElementById('csv-upload-status');
   statusEl.innerHTML = `<div class="flex items-center gap-2 text-campus-muted text-sm">
-    <span class="spinner" style="border-color: rgba(108,92,231,0.3); border-top-color: #6C5CE7;"></span>
+    <span class="spinner" style="border-color: rgba(108,92,231,0.3); border-top-color: var(--primary);"></span>
     Uploading and analysing columns…
   </div>`;
   statusEl.classList.remove('hidden');
@@ -666,10 +796,6 @@ async function handleCSVUpload(event) {
 function renderMappingTable(mappings, schemaFeatures) {
   const tbody = document.getElementById('csv-mapping-tbody');
 
-  const optionsHtml = ['__skip__ (ignore this column)', ...schemaFeatures]
-    .map(f => `<option value="${f === '__skip__ (ignore this column)' ? '__skip__' : f}">${f}</option>`)
-    .join('');
-
   tbody.innerHTML = mappings.map((m, idx) => {
     const confidence = m.confidence;
     const badge = m.needs_review
@@ -677,13 +803,13 @@ function renderMappingTable(mappings, schemaFeatures) {
       : `<span class="badge-ok inline-flex items-center gap-1"><svg class="w-3 h-3 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> ${confidence.toFixed(0)}%</span>`;
 
     const selectedOption = m.matched_to_feature || '__skip__';
+    const skipOptionHtml = `<option value="__skip__" ${selectedOption === '__skip__' ? 'selected' : ''}>Skip this column</option>`;
+    const featureOptionsHtml = schemaFeatures.map(f => `<option value="${f}" ${f === selectedOption ? 'selected' : ''}>${f}</option>`).join('');
     const selectHtml = `
       <select id="mapping-select-${idx}" class="form-input text-xs py-1.5" style="min-width:200px;"
         onchange="updateMapping(${idx}, this.value)">
-        ${['__skip__ (ignore this column)', ...schemaFeatures].map(f => {
-          const val = f === '__skip__ (ignore this column)' ? '__skip__' : f;
-          return `<option value="${val}" ${val === selectedOption ? 'selected' : ''}>${f}</option>`;
-        }).join('')}
+        ${skipOptionHtml}
+        ${featureOptionsHtml}
       </select>`;
 
     const sampleVals = (m.sample_values || []).slice(0, 3).join(', ') || '—';
@@ -1205,11 +1331,11 @@ async function handleStitchUpload(event) {
   renderStitchBasket();
 }
 
-async function runStitchAssessment() {
+async function runStitchAssessment(allowPartial = false) {
   if (!state.stitchFiles || state.stitchFiles.length < 2) return;
 
   const btn = document.getElementById('stitch-run-btn');
-  showLoading(btn, 'Stitching & assessing…');
+  showLoading(btn, allowPartial ? 'Assessing common rows…' : 'Stitching & assessing…');
 
   const totalBytes = state.stitchFiles.reduce((acc, f) => acc + f.size, 0);
   const totalMB = (totalBytes / (1024 * 1024)).toFixed(1);
@@ -1217,7 +1343,9 @@ async function runStitchAssessment() {
 
   const tracker = renderRealProgressBar('stitch-status', {
     prefix: 'stitch-prog',
-    title: `Stitching ${state.stitchFiles.length} Datasets (${totalMB} MB)`,
+    title: allowPartial
+      ? `Assessing Common Rows across ${state.stitchFiles.length} Datasets`
+      : `Stitching ${state.stitchFiles.length} Datasets (${totalMB} MB)`,
     initialDetail: `Transferring files and locking stitch key "${detectedKey}"...`,
     steps: [
       '1. Transfer Datasets',
@@ -1229,7 +1357,7 @@ async function runStitchAssessment() {
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE}/api/assess/csv-stitch`);
+    xhr.open('POST', `${API_BASE}/api/assess/csv-stitch${allowPartial ? '?allow_partial=true' : ''}`);
 
     let processingTimer = null;
 
@@ -1289,6 +1417,18 @@ async function runStitchAssessment() {
           showError('stitch-status', 'Failed to parse assessment response: ' + e.message);
           reject(e);
         }
+      } else if (xhr.status === 422) {
+        restoreButton(btn);
+        try {
+          const errObj = JSON.parse(xhr.responseText);
+          if (errObj.error === 'row_mismatch') {
+            renderStitchMismatchCard('stitch-status', errObj);
+            resolve(errObj);
+            return;
+          }
+        } catch (_) {}
+        showError('stitch-status', 'Validation error: ' + (xhr.responseText || 'Unprocessable Entity'));
+        reject(new Error('Validation error'));
       } else {
         restoreButton(btn);
         let errDetail = `Server error (${xhr.status})`;
@@ -1310,8 +1450,115 @@ async function runStitchAssessment() {
 
     const formData = new FormData();
     state.stitchFiles.forEach(f => formData.append('files', f));
+    formData.append('allow_partial', allowPartial ? 'true' : 'false');
     xhr.send(formData);
   });
+}
+
+// ── Multi-CSV Mismatch Table Card & Action Handlers ────────────────────────────
+function renderStitchMismatchCard(containerId, errData) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const commonCount = errData.common_row_count || 0;
+  const totalFiles = errData.total_files || 0;
+  const mismatches = errData.per_file_mismatch || [];
+
+  const fileRows = mismatches.map(item => {
+    const missingList = item.missing_from_other_files || [];
+    const displayList = missingList.slice(0, 15);
+    const extraCount = missingList.length - displayList.length;
+
+    const badges = displayList.map(id => `
+      <span class="inline-block font-mono text-[11px] px-2 py-0.5 rounded bg-red-100/90 text-red-700 border border-red-200">
+        ${id}
+      </span>
+    `).join(' ');
+
+    const extraBadge = extraCount > 0
+      ? `<span class="inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
+           +${extraCount} more
+         </span>`
+      : '';
+
+    return `
+      <tr class="border-b border-red-100">
+        <td class="py-2.5 px-3 font-semibold text-campus-text text-xs whitespace-nowrap">
+          <div class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-campus-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            ${item.filename}
+          </div>
+        </td>
+        <td class="py-2.5 px-3 text-red-700 font-bold text-xs text-center whitespace-nowrap">
+          ${item.count} row${item.count === 1 ? '' : 's'}
+        </td>
+        <td class="py-2.5 px-3 text-xs leading-relaxed">
+          <div class="flex flex-wrap gap-1 items-center">
+            ${badges} ${extraBadge}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="animation: fadeUp 0.3s ease forwards;" class="p-5 rounded-2xl bg-red-50/70 border-2 border-red-200 shadow-sm mt-3">
+      <div class="flex items-start gap-3 mb-3">
+        <div class="w-8 h-8 rounded-xl bg-red-100 text-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg class="w-5 h-5 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div>
+          <h4 class="sora font-bold text-red-900 text-base">Row Mismatch Detected</h4>
+          <p class="text-xs text-red-800 mt-1 leading-relaxed">
+            ${errData.message || 'Not all rows are common across every uploaded file. Every student must appear in all files to be assessed.'}
+          </p>
+        </div>
+      </div>
+
+      <!-- Mismatch table -->
+      <div class="overflow-x-auto rounded-xl border border-red-200 bg-white/80 my-3">
+        <table class="w-full text-left">
+          <thead class="bg-red-100/50 text-[11px] font-semibold text-red-900 uppercase tracking-wider">
+            <tr>
+              <th class="py-2 px-3">File</th>
+              <th class="py-2 px-3 text-center">Missing / Excess</th>
+              <th class="py-2 px-3">Mismatched IDs / Rows</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${fileRows}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-3 border-t border-red-200/80">
+        <div class="text-xs text-red-900 font-medium text-center sm:text-left">
+          <strong>${commonCount} common student record${commonCount === 1 ? '' : 's'}</strong> found across all ${totalFiles} files.
+        </div>
+        <div class="flex items-center gap-2.5 w-full sm:w-auto">
+          <button type="button" onclick="cancelStitchMismatch()" class="flex-1 sm:flex-initial px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors">
+            Cancel and fix my files
+          </button>
+          <button type="button" onclick="proceedStitchWithCommonRows()" class="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-campus-primary text-white text-xs font-semibold hover:bg-campus-primary/90 transition-colors shadow-sm">
+            Continue with only the ${commonCount} common row${commonCount === 1 ? '' : 's'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  container.classList.remove('hidden');
+}
+
+function cancelStitchMismatch() {
+  const container = document.getElementById('stitch-status');
+  if (container) {
+    container.innerHTML = '';
+    container.classList.add('hidden');
+  }
+  showToast('Stitch upload cancelled. You can now adjust or re-upload your files.', 'info', 4000);
+}
+
+function proceedStitchWithCommonRows() {
+  runStitchAssessment(true);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1475,13 +1722,8 @@ async function submitDirectForm(event) {
     }
   });
 
-  // If non-CS branch, remove DSA problem count from direct submission
-  if (body.branch && !isComputerScienceBranch(body.branch)) {
-    delete body.anchor_dsa_problems_solved;
-  }
-
   try {
-    const resp = await fetch(`${API_BASE}/api/assess/new-student`, {
+    const resp = await fetch(`${API_BASE}/api/assess/new-student?include_genai=false`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -1495,7 +1737,13 @@ async function submitDirectForm(event) {
     restoreButton(btn);
     resultEl.innerHTML = `<div id="form-result-inner"></div>`;
     resultEl.classList.remove('hidden');
-    renderSingleResult('form-result-inner', data, body.student_label || 'Assessment Results');
+    data.genai_pending = true;
+    renderSingleResult('form-result-inner', data, body.student_label || 'Assessment Results', true);
+
+    // Asynchronously fetch live Gemini insights to smoothly populate skeleton cards
+    if (data.genai_payloads) {
+      loadProgressiveGenAI('form-result-inner', data);
+    }
 
   } catch (err) {
     restoreButton(btn);
@@ -1545,26 +1793,58 @@ function setupDropZone(zoneId, inputId, multiple, handler) {
 function isComputerScienceBranch(branch) {
   if (!branch) return true;
   const b = branch.toLowerCase().trim();
-  return b.includes('computer') || b.includes('cse') || b.includes('cs') || b.includes('information') || b.includes('it') || b.includes('ai & ds') || b.includes('data science') || b.includes('software');
+  const csKeywords = [
+    'computer science',
+    'cse',
+    'information technology',
+    ' it',
+    'it ',
+    'ai & ds',
+    'ai and ds',
+    'data science',
+    'software engineering',
+    'artificial intelligence',
+  ];
+  // Use word-boundary-safe matching, not raw substring includes,
+  // to avoid false positives like "Textile" matching "it"
+  return csKeywords.some(kw => {
+    const pattern = new RegExp(`\\b${kw.trim()}\\b`, 'i');
+    return pattern.test(b);
+  });
 }
 
 function onBranchSelectionChange(branchVal) {
   const container = document.getElementById('cs-metrics-container');
   const notice = document.getElementById('non-cs-branch-notice');
   const branchLabel = document.getElementById('non-cs-branch-label');
+  const dsaHint = document.getElementById('dsa-branch-hint');
+  const dsaNote = document.getElementById('dsa-non-cs-note');
+  const trackBadge = document.getElementById('cs-track-badge');
   const isCS = isComputerScienceBranch(branchVal);
 
+  // Keep DSA input field visible and functional for ALL branches
+  if (container) container.classList.remove('hidden');
+
   if (isCS || !branchVal) {
-    if (container) container.classList.remove('hidden');
     if (notice) notice.classList.add('hidden');
+    if (dsaHint) dsaHint.classList.add('hidden');
+    if (dsaNote) dsaNote.classList.add('hidden');
+    if (trackBadge) {
+      trackBadge.textContent = 'Evaluated for Computer Science & IT';
+      trackBadge.className = 'text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-campus-lavender text-campus-primary';
+    }
   } else {
-    if (container) container.classList.add('hidden');
     if (notice) {
       notice.classList.remove('hidden');
       if (branchLabel) branchLabel.textContent = branchVal;
     }
-    const dsaInput = document.getElementById('direct-dsa-input');
-    if (dsaInput) dsaInput.value = '';
+    if (dsaHint) dsaHint.classList.remove('hidden');
+    if (dsaNote) dsaNote.classList.remove('hidden');
+    if (trackBadge) {
+      trackBadge.textContent = 'Core Engineering / Non-CS Track';
+      trackBadge.className = 'text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200';
+    }
+    // Do not clear direct-dsa-input value — student DSA practice is preserved
   }
 }
 window.onBranchSelectionChange = onBranchSelectionChange;

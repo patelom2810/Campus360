@@ -1,17 +1,11 @@
 /* Campus360 Ed-Tech Dashboard Styles */
 :root {
   --bg: #F6F5FC;
-  --surface: #FFFFFF;
   --primary: #6C5CE7;
   --primary-dark: #4B3FA8;
   --pastel-lavender: #EDEBFB;
-  --pastel-blue: #E6F0FE;
-  --pastel-mint: #E7F8EE;
-  --pastel-coral: #FDEDEF;
   --text-primary: #1E1B2E;
   --text-muted: #8A8797;
-  --danger: #E85D75;
-  --success: #4CAF7D;
 }
 
 body {
@@ -45,6 +39,7 @@ body {
 /* Range Slider Styling */
 input[type=range] {
   -webkit-appearance: none;
+  appearance: none;
   background: #E8E6F5;
   height: 6px;
   border-radius: 9999px;
@@ -86,7 +81,7 @@ input[type=range]::-moz-range-thumb {
 
 /* Pulse Placeholder Skeleton */
 .skeleton {
-  background: linear-gradient(90deg, #EDEBFB 25%, #F6F5FC 50%, #EDEBFB 75%);
+  background: linear-gradient(90deg, var(--pastel-lavender) 25%, var(--bg) 50%, var(--pastel-lavender) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 0.5rem;

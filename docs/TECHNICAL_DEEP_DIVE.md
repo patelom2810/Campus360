@@ -605,21 +605,25 @@ Model 1 demonstrates an $R^2$ score of **0.2096** with a Mean Absolute Error of 
 - **Primary Task:** Binary classification flagging students requiring early academic advising before statutory examination debarment or degree failure.
 - **Model Object File:** `models/model2_atrisk_classifier.joblib`
 - **Metadata File:** `models/model2_atrisk_metrics.json`
-- **Algorithm:** `sklearn.ensemble.RandomForestClassifier`
+- **Algorithm:** `sklearn.linear_model.LogisticRegression`
 
 #### Exact Live Hyperparameters (`model.get_params()`)
 ```json
 {
-  "n_estimators": 600,
-  "max_depth": 6,
-  "min_samples_leaf": 3,
-  "min_samples_split": 2,
-  "max_features": "sqrt",
+  "C": 1.0,
   "class_weight": "balanced",
-  "criterion": "gini",
-  "bootstrap": true,
+  "dual": false,
+  "fit_intercept": true,
+  "intercept_scaling": 1,
+  "l1_ratio": 0.0,
+  "max_iter": 2000,
+  "n_jobs": null,
+  "penalty": "l2",
   "random_state": 42,
-  "n_jobs": -1
+  "solver": "liblinear",
+  "tol": 0.0001,
+  "verbose": 0,
+  "warm_start": false
 }
 ```
 
@@ -775,7 +779,7 @@ flowchart TD
     end
 
     subgraph S5 [GenAI Synthesis Layer]
-        G1["insights.py\ngemini-3.6-flash\n(Strict Grounding + Reliability Disclaimers)"]
+        G1["insights.py\ngemini-3.5-flash-lite\n(Strict Grounding + Reliability Disclaimers)"]
     end
 
     subgraph S6 [FastAPI REST Endpoints - 16 Routes]
@@ -849,7 +853,7 @@ Verified from `src/api/main.py`.
 
 ### 4.4 GenAI Synthesis Layer & Prompt Architecture
 
-Campus360 uses **Google Gemini (`gemini-3.6-flash`)** as an explanatory synthesis layer.
+Campus360 uses **Google Gemini (`gemini-3.5-flash-lite`)** as an explanatory synthesis layer.
 
 > [!IMPORTANT]
 > **Strict Guardrails:** Gemini acts purely as a narrator and explainer. It **never** generates predictions, calculates statistics, or invents numbers. All quantitative values are computed upstream by Scikit-Learn or SQL queries and passed as immutable prompt inputs.
@@ -932,7 +936,7 @@ Use this dense reference table for rapid fact lookup during presentations and ju
 | **Model 2: Live Re-Scored Accuracy** | **ROC AUC = 0.5190**, **Accuracy = 0.5226**, **Precision = 0.3346**, **Recall = 0.5022**, **F1 = 0.4016** |
 | **Model 2: Live Confusion Matrix** | **TN = 1,812**, **FP = 1,593**, **FN = 794**, **TP = 801** (Test cohort: 5,000 students) |
 | **Career Guidance Engine Type** | **Rule-based composite index** (Non-ML): 6 components (DSA 25%, Internships 20%, Comm 15%, Aptitude 15%, Projects 15%, Mock 10%) |
-| **GenAI Foundation Model** | **`gemini-3.6-flash`** (Google Gemini API via official SDK, with modern flash fallback cascade and deterministic offline templates) |
+| **GenAI Foundation Model** | **`gemini-3.5-flash-lite`** (Google Gemini API via official SDK, with modern flash fallback cascade and deterministic offline templates) |
 | **GenAI Functional Scope** | 3 mentor briefs: At-Risk Brief (`generate_atrisk_brief`), Performance Trajectory (`generate_performance_summary`), Career Guidance (`generate_career_guidance_narrative`) |
 | **PII Elimination Audit** | **100% PII-free:** `navin_name` and `navin_email` dropped in Step 1 of `fix_and_prepare.py`; 0 remaining student names or emails |
 | **API Application Framework** | **FastAPI 0.115+** / Uvicorn (16 REST routes mounted on port 8000) |

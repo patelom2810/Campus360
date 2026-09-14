@@ -13,7 +13,6 @@ import sys
 from pathlib import Path
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from sqlalchemy import text
 import streamlit as st
 

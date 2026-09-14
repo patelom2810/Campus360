@@ -432,7 +432,7 @@ flowchart TD
     end
 
     subgraph GenAITier["6. Resilient GenAI Copilot (Gemini API)"]
-        GA["Google Gemini Pipeline (gemini-2.5-flash)"]
+        GA["Google Gemini Pipeline (gemini-3.5-flash-lite)"]
         FB["Deterministic Statistical Fallback Engine\n(Activates when Token Unset, 429 Quota, or 503)"]
         MC["SHA-256 In-Memory Cache"]
     end
@@ -721,7 +721,7 @@ flowchart TD
 
 ## 7. GenAI Copilot & Resilient Token Fallback Architecture
 
-Campus360 integrates Google Gemini (`gemini-2.5-flash`) for automated advisory generation. To ensure zero system crashes during live hackathon demonstrations or network outages, it implements an instant, deterministic statistical fallback pipeline.
+Campus360 integrates Google Gemini (`gemini-3.5-flash-lite`) for automated advisory generation. To ensure zero system crashes during live hackathon demonstrations or network outages, it implements an instant, deterministic statistical fallback pipeline.
 
 ```mermaid
 flowchart TD
@@ -733,7 +733,7 @@ flowchart TD
     
     CHK -- Yes --> CACHE["Return Cached Narrative"]
     
-    CHK -- No --> GEM["Execute Gemini API Call\n(gemini-2.5-flash, timeout=12s, temp=0.2)"]
+    CHK -- No --> GEM["Execute Gemini API Call\n(gemini-3.5-flash-lite, timeout=7s, temp=0.2)"]
     
     GEM --> RESP{"API Response Status?"}
     
