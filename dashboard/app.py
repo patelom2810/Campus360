@@ -485,15 +485,11 @@ with tab5:
                 except Exception as ex:
                     st.error(f"Failed to generate insight: {ex}")
 
-# ── TAB 6: Predict from CSV (Batch Inference) ──────────────────────────────────
+# ── TAB 6: Predict from CSV ───────────────────────────────────────────────────
 with tab6:
-    st.subheader("📂 Batch Student Inference: Predict from CSV")
-    st.markdown(
-        """
-        Upload a batch of student records (`.csv`) to generate dual ML predictions:
-        * **Model 1 (Regression):** `predicted_next_sem_marks` (Continuous score forecast)
-        * **Model 2 (Classification):** `predicted_risk_prob` & `risk_classification` (Calibrated threshold = 0.416)
-        """
+    st.subheader("Predict from CSV")
+    st.write(
+        "Upload student records and we'll predict next-semester performance and flag at-risk students."
     )
 
     import joblib
@@ -502,7 +498,7 @@ with tab6:
 
     # 1. Load feature registry directly from trained model artifacts
     if not MODEL_1_PATH.exists() or not MODEL_2_PATH.exists():
-        st.error("❌ Model artifacts (`next_semester_marks_model.pkl` or `at_risk_classifier_model.pkl`) not found in models/.")
+        st.error("Model artifacts not found in models/.")
     else:
         m1_obj = joblib.load(MODEL_1_PATH)
         m2_obj = joblib.load(MODEL_2_PATH)
@@ -512,29 +508,21 @@ with tab6:
         # Union of required features
         all_required = list(dict.fromkeys(m1_required + m2_required))
 
-        # Sample Template Download Helper
-        with st.expander("ℹ️ Download Sample CSV Template & Required Column Specifications"):
-            st.markdown(
-                f"**Required Feature Union ({len(all_required)} unique columns):**\n"
-                f"* **Model 1 (18 features):** `{', '.join(m1_required)}`\n"
-                f"* **Model 2 (26 features):** `{', '.join(m2_required)}`\n\n"
-                f"*(Note: `backlogs` and `backlog_history` are seamlessly mapped. Extra columns like `student_id` or names are safely preserved).* "
-            )
-            template_cols = [c for c in ["student_id"] + all_required if c in df.columns]
-            sample_template_df = df[template_cols].head(5)
-            st.download_button(
-                label="📄 Download 5-Student Sample CSV Template",
-                data=sample_template_df.to_csv(index=False).encode("utf-8"),
-                file_name="campus360_predict_template.csv",
-                mime="text/csv",
-            )
+        # Sample Template Download Button
+        template_cols = [c for c in ["student_id"] + all_required if c in df.columns]
+        sample_template_df = df[template_cols].head(5)
+        st.download_button(
+            label="Download Sample CSV Template",
+            data=sample_template_df.to_csv(index=False).encode("utf-8"),
+            file_name="campus360_sample_template.csv",
+            mime="text/csv",
+        )
 
         # 2. Upload CSV
         csv_file = st.file_uploader(
-            "Select Student Records CSV file to analyze",
+            "Upload CSV file",
             type=["csv"],
             key="predict_csv_uploader",
-            help="Upload a CSV file containing required academic, engagement, and lifestyle attributes.",
         )
 
         if csv_file is not None:
@@ -639,13 +627,12 @@ with tab6:
                     # 5. Run Prediction via predict_batch() / get_ml_predictions()
                     if ready_to_predict:
                         st.markdown("---")
-                        if st.button("🚀 Execute Batch Predictions", type="primary"):
+                        if st.button("Run Predictions", type="primary"):
                             with st.spinner(f"Computing predictions for {len(clean_input_df):,} students..."):
-                                # Reuse get_ml_predictions vectorized batch inference
                                 predicted_batch_df = get_ml_predictions(clean_input_df)
 
                             st.session_state["active_batch_results"] = predicted_batch_df
-                            st.success(f"🎉 Generated predictions for {len(predicted_batch_df):,} student records!")
+                            st.success(f"Generated predictions for {len(predicted_batch_df):,} student records.")
 
                         # 6. Display results and Export
                         if "active_batch_results" in st.session_state and st.session_state["active_batch_results"] is not None:
@@ -663,14 +650,14 @@ with tab6:
                             avg_marks = ordered_display_df["predicted_next_sem_marks"].mean() if total_rows > 0 else 0
                             avg_prob = ordered_display_df["predicted_risk_prob"].mean() if total_rows > 0 else 0
 
-                            st.markdown("### 📈 Batch Prediction Summary")
+                            st.markdown("### Prediction Summary")
                             k1, k2, k3, k4 = st.columns(4)
                             k1.metric("Evaluated Students", f"{total_rows:,}")
                             k2.metric("Flagged At-Risk", f"{at_risk_count:,} ({at_risk_pct:.1f}%)", delta=f"{at_risk_pct - 50:+.1f}% vs baseline", delta_color="inverse")
                             k3.metric("Avg Predicted Marks", f"{avg_marks:.2f} / 100")
                             k4.metric("Avg Risk Probability", f"{avg_prob:.3f}")
 
-                            st.markdown("### 📋 Prediction Table Preview")
+                            st.markdown("### Prediction Results")
 
                             def highlight_risk(val):
                                 if val == "At-Risk (High Priority)":
@@ -679,7 +666,6 @@ with tab6:
                                     return "background-color: #DCFCE7; color: #166534; font-weight: bold;"
                                 return ""
 
-                            # Style table cleanly across pandas versions
                             if hasattr(ordered_display_df.style, "map"):
                                 styled_df = ordered_display_df.style.map(highlight_risk, subset=["risk_classification"])
                             else:
@@ -687,12 +673,11 @@ with tab6:
 
                             st.dataframe(styled_df, use_container_width=True)
 
-                            # Download Export Button
                             csv_download_data = batch_res.to_csv(index=False).encode("utf-8")
                             st.download_button(
-                                label="📥 Export Predictions as CSV",
+                                label="Download Predictions CSV",
                                 data=csv_download_data,
-                                file_name=f"campus360_batch_predictions_{csv_file.name}",
+                                file_name=f"campus360_predictions_{csv_file.name}",
                                 mime="text/csv",
                                 type="primary",
                             )
