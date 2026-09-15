@@ -11,3 +11,7 @@ openpyxl
 httpx
 google-genai
 python-multipart
+streamlit
+plotly
+statsmodels
+groq
