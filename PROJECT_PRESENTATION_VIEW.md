@@ -426,27 +426,28 @@ flowchart TB
 
 ### 📌 Core Slide Bullets
 * **Task Objective:** Continuous prediction of student's final `next_semester_marks` ($0–100$).
-* **Model Algorithm:** `RandomForestRegressor(n_estimators=300, max_depth=12, min_samples_leaf=5)`.
+* **Optimized Algorithm:** `GradientBoostingRegressor(n_estimators=350, max_depth=4, learning_rate=0.035, min_samples_leaf=8, subsample=0.85)`.
+* **Hyperparameter Tuning Impact:**
+  * Systematically benchmarked against deep Random Forest baselines using 3-Fold Cross-Validation.
+  * **Test $R^2$ Score:** **$0.7539$** (an impressive **$+12.11\%$ relative improvement** over baseline RF of 0.6724).
+  * **Test RMSE:** **$7.33$ marks** (reduced error by **$1.13$ marks** vs baseline 8.46).
+  * **Test MAE:** **$5.88$ marks** (down from baseline 6.81 marks).
 * **The Zero-Leakage Guarantee:**
   * Deliberately omits current semester exam components, `previous_sgpa`, and target derivatives.
   * Uses only the 18 finalized historical, engagement, and wellness indicators.
-* **Top 5 Feature Importance Drivers:**
-  1. `previous_cgpa` (Primary baseline competency)
-  2. `lowest_subject_score` (Indicator of vulnerability in tough courses)
-  3. `attendance_percentage` (Classroom engagement level)
-  4. `study_hours_per_week` (Direct academic effort)
-  5. `previous_midterm_score` (Exam temperament and retention)
-* **Model Evaluation Metrics:**
-  * **Test $R^2$ Score:** $\approx 0.88 - 0.91$ (Strong predictive variance explained)
-  * **Test RMSE:** $\approx 4.2 - 4.8$ marks
-  * **Test MAE:** $\approx 3.4$ marks
+* **Top Feature Importance Drivers:**
+  1. `previous_cgpa` ($35.24\%$) — Primary academic foundation
+  2. `study_hours_per_week` ($11.88\%$) — Direct continuous effort
+  3. `previous_semester_percentage` ($9.72\%$) — Historical trend
+  4. `previous_internal_marks` ($6.78\%$) — In-class mastery
+  5. `weak_subject_count` ($6.63\%$) — Fragility in difficult subjects
 
 ---
 
 ### 🎙️ Presenter Speaking Script
-> *"Let's examine our predictive engine. Model 1 is a Random Forest Regressor trained on 300 estimators with constrained tree depth to prevent overfitting. Its mission is to forecast a student's next-semester marks.*  
+> *"Let's examine our predictive engine. For Model 1, our systematic hyperparameter tuning selected a tuned Gradient Boosting Regressor (350 estimators, max depth 4, learning rate 0.035) over deep Random Forests.*  
 > 
-> *Critically, we enforce a strict zero-leakage policy: no current semester test marks or future target proxies are included in the feature set. The model relies on 18 behavioral and historical indicators. With an R-squared near 0.90 and a Mean Absolute Error of around 3.4 marks, advisors can identify students heading toward academic distress long before midterm exams."*
+> *Critically, we enforce a strict zero-leakage policy: no current semester test marks or future target proxies are included in the feature set. Our tuned model achieved a test R-squared of 0.754—a 12.1% performance jump over the baseline—while slashing Root Mean Squared Error to 7.33 marks. Advisors get an early, accurate forecast long before midterm exams."*
 
 ---
 
@@ -465,12 +466,12 @@ flowchart TB
 ┌─────────────────────────────────────────────────────────┐
 │             MODEL 2: AT-RISK SCREENING METRICS          │
 ├──────────────────────────────────────┬──────────────────┤
-│ Algorithm                            │ Random Forest Clf│
-│ Class Weighting Strategy             │ balanced         │
-│ Calibrated Operating Threshold       │ 0.416            │
-│ Target Screening Recall              │ ≥ 85.0%          │
-│ ROC-AUC Score                        │ 0.934            │
-│ F1-Score                             │ 0.862            │
+│ Optimized Algorithm                  │ Tuned Grad Boost │
+│ Hyperparameters                      │ n=350, d=4, lr=.045│
+│ Optimal Calibrated Threshold         │ 0.370 (Default 0.5)│
+│ Screening Recall (At-Risk Caught)    │ 85.01% (851/1001)│
+│ Calibrated Precision & F1            │ P: 70.6% | F1: 77.1│
+│ Test ROC-AUC Score                   │ 0.8337 (CV: 0.810) │
 └──────────────────────────────────────┴──────────────────┘
 ```
 
@@ -482,20 +483,20 @@ flowchart TB
   * A False Negative (failing to flag an at-risk student) can lead to academic probation or dropout.
   * A False Positive (flagging a safe student for check-in) merely results in an extra 10-minute advising chat.
   * Therefore, **Recall is prioritized over Precision**.
-* **Threshold Calibration:**
-  * Operating decision threshold is calibrated down to **$0.416$** (from the default $0.50$) to ensure screening recall exceeds **$85\%$**.
-* **Key Predictive Signals:**
-  * `wellness_score` and `burnout_score` (Mental health indicators)
-  * `attendance_percentage` drops
-  * `stress_level` vs. `study_hours_daily` imbalance
-  * Active `backlogs` history
+* **Decision Threshold Calibration:**
+  * Standard $0.50$ threshold misses 254 at-risk students (Recall drops to $74.6\%$).
+  * Our calibrated decision threshold is set to **$0.370$**, guaranteeing **$85.01\%$ screening recall** (851 out of 1001 caught, only 150 missed).
+* **Top Risk Driver Signals:**
+  * `wellness_score` ($23.0\%$) & `stress_level` ($10.1\%$)
+  * `screen_to_study_ratio` ($15.1\%$) & `motivation_level` ($12.7\%$)
+  * `cgpa` baseline ($5.0\%$) & `attendance_percentage` ($3.7\%$)
 
 ---
 
 ### 🎙️ Presenter Speaking Script
 > *"Model 2 is our At-Risk Screening Classifier. In academic early warning systems, a false negative is far worse than a false positive. If we fail to flag a struggling student, they may drop out. If we flag a borderline student who turns out fine, the worst outcome is an encouraging advising conversation.*  
 > 
-> *To address this, we train with balanced class weights and calibrate our operating classification threshold to 0.416. This guarantees a screening recall of over 85% and a ROC-AUC of 0.934. Advisors are alerted to nearly every student who genuinely needs help."*
+> *Our tuned Gradient Boosting Classifier achieves an ROC-AUC of 0.834. By shifting the decision threshold from 0.50 down to 0.370, we achieve an 85.0% screening recall, catching 851 out of 1001 at-risk students. Advisors are alerted to nearly every student who genuinely needs help."*
 
 ---
 

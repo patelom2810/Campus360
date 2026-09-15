@@ -139,9 +139,19 @@ def predict_batch(df: pd.DataFrame) -> pd.DataFrame:
                         X2[col] = 0.0
                 probs = m2.predict_proba(X2[feat_cols])[:, 1]
                 out_df["predicted_risk_prob"] = np.round(probs, 3)
-                # Calibrated threshold for screening recall >= 85% is 0.416
+                # Dynamically load calibrated threshold from model_metrics.json if available
+                metrics_file = BASE_DIR / "models" / "model_metrics.json"
+                cal_thresh = 0.370
+                if metrics_file.exists():
+                    try:
+                        with open(metrics_file, "r") as mf:
+                            mdata = json.load(mf)
+                            cal_thresh = float(mdata.get("model_2", {}).get("calibrated_threshold", 0.370))
+                    except Exception:
+                        cal_thresh = 0.370
+
                 out_df["risk_classification"] = np.where(
-                    probs >= 0.416, "At-Risk (High Priority)", "On-Track"
+                    probs >= cal_thresh, "At-Risk (High Priority)", "On-Track"
                 )
         except Exception as e:
             print(f"[ML WARNING] Model 2 batch prediction error: {e}")
