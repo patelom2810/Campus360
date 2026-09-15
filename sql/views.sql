@@ -1,19 +1,13 @@
 -- =============================================================================
--- KDAC-3 Analytical Views
+-- Campus360 Analytical Views (SQLite Compatible)
 -- Designed for Dashboards, Model Feature Engineering & Faculty 360 Profiling
 -- =============================================================================
-
--- Drop existing views in reverse order
-DROP VIEW IF EXISTS career_readiness_view CASCADE;
-DROP VIEW IF EXISTS at_risk_features_view CASCADE;
-DROP VIEW IF EXISTS performance_features_view CASCADE;
-DROP VIEW IF EXISTS student_360_view CASCADE;
 
 -- -----------------------------------------------------------------------------
 -- 1. STUDENT 360 HOLISTIC VIEW
 -- Denormalized master view combining all 7 warehouse domains per student
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW student_360_view AS
+CREATE VIEW student_360_view AS
 SELECT
     -- Core Student Demographics
     s.student_id,
@@ -86,12 +80,10 @@ LEFT JOIN lifestyle lf ON s.student_id = lf.student_id
 LEFT JOIN skills sk ON s.student_id = sk.student_id
 LEFT JOIN career_preferences cp ON s.student_id = cp.student_id;
 
-
 -- -----------------------------------------------------------------------------
 -- 2. PERFORMANCE FEATURES VIEW (For Model 1: Regression)
--- STRICTLY ZERO DATA LEAKAGE: Excludes next_semester_marks and performance_band
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW performance_features_view AS
+CREATE VIEW performance_features_view AS
 SELECT
     s.student_id,
     s.cgpa,
@@ -132,7 +124,7 @@ SELECT
     lf.screen_to_study_ratio,
     lf.extracurricular_hours,
 
-    -- Target variable (clearly separated for ML training ingestion)
+    -- Target variable
     em.next_semester_marks AS target_next_semester_marks
 FROM students s
 JOIN academic_records ar ON s.student_id = ar.student_id
@@ -140,12 +132,10 @@ JOIN exam_marks em ON s.student_id = em.student_id
 JOIN attendance att ON s.student_id = att.student_id
 JOIN lifestyle lf ON s.student_id = lf.student_id;
 
-
 -- -----------------------------------------------------------------------------
 -- 3. AT-RISK FEATURES VIEW (For Model 2: Screening Classification)
--- Combines academic risk signals, attendance deficits, and lifestyle stressors
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW at_risk_features_view AS
+CREATE VIEW at_risk_features_view AS
 SELECT
     s.student_id,
     s.cgpa,
@@ -189,11 +179,10 @@ JOIN exam_marks em ON s.student_id = em.student_id
 JOIN attendance att ON s.student_id = att.student_id
 JOIN lifestyle lf ON s.student_id = lf.student_id;
 
-
 -- -----------------------------------------------------------------------------
 -- 4. CAREER READINESS VIEW (For Placement & Career Analytics)
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW career_readiness_view AS
+CREATE VIEW career_readiness_view AS
 SELECT
     s.student_id,
     s.cgpa,
@@ -217,24 +206,18 @@ SELECT
          COALESCE(sk.communication_skills, 50.0) * 0.20 +
          COALESCE(sk.aptitude_score, 50.0) * 0.20 +
          COALESCE(sk.mock_interview_score, 50.0) * 0.20 +
-         LEAST(sk.development_projects_count * 10.0, 100.0) * 0.10 +
-         LEAST(cp.hackathons_participated * 20.0, 100.0) * 0.10)::numeric,
+         MIN(COALESCE(sk.development_projects_count, 0) * 10.0, 100.0) * 0.10 +
+         MIN(COALESCE(cp.hackathons_participated, 0) * 20.0, 100.0) * 0.10),
         2
     ) AS composite_readiness_score
 FROM students s
 JOIN skills sk ON s.student_id = sk.student_id
 JOIN career_preferences cp ON s.student_id = cp.student_id;
 
-
 -- -----------------------------------------------------------------------------
--- 5. STAR SCHEMA COMPATIBILITY VIEWS (For API and Dashboard Consumers)
+-- 5. STAR SCHEMA COMPATIBILITY VIEWS
 -- -----------------------------------------------------------------------------
-DROP VIEW IF EXISTS fact_career CASCADE;
-DROP VIEW IF EXISTS fact_lifestyle CASCADE;
-DROP VIEW IF EXISTS fact_performance CASCADE;
-DROP VIEW IF EXISTS dim_student CASCADE;
-
-CREATE OR REPLACE VIEW dim_student AS
+CREATE VIEW dim_student AS
 SELECT 
     s.*,
     COALESCE(s.preferred_domain, 'Computer Science') AS stream_branch,
@@ -246,7 +229,7 @@ SELECT
     'Active' AS academic_status
 FROM student_360_view s;
 
-CREATE OR REPLACE VIEW fact_performance AS
+CREATE VIEW fact_performance AS
 SELECT s.student_id, 'Mathematics' AS subject, ar.previous_subject_avg AS marks, 100.0 AS max_marks, 'academic' AS source FROM students s JOIN academic_records ar ON s.student_id = ar.student_id
 UNION ALL
 SELECT s.student_id, 'Science' AS subject, em.lowest_subject_score AS marks, 100.0 AS max_marks, 'exam' AS source FROM students s JOIN exam_marks em ON s.student_id = em.student_id
@@ -259,10 +242,8 @@ SELECT s.student_id, 'Overall Percentage' AS subject, ar.previous_semester_perce
 UNION ALL
 SELECT s.student_id, 'Degree CGPA' AS subject, (s.cgpa * 10.0) AS marks, 100.0 AS max_marks, 'cgpa' AS source FROM students s;
 
-CREATE OR REPLACE VIEW fact_lifestyle AS
+CREATE VIEW fact_lifestyle AS
 SELECT * FROM lifestyle;
 
-CREATE OR REPLACE VIEW fact_career AS
+CREATE VIEW fact_career AS
 SELECT * FROM career_readiness_view;
-
-
