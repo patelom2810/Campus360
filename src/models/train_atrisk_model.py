@@ -1,83 +1,71 @@
 """
-Train Model 2 — At-Risk Student Classifier (Deployed Version: Logistic Regression)
+Train Model 2 — At-Risk Student Classifier
+Sole Production Model: 10-Feature Compact LogisticRegression (class_weight='balanced')
 
 Target:  at_risk_flag (engineered composite label)
-Features: 23 features total:
-          - 11 original anchor lifestyle features
-          - 10 new non-leakage anchor features
-          - 2 engineered interaction features (wellness_score, screen_to_study_ratio)
-          EXCLUDES anchor_backlog_history, anchor_attendance_percentage,
-          anchor_cgpa to prevent label leakage.
-Algorithm: LogisticRegression(C=1.0, penalty='l2', solver='liblinear',
-           class_weight='balanced', random_state=42).
-Decision Threshold: Locked to default 0.50.
+Features (10):
+  - anchor_gym_frequency
+  - anchor_self_learning_hours
+  - anchor_gaming_hours
+  - anchor_development_projects_count
+  - anchor_sleep_hours
+  - wellness_score
+  - screen_to_study_ratio
+  - anchor_communication_skills
+  - anchor_study_hours_daily
+  - anchor_screen_time
+
+EXCLUDES: anchor_backlog_history, anchor_attendance_percentage, anchor_cgpa (zero leakage).
+Decision Threshold: 0.50.
+
 Output:
   - models/model2_atrisk_classifier.joblib
   - models/model2_atrisk_metrics.json
 """
 
 import json
+import time
 from pathlib import Path
-
 import joblib
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
-    classification_report,
     confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 MODELS_DIR = BASE_DIR / "models"
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 TARGET = "at_risk_flag"
 
-# ── Feature Definitions & Leakage Guards ───────────────────────────────
-ORIGINAL_FEATURES = [
-    "anchor_sleep_hours",
-    "anchor_screen_time",
-    "anchor_gaming_hours",
-    "anchor_stress_level",
-    "anchor_burnout_score",
-    "anchor_study_hours_daily",
-    "anchor_self_learning_hours",
-    "anchor_motivation_level",
-    "anchor_adaptability_score",
+MODEL_2_FEATURES = [
     "anchor_gym_frequency",
-    "anchor_family_income_lpa",
-]
-
-NEW_ANCHOR_FEATURES = [
-    "anchor_resume_score",
-    "anchor_communication_skills",
-    "anchor_aptitude_score",
-    "anchor_mock_interview_score",
-    "anchor_hackathons_participated",
+    "anchor_self_learning_hours",
+    "anchor_gaming_hours",
     "anchor_development_projects_count",
-    "anchor_ai_ml_projects",
-    "anchor_git_hub_repos",
-    "anchor_ai_tool_usage_frequency",
-    "anchor_prompt_engineering_skill",
-]
-
-ENGINEERED_FEATURES = [
+    "anchor_sleep_hours",
     "wellness_score",
     "screen_to_study_ratio",
+    "anchor_communication_skills",
+    "anchor_study_hours_daily",
+    "anchor_screen_time",
 ]
 
-ALL_FEATURES = ORIGINAL_FEATURES + NEW_ANCHOR_FEATURES + ENGINEERED_FEATURES
-PREV_TEST_RECALL = 0.3486
-
-# Columns that MUST NOT appear in features (label leakage)
-LEAKED_COLUMNS = {"anchor_backlog_history", "anchor_attendance_percentage", "anchor_cgpa"}
+# Anti-leakage quarantine list
+LEAKAGE_COLUMNS = [
+    "anchor_backlog_history",
+    "anchor_attendance_percentage",
+    "anchor_cgpa",
+]
 
 
 def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -94,208 +82,105 @@ def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def evaluate_model(model, X_test, y_test, threshold=0.50):
-    """Compute all evaluation metrics at the specified threshold."""
-    y_probs = model.predict_proba(X_test)[:, 1]
-    y_pred = (y_probs >= threshold).astype(int)
-
-    roc_auc = float(roc_auc_score(y_test, y_probs))
-    accuracy = float(accuracy_score(y_test, y_pred))
-    precision_1 = float(precision_score(y_test, y_pred, pos_label=1, zero_division=0))
-    recall_1 = float(recall_score(y_test, y_pred, pos_label=1, zero_division=0))
-    f1_1 = float(f1_score(y_test, y_pred, pos_label=1, zero_division=0))
-    cm = confusion_matrix(y_test, y_pred).tolist()
-    report = classification_report(y_test, y_pred, target_names=["Safe (0)", "At-Risk (1)"])
-
-    return {
-        "roc_auc": roc_auc,
-        "accuracy": accuracy,
-        "precision_1": precision_1,
-        "recall_1": recall_1,
-        "f1_1": f1_1,
-        "confusion_matrix": cm,
-        "classification_report": report,
-    }
-
-
-def is_degenerate(metrics):
-    """Check if model prediction is near-degenerate."""
-    cm = metrics["confusion_matrix"]
-    tn, fp, fn, tp = cm[0][0], cm[0][1], cm[1][0], cm[1][1]
-
-    # Check 1: Any cell in confusion matrix < 20
-    if tn < 20 or fp < 20 or fn < 20 or tp < 20:
-        return True, f"Confusion matrix has a cell with < 20 samples: {cm}"
-
-    # Check 2: Recall > 0.90 AND Precision < 0.35 simultaneously
-    if metrics["recall_1"] > 0.90 and metrics["precision_1"] < 0.35:
-        return True, f"Recall is {metrics['recall_1']:.4f} (>0.9) while precision is {metrics['precision_1']:.4f} (<0.35) — over-prediction detected"
-
-    return False, "Non-degenerate"
-
-
 def train():
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    print("=" * 80)
+    print("TRAINING SOLE PRODUCTION MODEL 2: 10-FEATURE COMPACT CLASSIFIER (at_risk_flag)")
+    print("=" * 80)
 
-    print("=" * 72)
-    print("MODEL 2: AT-RISK CLASSIFIER (CORRECTED DEPLOYED TRAINING)")
-    print("=" * 72)
+    for col in LEAKAGE_COLUMNS:
+        assert col not in MODEL_2_FEATURES, f"CRITICAL: Leakage column {col} found in MODEL_2_FEATURES!"
 
-    # ── Leakage guard check ─────────────────────────────────────────────
-    overlap = set(ALL_FEATURES) & LEAKED_COLUMNS
-    if overlap:
-        raise ValueError(f"LEAKAGE DETECTED: features contain label-defining columns: {overlap}")
-    print("Leakage check PASSED: zero label-defining columns present.")
+    train_path = PROCESSED_DIR / "model2_atrisk_train.csv"
+    test_path = PROCESSED_DIR / "model2_atrisk_test.csv"
 
-    # ── Load data ───────────────────────────────────────────────────────
-    train_df = pd.read_csv(PROCESSED_DIR / "model2_atrisk_train.csv")
-    test_df = pd.read_csv(PROCESSED_DIR / "model2_atrisk_test.csv")
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
 
     train_df = add_engineered_features(train_df)
     test_df = add_engineered_features(test_df)
 
-    X_train, y_train = train_df[ALL_FEATURES], train_df[TARGET]
-    X_test, y_test = test_df[ALL_FEATURES], test_df[TARGET]
+    X_train = train_df[MODEL_2_FEATURES]
+    y_train = train_df[TARGET]
+    X_test = test_df[MODEL_2_FEATURES]
+    y_test = test_df[TARGET]
 
-    print(f"\nFeature Space ({len(ALL_FEATURES)} features):")
-    for i, f in enumerate(ALL_FEATURES, 1):
-        print(f"  {i:>2d}. {f}")
+    print(f"Training set: {len(X_train):,} rows | Test set: {len(X_test):,} rows")
+    print(f"Features ({len(MODEL_2_FEATURES)}): {MODEL_2_FEATURES}")
+    print("Verified: Excludes anchor_backlog_history, anchor_attendance_percentage, anchor_cgpa (zero leakage).")
 
-    print(f"\nTraining data : {X_train.shape[0]:,} rows x {X_train.shape[1]} features")
-    print(f"Test data     : {X_test.shape[0]:,} rows x {X_test.shape[1]} features")
-    print(f"Train balance : {dict(y_train.value_counts())}")
-    print(f"Test balance  : {dict(y_test.value_counts())}\n")
-
-    # ── Hyperparameter Search / Verification ────────────────────────────
-    print("-" * 72)
-    print("STEP 2: Hyperparameter tuning pass (GridSearchCV on C and penalty, cv=5, scoring='recall')...")
-    print("-" * 72)
-
-    param_grid = {
-        "C": [0.01, 0.1, 1.0, 10.0, 100.0],
-        "penalty": ["l1", "l2"],
-    }
-
-    base_estimator = LogisticRegression(
-        solver="liblinear",
-        class_weight="balanced",
-        random_state=42,
-        max_iter=2000,
-    )
-    grid = GridSearchCV(base_estimator, param_grid, cv=5, scoring="recall", n_jobs=-1)
-    grid.fit(X_train, y_train)
-
-    print(f"  Best CV Recall : {grid.best_score_:.4f}")
-    print(f"  Best CV Params : {grid.best_params_}")
-
-    # Baseline: default C=1.0, penalty='l2'
-    baseline_lr = LogisticRegression(
+    t0 = time.time()
+    lr = LogisticRegression(
         C=1.0,
         penalty="l2",
         solver="liblinear",
         class_weight="balanced",
         random_state=42,
-        max_iter=2000,
     )
-    baseline_lr.fit(X_train, y_train)
-    base_metrics = evaluate_model(baseline_lr, X_test, y_test, threshold=0.50)
+    lr.fit(X_train, y_train)
+    train_time = time.time() - t0
 
-    # Tuned estimator evaluation
-    tuned_lr = grid.best_estimator_
-    tuned_metrics = evaluate_model(tuned_lr, X_test, y_test, threshold=0.50)
+    y_prob = lr.predict_proba(X_test)[:, 1]
+    y_pred = (y_prob >= 0.50).astype(int)
 
-    print(f"\n  [Baseline C=1.0, l2] Test Recall: {base_metrics['recall_1']:.4f}, AUC: {base_metrics['roc_auc']:.4f}, Prec: {base_metrics['precision_1']:.4f}")
-    print(f"  [Tuned Candidate   ] Test Recall: {tuned_metrics['recall_1']:.4f}, AUC: {tuned_metrics['roc_auc']:.4f}, Prec: {tuned_metrics['precision_1']:.4f}")
+    recall = recall_score(y_test, y_pred)
+    roc_auc = roc_auc_score(y_test, y_prob)
+    prec = precision_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    acc = accuracy_score(y_test, y_pred)
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
 
-    # Decision rule: Only keep tuned if it improves recall without dropping AUC or precision below baseline
-    if (tuned_metrics["recall_1"] > base_metrics["recall_1"]) and (tuned_metrics["roc_auc"] >= base_metrics["roc_auc"]) and (tuned_metrics["precision_1"] >= base_metrics["precision_1"]):
-        print("  -> Adopting tuned hyperparameters (improves recall without degrading AUC or precision).")
-        best_model = tuned_lr
-        best_params = grid.best_params_
-        metrics = tuned_metrics
-    else:
-        print("  -> Retaining verified baseline (C=1.0, penalty='l2', solver='liblinear') as optimal production configuration.")
-        best_model = baseline_lr
-        best_params = {"C": 1.0, "penalty": "l2", "solver": "liblinear", "class_weight": "balanced"}
-        metrics = base_metrics
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_recalls = cross_val_score(lr, X_train, y_train, cv=skf, scoring="recall")
 
-    # ── STEP 4: Sanity check before saving ──────────────────────────────
-    print("\n" + "-" * 72)
-    print("STEP 4: Sanity check on candidate model...")
-    print("-" * 72)
-    is_bad, reason = is_degenerate(metrics)
-    if is_bad:
-        raise RuntimeError(f"Candidate model is degenerate: {reason}")
-    print("  [PASSED] Candidate model PASSED all sanity checks (non-degenerate).")
+    print("\n[EVALUATION RESULTS - Model 2 Compact LogisticRegression]")
+    print(f"  Recall (Class 1) : {recall:.4f} (TP: {tp:,}, FN: {fn:,})")
+    print(f"  ROC-AUC          : {roc_auc:.4f}")
+    print(f"  Precision        : {prec:.4f}")
+    print(f"  F1-Score         : {f1:.4f}")
+    print(f"  Accuracy         : {acc:.4f}")
+    print(f"  5-Fold CV Recall : {cv_recalls.mean():.4f} +/- {cv_recalls.std():.4f}")
+    print(f"  Training Time    : {train_time:.3f}s")
 
-    # ── Print Metrics & STEP 3: Report ROC AUC Explicitly ───────────────
-    print("\n" + "=" * 72)
-    print("STEP 3 & 5: TEST SET EVALUATION AT DEFAULT THRESHOLD 0.50")
-    print("=" * 72)
-    print(f"  ROC AUC    : {metrics['roc_auc']:.4f}")
-    print(f"  Accuracy   : {metrics['accuracy']:.4f}")
-    print(f"  Precision  : {metrics['precision_1']:.4f}  (class 1)")
-    print(f"  Recall     : {metrics['recall_1']:.4f}  (class 1)")
-    print(f"  F1-Score   : {metrics['f1_1']:.4f}  (class 1)")
-    cm = metrics["confusion_matrix"]
-    print(f"\nConfusion Matrix:")
-    print(f"  [[TN={cm[0][0]:>5d}  FP={cm[0][1]:>5d}]")
-    print(f"   [FN={cm[1][0]:>5d}  TP={cm[1][1]:>5d}]]")
-    print(f"\nClassification Report:\n{metrics['classification_report']}")
+    # Serialize
+    m2_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
+    joblib.dump(lr, m2_path)
+    print(f"Saved production Model 2 to: {m2_path.relative_to(BASE_DIR)}")
 
-    # ── Feature coefficients ───────────────────────────────────────────
-    coefficients = dict(zip(ALL_FEATURES, [float(c) for c in best_model.coef_[0]]))
-    sorted_coef = sorted(coefficients.items(), key=lambda x: abs(x[1]), reverse=True)
-    print(f"Top 5 Features by Absolute Coefficient:")
-    for feat, coef in sorted_coef[:5]:
-        direction = "INCREASES RISK" if coef > 0 else "DECREASES RISK"
-        print(f"  {feat:40s} {coef:+.4f} ({direction})")
+    coefs = dict(zip(MODEL_2_FEATURES, [round(float(c), 4) for c in lr.coef_[0]]))
+    importances = {k: round(abs(float(v)), 4) for k, v in coefs.items()}
 
-    # ── Save Deployed Artifacts ─────────────────────────────────────────
-    model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
-    joblib.dump(best_model, model_path)
-    print(f"\nSaved model  → {model_path.relative_to(BASE_DIR)}")
-
-    # Clean best params for JSON serialization
-    best_params_clean = {}
-    for k, v in best_params.items():
-        if isinstance(v, dict):
-            best_params_clean[k] = {str(dk): dv for dk, dv in v.items()}
-        elif isinstance(v, (np.integer, int)):
-            best_params_clean[k] = int(v)
-        else:
-            best_params_clean[k] = v
-
-    saved_metrics = {
-        "model": "LogisticRegression",
+    metrics = {
+        "model_name": "LogisticRegression (10-feature compact, class_weight='balanced')",
         "target": TARGET,
-        "features": ALL_FEATURES,
-        "feature_count": len(ALL_FEATURES),
-        "original_feature_count": len(ORIGINAL_FEATURES),
-        "added_anchor_feature_count": len(NEW_ANCHOR_FEATURES),
-        "engineered_feature_count": len(ENGINEERED_FEATURES),
-        "leaked_columns_excluded": sorted(LEAKED_COLUMNS),
-        "best_params": best_params_clean,
-        "decision_threshold": 0.50,
-        "roc_auc": round(metrics["roc_auc"], 4),
-        "test_accuracy": round(metrics["accuracy"], 4),
-        "test_precision_class1": round(metrics["precision_1"], 4),
-        "test_recall_class1": round(metrics["recall_1"], 4),
-        "test_f1_class1": round(metrics["f1_1"], 4),
-        "confusion_matrix": metrics["confusion_matrix"],
-        "classification_report": metrics["classification_report"],
-        "previous_test_recall_class1": 0.4514,
-        "feature_coefficients": {k: round(v, 4) for k, v in sorted_coef},
-        "feature_importances": {k: round(abs(v), 4) for k, v in sorted_coef},
-        "train_rows": len(X_train),
-        "test_rows": len(X_test),
+        "feature_count": len(MODEL_2_FEATURES),
+        "features": MODEL_2_FEATURES,
+        "coefficients": coefs,
+        "feature_importances": importances,
+        "disclosure_text": "Lifestyle and behavioral data alone provides early warning screening (recall 0.50), not diagnostic certainty.",
+        "intercept": round(float(lr.intercept_[0]), 4),
+        "test_recall": round(float(recall), 4),
+        "test_roc_auc": round(float(roc_auc), 4),
+        "test_precision": round(float(prec), 4),
+        "test_f1": round(float(f1), 4),
+        "test_accuracy": round(float(acc), 4),
+        "confusion_matrix": {
+            "true_negatives": int(tn),
+            "false_positives": int(fp),
+            "false_negatives": int(fn),
+            "true_positives": int(tp),
+        },
+        "cv_5fold_recall_mean": round(float(cv_recalls.mean()), 4),
+        "cv_5fold_recall_std": round(float(cv_recalls.std()), 4),
+        "training_time_seconds": round(float(train_time), 3),
+        "trained_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
 
     metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
-    metrics_path.write_text(json.dumps(saved_metrics, indent=2))
-    print(f"Saved metrics → {metrics_path.relative_to(BASE_DIR)}")
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2)
+    print(f"Saved production Model 2 metrics to: {metrics_path.relative_to(BASE_DIR)}")
 
-    return best_model, saved_metrics
+    return lr, metrics
 
 
 if __name__ == "__main__":

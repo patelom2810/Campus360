@@ -109,91 +109,61 @@ function quickFillForm(presetType) {
       student_label: 'Alex Chen (High Achiever)',
       branch: 'Computer Science',
       tier: '1',
-      anchor_attendance_percentage: 92,
       anchor_study_hours_daily: 8.0,
       anchor_self_learning_hours: 3.5,
-      anchor_backlog_history: 0,
       anchor_dsa_problems_solved: 350,
+      anchor_development_projects_count: 5,
       anchor_internships_completed: 2,
       anchor_sleep_hours: 7.5,
       anchor_screen_time: 4.5,
       anchor_gaming_hours: 0.5,
+      anchor_gym_frequency: 5,
       anchor_stress_level: 30,
       anchor_burnout_score: 20,
-      anchor_motivation_level: 9,
-      anchor_adaptability_score: 8.5,
-      anchor_gym_frequency: 5,
-      anchor_family_income_lpa: 12.0,
-      anchor_resume_score: 85,
       anchor_communication_skills: 88,
       anchor_aptitude_score: 92,
-      anchor_mock_interview_score: 85,
-      anchor_hackathons_participated: 3,
-      anchor_development_projects_count: 5,
-      anchor_ai_ml_projects: 2,
-      anchor_git_hub_repos: 14,
-      anchor_ai_tool_usage_frequency: 4,
-      anchor_prompt_engineering_skill: 8,
+      anchor_resume_score: 85,
+      anchor_family_income_lpa: 12.0,
     },
     atrisk: {
       student_label: 'Rohan Verma (At-Risk Profile)',
       branch: 'Computer Science',
       tier: '2',
-      anchor_attendance_percentage: 52,
       anchor_study_hours_daily: 1.5,
       anchor_self_learning_hours: 0.5,
-      anchor_backlog_history: 2,
       anchor_dsa_problems_solved: 15,
+      anchor_development_projects_count: 0,
       anchor_internships_completed: 0,
       anchor_sleep_hours: 4.5,
       anchor_screen_time: 12.0,
       anchor_gaming_hours: 6.0,
+      anchor_gym_frequency: 0,
       anchor_stress_level: 85,
       anchor_burnout_score: 80,
-      anchor_motivation_level: 3,
-      anchor_adaptability_score: 4.0,
-      anchor_gym_frequency: 0,
-      anchor_family_income_lpa: 4.0,
-      anchor_resume_score: 35,
       anchor_communication_skills: 45,
       anchor_aptitude_score: 42,
-      anchor_mock_interview_score: 30,
-      anchor_hackathons_participated: 0,
-      anchor_development_projects_count: 0,
-      anchor_ai_ml_projects: 0,
-      anchor_git_hub_repos: 1,
-      anchor_ai_tool_usage_frequency: 1,
-      anchor_prompt_engineering_skill: 2,
+      anchor_resume_score: 35,
+      anchor_family_income_lpa: 4.0,
     },
     balanced: {
       student_label: 'Jordan Lee (Typical Profile)',
       branch: 'Computer Science',
       tier: '2',
-      anchor_attendance_percentage: 82,
       anchor_study_hours_daily: 4.0,
       anchor_self_learning_hours: 1.5,
-      anchor_backlog_history: 0,
       anchor_dsa_problems_solved: 120,
+      anchor_development_projects_count: 2,
       anchor_internships_completed: 1,
       anchor_sleep_hours: 7.0,
       anchor_screen_time: 5.0,
       anchor_gaming_hours: 1.0,
+      anchor_gym_frequency: 3,
       anchor_stress_level: 54,
       anchor_burnout_score: 44,
-      anchor_motivation_level: 6,
-      anchor_adaptability_score: 6.5,
-      anchor_gym_frequency: 3,
-      anchor_family_income_lpa: 8.0,
-      anchor_resume_score: 60,
       anchor_communication_skills: 70,
       anchor_aptitude_score: 65,
-      anchor_mock_interview_score: 60,
-      anchor_hackathons_participated: 1,
-      anchor_development_projects_count: 2,
-      anchor_ai_ml_projects: 1,
-      anchor_git_hub_repos: 8,
-      anchor_ai_tool_usage_frequency: 3,
-      anchor_prompt_engineering_skill: 5,
+      anchor_resume_score: 60,
+      anchor_family_income_lpa: 8.0,
     },
     clear: {}
   };
@@ -217,7 +187,7 @@ function quickFillForm(presetType) {
     onBranchSelectionChange(vals.branch);
   }
 
-  showToast(`Loaded ${presetType.toUpperCase()} preset. Click "Run Full Assessment" below to test the retrained v2 models!`, 'info', 4000);
+  showToast(`Loaded ${presetType.toUpperCase()} preset. Click "Run Full Assessment" below to test the production models!`, 'info', 4000);
 }
 window.quickFillForm = quickFillForm;
 
@@ -614,7 +584,7 @@ function renderSingleResult(containerId, data, label = null, shouldScroll = true
             <span class="text-xs text-campus-muted bg-campus-lavender px-3 py-0.5 rounded-full">BYOD Assessment</span>
             <span class="text-[11px] font-bold text-purple-700 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
               <span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span>
-              ${data.model_version === 'v2_compact' || !data.model_version ? 'Retrained Compact Models (v2 Active · 10 Features)' : 'Baseline Models (v1)'}
+              ${data.model_version === 'production_10feat' || data.model_version === 'v2_compact' || !data.model_version ? 'Production Compact Models (10 Features)' : 'Baseline Models'}
             </span>
             <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
               Zero Academic Leakage
@@ -627,7 +597,7 @@ function renderSingleResult(containerId, data, label = null, shouldScroll = true
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <!-- CGPA card -->
         <div class="result-card text-center relative overflow-hidden">
-          <div class="absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">v2 Compact</div>
+          <div class="absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">10-Feature GBR</div>
           <div class="text-xs text-campus-muted uppercase tracking-wider mb-2 font-semibold">Predicted CGPA</div>
           <div class="sora text-4xl font-bold text-campus-primary">${formatFloat(cgpa)}</div>
           <div class="text-xs text-campus-muted mt-1">/ 10.0</div>
@@ -638,7 +608,7 @@ function renderSingleResult(containerId, data, label = null, shouldScroll = true
 
         <!-- At-Risk -->
         <div class="result-card text-center relative overflow-hidden">
-          <div class="absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">v2 Compact</div>
+          <div class="absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">10-Feature LogReg</div>
           <div class="text-xs text-campus-muted uppercase tracking-wider mb-2 font-semibold">At-Risk Signal</div>
           <div class="sora text-4xl font-bold" style="color:${atRiskColor}">${(prob * 100).toFixed(1)}%</div>
           <div class="text-xs font-semibold mt-1" style="color:${atRiskColor}">${riskLabel}</div>
@@ -662,11 +632,11 @@ function renderSingleResult(containerId, data, label = null, shouldScroll = true
         </div>
       </div>
 
-      <!-- Compact v2 Feature Driver Breakdown -->
+      <!-- Compact Feature Driver Breakdown -->
       <div class="result-card mb-4">
         <div class="flex items-center justify-between mb-3">
           <h4 class="sora font-semibold text-campus-text text-sm flex items-center gap-2">
-            <span>Compact Model Input Drivers (v2)</span>
+            <span>Production Feature Input Drivers</span>
             <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700">10 Features</span>
           </h4>
           <span class="text-xs text-campus-muted">Evaluated live against population baseline</span>

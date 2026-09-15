@@ -42,32 +42,25 @@ logger = logging.getLogger("assessment_engine")
 # which are computed below).  All are optional from the caller; missing ones
 # are filled from the training-set population medians.
 RAW_FEATURE_FIELDS: List[str] = [
-    "anchor_attendance_percentage",
+    # Academics & Study Habits (M1 & M2)
     "anchor_study_hours_daily",
     "anchor_self_learning_hours",
+    # Lifestyle & Wellness (M1 & M2)
     "anchor_sleep_hours",
     "anchor_screen_time",
     "anchor_gaming_hours",
+    "anchor_gym_frequency",
     "anchor_stress_level",
     "anchor_burnout_score",
-    "anchor_backlog_history",
+    # Skills, Projects & Background (M1 & M2 & Career Readiness)
     "anchor_dsa_problems_solved",
-    "anchor_internships_completed",
-    "anchor_motivation_level",
-    "anchor_family_income_lpa",
-    "anchor_resume_score",
+    "anchor_development_projects_count",
     "anchor_communication_skills",
     "anchor_aptitude_score",
+    "anchor_internships_completed",
+    "anchor_resume_score",
+    "anchor_family_income_lpa",
     "anchor_mock_interview_score",
-    "anchor_hackathons_participated",
-    "anchor_development_projects_count",
-    "anchor_ai_ml_projects",
-    "anchor_git_hub_repos",
-    "anchor_ai_tool_usage_frequency",
-    "anchor_prompt_engineering_skill",
-    "anchor_adaptability_score",
-    # Model 2 also needs this lifestyle field:
-    "anchor_gym_frequency",
 ]
 
 # The 4 engineered features (computed from raw fields — never taken from input)
@@ -163,20 +156,12 @@ _PEER_AVG_CACHE: Dict[Tuple[Optional[str], Optional[int]], float] = {}
 
 
 def _get_model1() -> Tuple[Any, dict, dict]:
-    """Loads and caches Model 1 (GradientBoostingRegressor) with its medians. Supports MODEL_VERSION=v2."""
+    """Loads and caches Model 1 (GradientBoostingRegressor) with its medians."""
     global _MODEL1_CACHE
     if _MODEL1_CACHE is not None:
         return _MODEL1_CACHE
-    import os
-    version = os.getenv("MODEL_VERSION", "v2").lower()
-    v2_model = MODELS_DIR / "v2" / "model1_performance_predictor_compact.joblib"
-    v2_metrics = MODELS_DIR / "v2" / "model1_performance_metrics.json"
-    if version != "v1" and v2_model.exists() and v2_metrics.exists():
-        model_path = v2_model
-        metrics_path = v2_metrics
-    else:
-        model_path = MODELS_DIR / "model1_performance_predictor.joblib"
-        metrics_path = MODELS_DIR / "model1_performance_metrics.json"
+    model_path = MODELS_DIR / "model1_performance_predictor.joblib"
+    metrics_path = MODELS_DIR / "model1_performance_metrics.json"
     if not model_path.exists() or not metrics_path.exists():
         raise RuntimeError("Model 1 artifacts missing — cannot run assessment")
     model = joblib.load(model_path)
@@ -196,20 +181,12 @@ def _get_model1() -> Tuple[Any, dict, dict]:
 
 
 def _get_model2() -> Tuple[Any, dict]:
-    """Loads and caches Model 2 (LogisticRegression). Defaults to MODEL_VERSION=v2 if available."""
+    """Loads and caches Model 2 (LogisticRegression)."""
     global _MODEL2_CACHE
     if _MODEL2_CACHE is not None:
         return _MODEL2_CACHE
-    import os
-    version = os.getenv("MODEL_VERSION", "v2").lower()
-    v2_model = MODELS_DIR / "v2" / "model2_atrisk_classifier_compact.joblib"
-    v2_metrics = MODELS_DIR / "v2" / "model2_atrisk_metrics.json"
-    if version != "v1" and v2_model.exists() and v2_metrics.exists():
-        model_path = v2_model
-        metrics_path = v2_metrics
-    else:
-        model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
-        metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
+    model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
+    metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
     if not model_path.exists() or not metrics_path.exists():
         raise RuntimeError("Model 2 artifacts missing — cannot run assessment")
     model = joblib.load(model_path)
@@ -840,26 +817,22 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         "token_available": token_ok,
         "fallback_notice": fallback_notice,
         "defaulted_fields": defaulted_fields,
-        "model_version": "v2_compact" if len(features1) <= 10 else "v1_baseline",
+        "model_version": "production_10feat",
         "model_details": {
             "model1": meta1.get("model_name", "GradientBoostingRegressor (10-feature compact)"),
             "model1_features_count": len(features1),
             "model1_r2": meta1.get("test_r2", 0.2132),
-            "model2": meta2.get("model_name", "LogisticRegression (10-feature compact)"),
+            "model2": meta2.get("model_name", "LogisticRegression (10-feature compact, class_weight='balanced')"),
             "model2_features_count": len(features2),
             "model2_recall": meta2.get("test_recall", 0.5003),
             "model2_roc_auc": meta2.get("test_roc_auc", 0.5212),
         },
         "disclaimers": {
             "model1_note": (
-                f"CGPA predicted using retrained compact v2 model ({len(features1)} features, R²={meta1.get('test_r2', 0.2132):.4f}, RMSE={meta1.get('test_rmse', 0.7564):.4f})."
-                if len(features1) <= 10 else
-                "CGPA prediction uses a GradientBoostingRegressor (R²=0.21). This is a directional signal only, not a reliable forecast."
+                f"CGPA predicted using production 10-feature model (R²={meta1.get('test_r2', 0.2132):.4f}, RMSE={meta1.get('test_rmse', 0.7564):.4f}). Directional signal based on study habits and technical preparation."
             ),
             "model2_note": (
-                f"At-risk classification uses retrained compact v2 model ({len(features2)} behavioral features, zero component leakage, Recall={meta2.get('test_recall', 0.5003)*100:.1f}%, ROC-AUC={meta2.get('test_roc_auc', 0.5212):.4f})."
-                if len(features2) <= 10 else
-                "At-risk classification uses a LogisticRegression classifier (Recall=50.22%, Precision=33.46%). ~2 in 3 flags are false alarms; catches just over half (50.22%) of genuinely at-risk students."
+                f"At-risk classification uses production 10-feature behavioral model (zero component leakage, Recall={meta2.get('test_recall', 0.5003)*100:.1f}%, ROC-AUC={meta2.get('test_roc_auc', 0.5212):.4f}, Precision={meta2.get('test_precision', 0.3367)*100:.1f}%)."
             ),
             "byod_note": (
                 "This assessment was run on user-supplied data, not persisted warehouse records. "
@@ -869,6 +842,10 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
                 "Career Readiness Score is normalized against the existing Campus360 "
                 "population (25,000 students). Peer benchmarks reflect that population."
             ) if career_readiness else None,
+            "calibration_disclosure": meta2.get(
+                "disclosure_text",
+                "Lifestyle and behavioral data alone provides early warning screening (recall 0.50), not diagnostic certainty.",
+            ),
         },
         "input_echo": {k: v for k, v in full_row.items()},
         "generated_at": datetime.now(timezone.utc).isoformat(),

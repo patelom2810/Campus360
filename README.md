@@ -88,7 +88,7 @@ Once running, access the platform services:
 1. **View 7: Data & ETL Monitoring (`data-view="pipeline"`) — Default Landing View:** Live vertical flow status of the entire 7-stage data pipeline, displaying operational integrity progress (100%), 30s auto-refresh polling ticker, raw file table, interim duplicate pruning metrics (-10k rows), star-schema row counts (180,000), and model limitation disclosures.
 2. **View 1: Executive Overview (`data-view="overview"`):** Institutional KPI metric cards (25,000 students, 7.46 avg CGPA, 98.38% placement rate, 31.9% at-risk baseline), 5-bin CGPA histogram distribution, and prioritized at-risk student quicklist.
 3. **View 2: Subject Performance & Gaps (`data-view="subjects"`):** Standardized 0–100% subject score averages, 6x6 branch-by-subject gap severity heatmap, and branch-wise lowest subject gap action cards.
-4. **View 3: At-Risk Detection (`data-view="atrisk"`):** Prominent amber model calibration banner (50.22% recall / 33.46% precision), top 5 lifestyle driving factors, and interactive searchable, sortable at-risk roster with direct 360° profile jump links.
+4. **View 3: At-Risk Detection (`data-view="atrisk"`):** Prominent amber model calibration banner (50.03% recall / 33.67% precision), top 5 lifestyle driving factors, and interactive searchable, sortable at-risk roster with direct 360° profile jump links.
 5. **View 4: Trajectory Predictor (`data-view="predict"`):** Interactive student trajectory simulator powered by Model 1 with real-time sliders for study hours, sleep, attendance, and DSA problem counts.
 6. **View 5: Student 360° Profile (`data-view="student"`):** Multi-dimensional individual dossier detailing demographics, multi-semester academic trends, wellness metrics, matched secondary source chips, and modal trigger for AI Mentor Briefs.
 7. **View 6: Career Guidance (`data-view="career"`):** Career readiness index (0–100), branch peer benchmark, 6-component skill gap percentiles, suggested focus area recommendations, peer placement references, and personalized AI narrative.
@@ -99,8 +99,8 @@ Once running, access the platform services:
 
 | Model | Metric | Result | Assessment |
 | :--- | :--- | :---: | :--- |
-| **Performance Prediction (CGPA)** | R² | 0.2096 | Weak — directional signal only |
-| **At-Risk Detection** | Recall / AUC | 50.22% / 0.5190 | Screening tool (catches just over half of at-risk students), not a diagnostic trigger |
+| **Performance Prediction (CGPA)** | R² | 0.2132 | Weak — directional signal only (10 features) |
+| **At-Risk Detection** | Recall / AUC | 50.03% / 0.5212 | Screening tool (~50% recall, 10 features), not a diagnostic trigger |
 
 We report these honestly rather than hide them — see [docs/SUBMISSION_GATE_CHECK.md](docs/SUBMISSION_GATE_CHECK.md) for the full methodology, leakage checks, and why these numbers are what they are.
 
@@ -108,8 +108,8 @@ We report these honestly rather than hide them — see [docs/SUBMISSION_GATE_CHE
 
 ## Known Limitations
 
-- **Model 1 Low Variance Explained ($R^2 = 0.2096$, $\text{RMSE} = 0.7581$):** Lifestyle and aptitude metrics explain ~21% of CGPA variance; the model offers directional guidance rather than deterministic grade forecasting.
-- **Model 2 Early-Stage Screening Quality ($\text{Recall} = 50.22\%$, $\text{Precision} = 33.46\%$, $\text{AUC} = 0.5190$):** Academic defining features (CGPA, backlogs, attendance) were strictly excluded to avoid circular target leakage; the classifier catches just over half of truly at-risk students (50.22%), leaving lifestyle signals with modest separation (~2 in 3 flags are false alarms).
+- **Model 1 Low Variance Explained ($R^2 = 0.2132$, $\text{RMSE} = 0.7564$):** 10 academic, skill, and lifestyle metrics explain ~21% of CGPA variance; the model offers directional guidance rather than deterministic grade forecasting.
+- **Model 2 Early-Stage Screening Quality ($\text{Recall} = 50.03\%$, $\text{Precision} = 33.67\%$, $\text{AUC} = 0.5212$):** Academic defining features (CGPA, backlogs, attendance) were strictly excluded to avoid circular target leakage; the 10-feature classifier catches half of truly at-risk students (50.03%), leaving lifestyle signals with modest separation (~2 in 3 flags are false alarms).
 - **Suvidya Ceiling Test Confound ($\Delta\text{AUC} = +0.2663$):** Adding academic features lifted AUC from 0.6065 to 0.8728 on `suvidya_pass_fail`, but the lift is confounded because `anchor_cgpa` was the similarity key used in data stitching.
 - **GenAI External Latency & Fallbacks:** Google Gemini API calls can encounter upstream latency or `503` errors; in-memory caching and deterministic rule-based template fallbacks guarantee continuous operation.
 - **Cross-Cohort Secondary Sparsity:** Secondary datasets cover between 1,000 and 15,000 students of the 25,000 anchor cohort, requiring ML models to rely strictly on complete anchor attributes.

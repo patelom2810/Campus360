@@ -2504,11 +2504,11 @@ function renderStageDetailsHtml(stage) {
               <div class="grid grid-cols-2 gap-2 mt-3 text-center">
                 <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
                   <span class="text-[10px] text-[var(--text-muted)] block">Test R² Score</span>
-                  <span class="font-sora font-bold text-sm text-[var(--primary)]">${m1.r2_score !== undefined ? m1.r2_score : 0.2096}</span>
+                  <span class="font-sora font-bold text-sm text-[var(--primary)]">${m1.r2_score !== undefined ? m1.r2_score : 0.2132}</span>
                 </div>
                 <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
                   <span class="text-[10px] text-[var(--text-muted)] block">RMSE Error</span>
-                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m1.rmse || 0.7581}</span>
+                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m1.rmse || 0.7564}</span>
                 </div>
               </div>
             </div>
@@ -2522,7 +2522,7 @@ function renderStageDetailsHtml(stage) {
                 <span>Known Limitation: Directional Signal Only</span>
               </div>
               <p class="text-[11px] mt-1 text-[#B45309] leading-relaxed">
-                ${m1.limitation_badge || 'Model 1 explains ~21% of variance (R²≈0.21). Academic performance is heavily stochastic; predictions serve as advisory directional indicators rather than deterministic scores.'}
+                ${m1.limitation_badge || 'Model 1 explains ~21% of variance (R²=0.2132, 10 features). Academic performance is heavily stochastic; predictions serve as advisory directional indicators rather than deterministic scores.'}
               </p>
             </div>
           </div>
@@ -2539,15 +2539,15 @@ function renderStageDetailsHtml(stage) {
               <div class="grid grid-cols-3 gap-2 mt-3 text-center">
                 <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
                   <span class="text-[10px] text-[var(--text-muted)] block">Recall (Risk)</span>
-                  <span class="font-sora font-bold text-sm text-[var(--primary)]">${m2.recall_class1 !== undefined ? (m2.recall_class1 * 100).toFixed(2) : 50.22}%</span>
+                  <span class="font-sora font-bold text-sm text-[var(--primary)]">${m2.recall_class1 !== undefined ? (m2.recall_class1 * 100).toFixed(2) : 50.03}%</span>
                 </div>
                 <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
                   <span class="text-[10px] text-[var(--text-muted)] block">Precision</span>
-                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m2.precision_class1 !== undefined ? (m2.precision_class1 * 100).toFixed(2) : 33.46}%</span>
+                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m2.precision_class1 !== undefined ? (m2.precision_class1 * 100).toFixed(2) : 33.67}%</span>
                 </div>
                 <div class="p-2 bg-[var(--bg)] rounded-xl border border-[var(--pastel-lavender)]/50">
                   <span class="text-[10px] text-[var(--text-muted)] block">ROC-AUC</span>
-                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m2.roc_auc || 0.5190}</span>
+                  <span class="font-sora font-bold text-sm text-[var(--text-primary)]">${m2.roc_auc || 0.5212}</span>
                 </div>
               </div>
             </div>
@@ -2561,7 +2561,7 @@ function renderStageDetailsHtml(stage) {
                 <span>Known Limitation: Lifestyle Early Warning (~2 in 3 False Alarms)</span>
               </div>
               <p class="text-[11px] mt-1 text-[#B45309] leading-relaxed">
-                ${m2.limitation_badge || 'Recall is ~50% (50.22%) and Precision is ~33% (33.46%). Catches just over half of at-risk students (~2 in 3 flags are false alarms). Designed as an exploratory lifestyle screening filter, not an automated disciplinary or tracking flag. Advisors must verify before intervention.'}
+                ${m2.limitation_badge || 'Recall is ~50% (50.03%) and Precision is ~34% (33.67%). Catches just over half of at-risk students (~2 in 3 flags are false alarms). Designed as an exploratory lifestyle screening filter, not an automated disciplinary or tracking flag. Advisors must verify before intervention.'}
               </p>
             </div>
           </div>

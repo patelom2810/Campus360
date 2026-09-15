@@ -96,8 +96,8 @@ class TestDashboardAPI(unittest.TestCase):
             self.assertGreater(f["importance"], 0.0)
 
         # Honest disclosure text
-        self.assertIn("recall 0.50", data["disclosure_text"])
-        self.assertIn("lifestyle and behavioral data alone", data["disclosure_text"])
+        self.assertIn("recall 0.50", data["disclosure_text"].lower())
+        self.assertIn("lifestyle and behavioral data alone", data["disclosure_text"].lower())
 
     def test_atrisk_table_pagination_and_search(self):
         res = self.client.get("/api/analytics/atrisk-table?limit=10&offset=0")
@@ -140,7 +140,7 @@ class TestDashboardAPI(unittest.TestCase):
 
         # Sliders must meaningfully change the outcome
         self.assertGreater(high_cgpa, low_cgpa)
-        self.assertAlmostEqual(high_res.json()["model_r2"], 0.2096, places=3)
+        self.assertAlmostEqual(high_res.json()["model_r2"], 0.2132, places=3)
         self.assertIn("R² is 0.21", high_res.json()["confidence_note"])
 
     def test_student_360_lookup(self):

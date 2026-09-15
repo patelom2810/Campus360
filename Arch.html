@@ -2905,7 +2905,7 @@
             <div class="flow-ribbon-step">
               <span class="step-badge" style="color: var(--success);">Stage 4 · Advisory Deliverable</span>
               <div class="step-title">Interactive Simulator</div>
-              <div class="step-sub">R² = 0.2096 &middot; Dashboard View 4</div>
+              <div class="step-sub">R² = 0.2132 &middot; Dashboard View 4</div>
             </div>
           </div>
 
@@ -2917,7 +2917,7 @@
                 <li><strong>Hyperparameters:</strong> <code>n_estimators=200, max_depth=3, lr=0.05, min_samples_leaf=5, max_features='sqrt'</code></li>
                 <li><strong>Target Variable:</strong> <code>anchor_cgpa</code> (0.0–10.0 scale)</li>
                 <li><strong>Train / Test Split:</strong> 20,000 train / 5,000 test (80/20, random_state=42)</li>
-                <li><strong>Feature Matrix:</strong> 28 features (13 original + 11 anchor + 4 engineered)</li>
+                <li><strong>Feature Matrix:</strong> 10 production features (compact, zero-leakage, top predictors)</li>
               </ul>
             </div>
 
@@ -2926,15 +2926,15 @@
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; text-align: center;">
                 <div style="background: white; border: 1px solid var(--border); padding: 8px; border-radius: var(--radius-sm);">
                   <div style="font-size: 0.7rem; color: var(--muted);">RMSE</div>
-                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--text);">0.7581</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--text);">0.7564</div>
                 </div>
                 <div style="background: white; border: 1px solid var(--border); padding: 8px; border-radius: var(--radius-sm);">
                   <div style="font-size: 0.7rem; color: var(--muted);">MAE</div>
-                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--text);">0.6022</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--text);">0.6014</div>
                 </div>
                 <div style="background: white; border: 1px solid var(--border); padding: 8px; border-radius: var(--radius-sm);">
                   <div style="font-size: 0.7rem; color: var(--muted);">R² Score</div>
-                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--primary);">0.2096</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--primary);">0.2132</div>
                 </div>
               </div>
               <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">
@@ -3040,7 +3040,7 @@
           <div class="callout callout-purple">
             <div class="callout-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"></line><line x1="10" y1="22" x2="14" y2="22"></line><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg></div>
             <div class="callout-content">
-              <h4>Honest Performance Assessment: Directional Guidance Only (R² = 0.2096)</h4>
+              <h4>Honest Performance Assessment: Directional Guidance Only (R² = 0.2132)</h4>
               <p>
                 Academic performance in college has significant natural variance influenced by unmeasured exams, teaching disparities, and personal events. Explaining ~21% of variance with behavioral and skill telemetry alone represents genuine, non-overfit academic signal. Model 1 is integrated into <code>POST /api/models/predict-performance</code> and Dashboard View 4 strictly as an interactive slider simulator for advisors, not a deterministic grading oracle.
               </p>
@@ -3057,17 +3057,17 @@
           <div class="layer-header">
             <span class="layer-badge">LAYER 6</span>
             <div class="layer-title-text">
-              <h2>Model 2: Early-Warning At-Risk Classifier</h2>
-              <p>Early behavioral risk screening classifier (<code class="chip chip-gray">models/model2_atrisk_classifier.joblib</code>).</p>
+              <h2>Model 2: At-Risk Classifier (Early Intervention Filter)</h2>
+              <p>Detecting academic struggle months before semester exam failures without circular data leakage.</p>
             </div>
           </div>
 
           <!-- Animated Model 2 Pipeline Flow -->
           <div class="pipeline-flow-ribbon">
             <div class="flow-ribbon-step">
-              <span class="step-badge">Stage 1 · Composite Label</span>
-              <div class="step-title">Risk Formulation</div>
-              <div class="step-sub">31.9% at-risk / 68.1% safe balance</div>
+              <span class="step-badge">Stage 1 · Definition</span>
+              <div class="step-title">Ground Truth Flag</div>
+              <div class="step-sub">Rule-based operational target</div>
             </div>
             <div class="flow-pipe-h">
               <svg width="36" height="18" viewBox="0 0 36 18">
@@ -3090,8 +3090,8 @@
             </div>
             <div class="flow-ribbon-step highlight">
               <span class="step-badge">Stage 3 · Classifier</span>
-              <div class="step-title">RandomForest</div>
-              <div class="step-sub">100 estimators &middot; depth=5</div>
+              <div class="step-title">LogisticRegression</div>
+              <div class="step-sub">class_weight='balanced' &middot; liblinear</div>
             </div>
             <div class="flow-pipe-h">
               <svg width="36" height="18" viewBox="0 0 36 18">
@@ -3138,8 +3138,8 @@
                   </div>
                 </div>
                 <div style="background: #FFFFFF; border: 1px solid var(--success-border); padding: 8px 14px; border-radius: var(--radius-sm);">
-                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--success);">INCLUDED MATRIX (23 FEATURES):</span>
-                  <span style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-top: 4px;">Exclusively Lifestyle, Study Hours, Motivation, Wellness & Skills.</span>
+                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--success);">INCLUDED MATRIX (10 FEATURES):</span>
+                  <span style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-top: 4px;">Exclusively Lifestyle, Study Hours, Wellness & Skills.</span>
                 </div>
               </div>
             </div>
@@ -3155,11 +3155,11 @@
                   <tr><th>Metric Name</th><th>Verified Score</th><th>Interpretation</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td><strong>ROC AUC</strong></td><td class="numeric"><strong>0.5190</strong></td><td>Improved separation with linear log-odds (+0.0146 gain)</td></tr>
-                  <tr><td><strong>Recall (Class 1)</strong></td><td class="numeric"><strong>0.5022 (50.22%)</strong></td><td>Captures 50.2% of genuine at-risk students (+5.08% gain over RF)</td></tr>
-                  <tr><td><strong>Precision (Class 1)</strong></td><td class="numeric"><strong>0.3346 (33.46%)</strong></td><td>~1 in 3 flags is a true at-risk case (+1.16% gain over RF)</td></tr>
-                  <tr><td><strong>Accuracy</strong></td><td class="numeric"><strong>0.5226 (52.26%)</strong></td><td>Overall accuracy on 5,000 test cohort</td></tr>
-                  <tr><td><strong>Algorithm</strong></td><td colspan="2"><code>LogisticRegression (C=1.0, penalty='l2', solver='liblinear')</code> <span class="chip chip-green" style="font-weight: 700; font-size: 0.7rem; margin-left: 6px;">SWAPPED PRODUCTION</span></td></tr>
+                  <tr><td><strong>ROC AUC</strong></td><td class="numeric"><strong>0.5212</strong></td><td>Improved separation with linear log-odds</td></tr>
+                  <tr><td><strong>Recall (Class 1)</strong></td><td class="numeric"><strong>0.5003 (50.03%)</strong></td><td>Captures 50.0% of genuine at-risk students</td></tr>
+                  <tr><td><strong>Precision (Class 1)</strong></td><td class="numeric"><strong>0.3367 (33.67%)</strong></td><td>~1 in 3 flags is a true at-risk case</td></tr>
+                  <tr><td><strong>Accuracy</strong></td><td class="numeric"><strong>0.5262 (52.62%)</strong></td><td>Overall accuracy on 5,000 test cohort</td></tr>
+                  <tr><td><strong>Algorithm</strong></td><td colspan="2"><code>LogisticRegression (C=1.0, class_weight='balanced', solver='liblinear')</code> <span class="chip chip-green" style="font-weight: 700; font-size: 0.7rem; margin-left: 6px;">SWAPPED PRODUCTION</span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -3175,24 +3175,24 @@
                 <div class="cm-header-cell" style="writing-mode: vertical-rl; transform: rotate(180deg); margin: auto;">Actual Safe</div>
                 <div class="cm-cell tn">
                   <span class="cm-tag">True Neg</span>
-                  <span class="cm-val">1,812</span>
-                  <span class="cm-pct">36.2% of total</span>
+                  <span class="cm-val">1,833</span>
+                  <span class="cm-pct">36.7% of total</span>
                 </div>
                 <div class="cm-cell fp">
                   <span class="cm-tag">False Pos</span>
-                  <span class="cm-val">1,593</span>
-                  <span class="cm-pct">31.9% of total</span>
+                  <span class="cm-val">1,572</span>
+                  <span class="cm-pct">31.4% of total</span>
                 </div>
 
                 <div class="cm-header-cell" style="writing-mode: vertical-rl; transform: rotate(180deg); margin: auto;">Actual Risk</div>
                 <div class="cm-cell fn">
                   <span class="cm-tag">False Neg</span>
-                  <span class="cm-val">794</span>
+                  <span class="cm-val">797</span>
                   <span class="cm-pct">15.9% of total</span>
                 </div>
                 <div class="cm-cell tp">
                   <span class="cm-tag">True Pos</span>
-                  <span class="cm-val">801</span>
+                  <span class="cm-val">798</span>
                   <span class="cm-pct">16.0% of total</span>
                 </div>
               </div>
@@ -3204,7 +3204,7 @@
             <div class="callout-content">
               <h4>Advisory Screening Filter, Not an Automated Disciplinary Trigger</h4>
               <p>
-                Because academic telemetry was deliberately removed to prevent leakage, lifestyle variables alone achieve Recall = 50.22% (catching just over half of at-risk students) and AUC = 0.5190. Approximately 2 in 3 flagged students are false alarms (33.46% precision). The platform explicitly embeds this calibration caveat directly into the Dashboard View 3 alert banner and GenAI prompts: advisors use this roster as a conversation starter for check-ins, never for automated penalties.
+                Because academic telemetry was deliberately removed to prevent leakage, lifestyle variables alone achieve Recall = 50.03% (catching half of at-risk students) and AUC = 0.5212. Approximately 2 in 3 flagged students are false alarms (33.67% precision). The platform explicitly embeds this calibration caveat directly into the Dashboard View 3 alert banner and GenAI prompts: advisors use this roster as a conversation starter for check-ins, never for automated penalties.
               </p>
             </div>
           </div>
@@ -3497,13 +3497,13 @@
                   <td style="text-align: center;">#1</td>
                   <td><strong>Logistic Regression</strong></td>
                   <td><span class="chip chip-green" style="font-weight: 700;">SWAPPED PRODUCTION</span></td>
-                  <td class="numeric" style="color: var(--primary); font-weight: 700;">0.5022 (50.22%)</td>
-                  <td class="numeric">0.5190</td>
-                  <td class="numeric">0.3346</td>
-                  <td class="numeric">0.4016</td>
-                  <td class="numeric">0.5226</td>
-                  <td class="numeric">801</td>
-                  <td class="numeric">794</td>
+                  <td class="numeric" style="color: var(--primary); font-weight: 700;">0.5003 (50.03%)</td>
+                  <td class="numeric">0.5212</td>
+                  <td class="numeric">0.3367</td>
+                  <td class="numeric">0.4025</td>
+                  <td class="numeric">0.5262</td>
+                  <td class="numeric">798</td>
+                  <td class="numeric">797</td>
                   <td class="numeric" style="font-family: 'JetBrains Mono', monospace; font-weight: 600;">+0.0508</td>
                   <td><span class="chip chip-green" style="font-weight: 700;">Winner (Cleared 2.54x)</span></td>
                 </tr>
@@ -3994,7 +3994,7 @@
                   <td><strong>View 3: At-Risk Detection</strong><br><code class="chip chip-gray">data-view="atrisk"</code></td>
                   <td><code>fact_lifestyle</code>, <code>student_master_wide.csv</code></td>
                   <td><code>LogisticRegression</code><br><code>GET /api/analytics/at-risk-students</code></td>
-                  <td>Amber calibration disclosure banner (50.22% recall / 33.46% precision), lifestyle driving factors, searchable/sortable at-risk roster.</td>
+                  <td>Amber calibration disclosure banner (50.03% recall / 33.67% precision), lifestyle driving factors, searchable/sortable at-risk roster.</td>
                 </tr>
                 <tr>
                   <td><strong>View 4: Trajectory Predictor</strong><br><code class="chip chip-gray">data-view="predict"</code></td>
@@ -4035,7 +4035,7 @@
 
           <div class="cards-grid">
             <div class="info-card" style="border-top: 3px solid var(--warning);">
-              <span class="info-card-title">1. Model 1 Weak Explanatory Power (R² = 0.2096)</span>
+              <span class="info-card-title">1. Model 1 Weak Explanatory Power (R² = 0.2132)</span>
               <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Originates in: <a href="javascript:void(0)" onclick="goToSlide(5)" style="color: inherit; text-decoration: underline;">Layer 5 (Model 1 Regression)</a></div>
               <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
                 Continuous grade prediction based on habits and skill scores captures ~21% of variance. It provides directional sensitivity rather than exact grade forecasts.
@@ -4043,10 +4043,10 @@
             </div>
 
             <div class="info-card" style="border-top: 3px solid var(--danger);">
-              <span class="info-card-title">2. Model 2 Early-Stage Screening Recall (50.22%)</span>
+              <span class="info-card-title">2. Model 2 Early-Stage Screening Recall (50.03%)</span>
               <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Originates in: <a href="javascript:void(0)" onclick="goToSlide(6)" style="color: inherit; text-decoration: underline;">Layer 6 (Model 2 At-Risk)</a></div>
               <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
-                Academic metrics were eliminated to prevent circular target leakage. Lifestyle variables alone provide modest predictive power (AUC = 0.5190, Recall = 50.22%), catching just over half of at-risk students while ~2 in 3 flags are false alarms (33.46% precision).
+                Academic metrics were eliminated to prevent circular target leakage. Lifestyle variables alone provide modest predictive power (AUC = 0.5212, Recall = 50.03%), catching half of at-risk students while ~2 in 3 flags are false alarms (33.67% precision).
               </p>
             </div>
 

@@ -89,22 +89,15 @@ _AT_RISK_CACHE_DF = None
 
 
 def get_model1():
-    """Loads and caches Model 1 (Performance Predictor) and feature medians. Supports MODEL_VERSION=v2."""
+    """Loads and caches Model 1 (Performance Predictor) and feature medians."""
     global _MODEL1, _MODEL1_METRICS, _MODEL1_MEDIANS
     if _MODEL1 is None:
-        version = os.getenv("MODEL_VERSION", "v1").lower()
-        v2_model = MODELS_DIR / "v2" / "model1_performance_predictor_compact.joblib"
-        v2_metrics = MODELS_DIR / "v2" / "model1_performance_metrics.json"
-        if version == "v2" and v2_model.exists() and v2_metrics.exists():
-            model_path = v2_model
-            metrics_path = v2_metrics
-        else:
-            model_path = MODELS_DIR / "model1_performance_predictor.joblib"
-            metrics_path = MODELS_DIR / "model1_performance_metrics.json"
+        model_path = MODELS_DIR / "model1_performance_predictor.joblib"
+        metrics_path = MODELS_DIR / "model1_performance_metrics.json"
         if not model_path.exists() or not metrics_path.exists():
             raise RuntimeError("Model 1 artifacts missing")
         _MODEL1 = joblib.load(model_path)
-        with open(metrics_path, "r") as f:
+        with open(metrics_path, "r", encoding="utf-8") as f:
             _MODEL1_METRICS = json.load(f)
         train_path = PROCESSED_DIR / "model1_performance_train.csv"
         if train_path.exists():
@@ -116,22 +109,15 @@ def get_model1():
 
 
 def get_model2():
-    """Loads and caches Model 2 (At-Risk Classifier) and metrics. Supports MODEL_VERSION=v2."""
+    """Loads and caches Model 2 (At-Risk Classifier) and metrics."""
     global _MODEL2, _MODEL2_METRICS
     if _MODEL2 is None:
-        version = os.getenv("MODEL_VERSION", "v1").lower()
-        v2_model = MODELS_DIR / "v2" / "model2_atrisk_classifier_compact.joblib"
-        v2_metrics = MODELS_DIR / "v2" / "model2_atrisk_metrics.json"
-        if version == "v2" and v2_model.exists() and v2_metrics.exists():
-            model_path = v2_model
-            metrics_path = v2_metrics
-        else:
-            model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
-            metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
+        model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
+        metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
         if not model_path.exists() or not metrics_path.exists():
             raise RuntimeError("Model 2 artifacts missing")
         _MODEL2 = joblib.load(model_path)
-        with open(metrics_path, "r") as f:
+        with open(metrics_path, "r", encoding="utf-8") as f:
             _MODEL2_METRICS = json.load(f)
     return _MODEL2, _MODEL2_METRICS
 
@@ -464,6 +450,7 @@ def get_at_risk_students(limit: int = Query(6, ge=1, le=100)):
 
 
 # ── View 2: Subject-Wise Performance ("Learning Gaps") ─────────────────────────
+@app.get("/api/analytics/learning-gaps")
 @app.get("/api/analytics/subjects")
 def get_subject_performance():
     """
@@ -610,13 +597,13 @@ def get_atrisk_metadata():
     ]
 
     return {
-        "model_name": metrics.get("model", "LogisticRegression"),
+        "model_name": metrics.get("model_name", "LogisticRegression (10-feature compact)"),
         "target": metrics.get("target", "at_risk_flag"),
         "decision_threshold": float(metrics.get("decision_threshold", 0.50)),
-        "recall": float(metrics.get("test_recall_class1", 0.5022)),
-        "precision": float(metrics.get("test_precision_class1", 0.3346)),
-        "accuracy": float(metrics.get("test_accuracy", 0.5226)),
-        "roc_auc": float(metrics.get("roc_auc", 0.5190)),
+        "recall": float(metrics.get("test_recall", metrics.get("test_recall_class1", 0.5003))),
+        "precision": float(metrics.get("test_precision", metrics.get("test_precision_class1", 0.3367))),
+        "accuracy": float(metrics.get("test_accuracy", 0.5262)),
+        "roc_auc": float(metrics.get("test_roc_auc", metrics.get("roc_auc", 0.5212))),
         "population_split": {
             "at_risk_pct": 31.9,
             "safe_pct": 68.1,
@@ -625,8 +612,9 @@ def get_atrisk_metadata():
             "total_population": 25000,
         },
         "top_5_features": top_5,
-        "disclosure_text": (
-            "This model correctly identifies ~50% of at-risk students (recall 0.50) "
+        "disclosure_text": metrics.get(
+            "disclosure_text",
+            "This model correctly identifies ~50% of at-risk students (recall 0.5003) "
             "using lifestyle and behavioral data alone. Absence of a flag does not rule out risk."
         ),
     }
@@ -702,9 +690,10 @@ def predict_performance(req: PredictPerformanceRequest):
     ai_projects = row.get("anchor_ai_ml_projects", 1)
     github_repos = row.get("anchor_git_hub_repos", 8)
 
+    self_learning = row.get("anchor_self_learning_hours", 1.5)
     row["screen_to_study_ratio"] = screen_time / (req.study_hours_daily + 1.0)
     row["wellness_score"] = req.sleep_hours - (stress_level / 10.0) - (burnout_score / 10.0)
-    row["effort_score"] = req.study_hours_daily + (req.attendance_percentage / 10.0) + (req.dsa_problems_solved / 100.0)
+    row["effort_score"] = req.study_hours_daily + self_learning
     row["project_activity"] = dev_projects + ai_projects + (github_repos / 5.0)
 
     input_df = pd.DataFrame([row])[features]
@@ -713,12 +702,12 @@ def predict_performance(req: PredictPerformanceRequest):
 
     return {
         "predicted_cgpa": predicted_cgpa,
-        "model": metrics.get("model", "GradientBoostingRegressor"),
-        "model_r2": float(metrics.get("test_r2", 0.2096)),
-        "model_rmse": float(metrics.get("test_rmse", 0.7581)),
-        "model_mae": float(metrics.get("test_mae", 0.6022)),
+        "model": metrics.get("model_name", "GradientBoostingRegressor (10-feature compact)"),
+        "model_r2": float(metrics.get("test_r2", 0.2132)),
+        "model_rmse": float(metrics.get("test_rmse", 0.7564)),
+        "model_mae": float(metrics.get("test_mae", 0.6014)),
         "confidence_note": (
-            "R² is 0.21 — provides directional guidance but should not be treated as a definitive grade prediction."
+            "R² is 0.2132 (RMSE 0.7564) — provides directional guidance based on study habits and technical preparation."
         ),
         "inputs": req.model_dump(),
     }
@@ -1584,31 +1573,25 @@ from src.api.assessment_engine import run_full_assessment
 
 # ── BYOD Production Feature Schema (for fuzzy matching) ───────────────────────
 BYOD_FEATURE_SCHEMA: List[str] = [
-    "anchor_attendance_percentage",
+    # Academics & Study Habits (M1 & M2)
     "anchor_study_hours_daily",
     "anchor_self_learning_hours",
+    # Lifestyle & Wellness (M1 & M2)
     "anchor_sleep_hours",
     "anchor_screen_time",
     "anchor_gaming_hours",
+    "anchor_gym_frequency",
     "anchor_stress_level",
     "anchor_burnout_score",
-    "anchor_backlog_history",
+    # Skills, Projects & Background (M1 & M2 & Career Readiness)
     "anchor_dsa_problems_solved",
-    "anchor_internships_completed",
-    "anchor_motivation_level",
-    "anchor_family_income_lpa",
-    "anchor_resume_score",
+    "anchor_development_projects_count",
     "anchor_communication_skills",
     "anchor_aptitude_score",
+    "anchor_internships_completed",
+    "anchor_resume_score",
+    "anchor_family_income_lpa",
     "anchor_mock_interview_score",
-    "anchor_hackathons_participated",
-    "anchor_development_projects_count",
-    "anchor_ai_ml_projects",
-    "anchor_git_hub_repos",
-    "anchor_ai_tool_usage_frequency",
-    "anchor_prompt_engineering_skill",
-    "anchor_adaptability_score",
-    "anchor_gym_frequency",
 ]
 
 # Synonym / common-alias mapping: user column names → canonical feature names
@@ -2417,30 +2400,26 @@ async def csv_stitch(
 # ── Option 3: Chat-Guided Input ────────────────────────────────────────────────
 # Question flow: academic basics → lifestyle → skills/career
 _CHAT_QUESTIONS: List[Dict[str, Any]] = [
-    # ── Academic ──────────────────────────────────────────────────────────────
+    # ── Profile & Academic ────────────────────────────────────────────────────
     {"field": "branch", "prompt": "Great, let's get started! What's your engineering branch? (e.g. CSE, ECE, Mechanical, Civil)", "type": "text", "group": "Profile"},
     {"field": "tier", "prompt": "And what tier is your college? (1 = top-tier IIT/NIT, 2 = mid-tier, 3 = other)", "type": "int", "group": "Profile"},
-    {"field": "anchor_attendance_percentage", "prompt": "What's your current class attendance percentage? (0–100)", "type": "float", "group": "Academic"},
     {"field": "anchor_study_hours_daily", "prompt": "How many hours do you typically study per day?", "type": "float", "group": "Academic"},
     {"field": "anchor_self_learning_hours", "prompt": "How many extra hours per day do you spend on self-learning outside class? (e.g. online courses, books)", "type": "float", "group": "Academic"},
-    {"field": "anchor_backlog_history", "prompt": "How many backlogs (failed subjects) do you have on record? (0 = none)", "type": "int", "group": "Academic"},
-    # ── Lifestyle ──────────────────────────────────────────────────────────────
+    # ── Lifestyle & Wellness ──────────────────────────────────────────────────
     {"field": "anchor_sleep_hours", "prompt": "How many hours do you sleep on an average night?", "type": "float", "group": "Lifestyle"},
     {"field": "anchor_screen_time", "prompt": "Roughly how many hours a day do you spend on screens (phone, laptop — not studying)?", "type": "float", "group": "Lifestyle"},
     {"field": "anchor_gaming_hours", "prompt": "And how many of those are gaming? (0 if none)", "type": "float", "group": "Lifestyle"},
     {"field": "anchor_stress_level", "prompt": "On a scale of 0–100, how would you rate your current academic stress level?", "type": "float", "group": "Lifestyle"},
     {"field": "anchor_burnout_score", "prompt": "On a scale of 0–100, how burned out are you feeling right now?", "type": "float", "group": "Lifestyle"},
-    {"field": "anchor_motivation_level", "prompt": "Rate your current motivation to perform academically from 0 to 10.", "type": "float", "group": "Lifestyle"},
     {"field": "anchor_gym_frequency", "prompt": "How many days per week do you exercise or go to the gym? (0–7)", "type": "float", "group": "Lifestyle"},
     # ── Career & Skills ────────────────────────────────────────────────────────
     {"field": "anchor_dsa_problems_solved", "prompt": "How many DSA/coding problems have you solved so far (LeetCode, HackerRank, etc.)?", "type": "int", "group": "Skills"},
-    {"field": "anchor_internships_completed", "prompt": "How many internships have you completed?", "type": "int", "group": "Skills"},
+    {"field": "anchor_development_projects_count", "prompt": "How many development projects have you built (web apps, tools, etc.)?", "type": "int", "group": "Skills"},
     {"field": "anchor_communication_skills", "prompt": "On a scale of 0–100, how would you rate your communication skills?", "type": "float", "group": "Skills"},
     {"field": "anchor_aptitude_score", "prompt": "If you've taken any aptitude tests, what was your approximate score (0–100)?", "type": "float", "group": "Skills"},
-    {"field": "anchor_mock_interview_score", "prompt": "Have you done mock interviews? If yes, approximately how did you score (0–100)? (skip if no)", "type": "float", "group": "Skills"},
-    {"field": "anchor_development_projects_count", "prompt": "How many development projects have you built (web apps, tools, etc.)?", "type": "int", "group": "Skills"},
-    {"field": "anchor_ai_ml_projects", "prompt": "How many AI/ML projects specifically? (0 if none)", "type": "int", "group": "Skills"},
-    {"field": "anchor_git_hub_repos", "prompt": "How many public GitHub repositories do you have?", "type": "int", "group": "Skills"},
+    {"field": "anchor_internships_completed", "prompt": "How many internships have you completed?", "type": "int", "group": "Skills"},
+    {"field": "anchor_resume_score", "prompt": "On a scale of 0–100, what is your estimated resume quality score?", "type": "float", "group": "Skills"},
+    {"field": "anchor_family_income_lpa", "prompt": "What is your approximate family annual income in Lakhs Per Annum (LPA)? (skip if prefer not to say)", "type": "float", "group": "Profile"},
 ]
 
 _SKIP_PHRASES = {"skip", "idk", "i don't know", "dont know", "not sure", "n/a", "na", "unknown", "pass"}

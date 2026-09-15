@@ -184,19 +184,19 @@ def run_verification():
     print(f"                              FN={m2_cm[1][0]}  TP={m2_cm[1][1]}")
 
     print(f"\n  Saved in metrics JSON:")
-    print(f"    Accuracy  : {m2_saved['test_accuracy']}")
-    print(f"    Precision : {m2_saved['test_precision_class1']}")
-    print(f"    Recall    : {m2_saved['test_recall_class1']}")
-    print(f"    F1        : {m2_saved['test_f1_class1']}")
+    print(f"    Accuracy  : {m2_saved.get('test_accuracy')}")
+    print(f"    Precision : {m2_saved.get('test_precision', m2_saved.get('test_precision_class1'))}")
+    print(f"    Recall    : {m2_saved.get('test_recall', m2_saved.get('test_recall_class1'))}")
+    print(f"    F1        : {m2_saved.get('test_f1', m2_saved.get('test_f1_class1'))}")
 
     m2_match = True
     for metric, recomputed, saved in [
-        ("Accuracy", m2_accuracy, m2_saved["test_accuracy"]),
-        ("Recall", m2_recall, m2_saved["test_recall_class1"]),
-        ("Precision", m2_precision, m2_saved["test_precision_class1"]),
-        ("F1", m2_f1, m2_saved["test_f1_class1"]),
+        ("Accuracy", m2_accuracy, m2_saved.get("test_accuracy")),
+        ("Recall", m2_recall, m2_saved.get("test_recall", m2_saved.get("test_recall_class1"))),
+        ("Precision", m2_precision, m2_saved.get("test_precision", m2_saved.get("test_precision_class1"))),
+        ("F1", m2_f1, m2_saved.get("test_f1", m2_saved.get("test_f1_class1"))),
     ]:
-        if abs(recomputed - saved) > 0.01:
+        if saved is not None and abs(recomputed - saved) > 0.01:
             print(f"  [MISMATCH] {metric} recomputed={recomputed:.4f} vs saved={saved}")
             m2_match = False
             issues.append(f"Model 2 {metric} mismatch: recomputed {recomputed:.4f} vs saved {saved}")
@@ -418,20 +418,20 @@ def run_verification():
   MODEL 1 — CGPA Performance Predictor (R² = {m1_r2:.4f}):""")
 
     if m1_r2 >= MODEL1_R2_GOOD:
-        print(f"""    This model predicts a student's CGPA from 13 academic and lifestyle
+        print(f"""    This model predicts a student's CGPA from 10 academic, skill, and lifestyle
     features. With an R² of {m1_r2:.4f} (RMSE = {m1_rmse:.4f}, MAE = {m1_mae:.4f}),
     the model shows a strong predictive signal and explains a significant
     portion of variance in CGPA. It is suitable for academic trajectory
     projections and grade trend analysis.""")
     elif m1_r2 >= MODEL1_R2_ACCEPTABLE:
-        print(f"""    This model predicts a student's CGPA from 13 academic and lifestyle
+        print(f"""    This model predicts a student's CGPA from 10 academic, skill, and lifestyle
     features. With an R² of {m1_r2:.4f} (RMSE = {m1_rmse:.4f}, MAE = {m1_mae:.4f}),
     it shows moderate predictive signal. It is usable for rough tiering or
     advisory context, but has meaningful variance. For a hackathon presentation,
     disclose: "R² is {m1_r2:.2f} — provides directional guidance but should not
     be treated as a definitive grade prediction." """)
     else:
-        print(f"""    This model attempts to predict a student's CGPA from 13 academic and
+        print(f"""    This model attempts to predict a student's CGPA from 10 academic, skill, and
     lifestyle features. The R² of {m1_r2:.4f} (RMSE = {m1_rmse:.4f}, MAE = {m1_mae:.4f})
     falls into the WEAK tier (R² < {MODEL1_R2_ACCEPTABLE}). While it captures minor
     directional trends from study hours and DSA problem solving, the features
@@ -445,31 +445,23 @@ def run_verification():
 
     if m2_rating == "WEAK (DEGENERATE)":
         print(f"""    This model achieves a nominal recall of {m2_recall:.4f} at threshold {decision_threshold:.2f},
-    but this is a degenerate outcome: the classifier predicts at-risk for 4,996
-    out of 5,000 students (3,401 false positives, specificity = {m2_specificity:.2%},
-    accuracy = {m2_accuracy:.2%}). Because the 23 non-leakage behavioral and skill
-    features have near-zero correlation with the at-risk label (|r| <= 0.025), optimizing
-    pure recall pushes the model to predict positive on almost everyone. At balanced
-    decision thresholds, recall falls back to ~0.35-0.52. Honestly disclose this finding:
-    institutional risk cannot be reliably diagnosed from self-reported lifestyle and
-    extracurricular factors alone without direct course engagement records (attendance
-    and backlogs).""")
+    but this is a degenerate outcome: the classifier predicts at-risk for almost all students.
+    Honestly disclose this finding: institutional risk cannot be reliably diagnosed from
+    self-reported lifestyle and extracurricular factors alone without direct course engagement records.""")
     elif m2_recall >= MODEL2_RECALL_GOOD:
-        print(f"""    This model identifies at-risk students using 23 lifestyle and
+        print(f"""    This model identifies at-risk students using 10 lifestyle and
     behavioral features, deliberately excluding the 3 columns that define
     the at-risk label (preventing leakage). With recall of {m2_recall:.4f},
     it catches the majority of genuinely at-risk students. This is a
     usable model for early-warning screening.""")
     elif m2_recall >= MODEL2_RECALL_ACCEPTABLE:
-        print(f"""    This model identifies at-risk students using 23 lifestyle and
+        print(f"""    This model identifies at-risk students using 10 lifestyle and
     behavioral features, deliberately excluding the 3 columns that define
     the at-risk label. With recall of {m2_recall:.4f}, it catches a
-    meaningful fraction of at-risk students but will miss some. For a
-    hackathon, disclose: "The model detects ~{m2_recall*100:.0f}% of at-risk
-    students; the remaining ~{(1-m2_recall)*100:.0f}% are missed."
-    This is usable with caveats.""")
+    meaningful fraction of at-risk students (~{m2_recall*100:.0f}%) but misses some.
+    This is usable with caveats as an early warning screening indicator.""")
     else:
-        print(f"""    This model attempts to identify at-risk students using 23 lifestyle
+        print(f"""    This model attempts to identify at-risk students using 10 lifestyle
     features, but with recall of {m2_recall:.4f}, it misses more at-risk
     students than it catches. The lifestyle-only features (without
     attendance, CGPA, or backlog data) do not carry enough signal to
