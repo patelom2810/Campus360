@@ -14,6 +14,7 @@ import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
 import pandas as pd
+import numpy as np
 import joblib
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -90,56 +91,81 @@ def get_student_record(student_id: str) -> Optional[Dict[str, Any]]:
         conn.close()
 
 
-def get_ml_predictions(student_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Runs Model 1 (Marks Regression) and Model 2 (Risk Classifier) on the student record."""
-    preds = {
-        "predicted_marks": None,
-        "predicted_risk_prob": None,
-        "risk_classification": "Unknown",
-    }
+def predict_batch(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Vectorized batch inference using Model 1 (Regression) and Model 2 (Classifier).
+    Appends:
+      - 'predicted_next_sem_marks': float
+      - 'predicted_risk_prob': float (0.0 to 1.0)
+      - 'risk_classification': 'At-Risk (High Priority)' (prob >= 0.416) else 'On-Track'
+    """
+    out_df = df.copy()
 
-    # Model 1
+    # Model 1 (Regression)
     if MODEL_1_PATH.exists():
         try:
             m1 = joblib.load(MODEL_1_PATH)
             feat_cols = getattr(m1, "feature_names_in_", None)
             if feat_cols is not None:
-                row_dict = {}
+                X1 = pd.DataFrame(index=out_df.index)
                 for col in feat_cols:
-                    val = student_data.get(col)
-                    if val is None and col == "backlogs":
-                        val = student_data.get("backlog_history", 0.0)
-                    elif val is None and col == "backlog_history":
-                        val = student_data.get("backlogs", 0.0)
-                    row_dict[col] = float(val) if val is not None else 0.0
-                X1 = pd.DataFrame([row_dict])[feat_cols]
-                preds["predicted_marks"] = round(float(m1.predict(X1)[0]), 2)
+                    if col in out_df.columns:
+                        X1[col] = pd.to_numeric(out_df[col], errors="coerce")
+                    elif col == "backlogs" and "backlog_history" in out_df.columns:
+                        X1[col] = pd.to_numeric(out_df["backlog_history"], errors="coerce")
+                    elif col == "backlog_history" and "backlogs" in out_df.columns:
+                        X1[col] = pd.to_numeric(out_df["backlogs"], errors="coerce")
+                    else:
+                        X1[col] = 0.0
+                out_df["predicted_next_sem_marks"] = np.round(m1.predict(X1[feat_cols]), 2)
         except Exception as e:
-            print(f"[ML WARNING] Model 1 prediction error: {e}")
+            print(f"[ML WARNING] Model 1 batch prediction error: {e}")
 
-    # Model 2
+    # Model 2 (Classifier)
     if MODEL_2_PATH.exists():
         try:
             m2 = joblib.load(MODEL_2_PATH)
             feat_cols = getattr(m2, "feature_names_in_", None)
             if feat_cols is not None:
-                row_dict = {}
+                X2 = pd.DataFrame(index=out_df.index)
                 for col in feat_cols:
-                    val = student_data.get(col)
-                    if val is None and col == "backlog_history":
-                        val = student_data.get("backlogs", 0.0)
-                    elif val is None and col == "backlogs":
-                        val = student_data.get("backlog_history", 0.0)
-                    row_dict[col] = float(val) if val is not None else 0.0
-                X2 = pd.DataFrame([row_dict])[feat_cols]
-                prob = float(m2.predict_proba(X2)[0, 1])
-                preds["predicted_risk_prob"] = round(prob, 3)
-                # Calibrated threshold for screening recall >= 85% is ~0.416
-                preds["risk_classification"] = "At-Risk (High Priority)" if prob >= 0.416 else "On-Track"
+                    if col in out_df.columns:
+                        X2[col] = pd.to_numeric(out_df[col], errors="coerce")
+                    elif col == "backlog_history" and "backlogs" in out_df.columns:
+                        X2[col] = pd.to_numeric(out_df["backlogs"], errors="coerce")
+                    elif col == "backlogs" and "backlog_history" in out_df.columns:
+                        X2[col] = pd.to_numeric(out_df["backlog_history"], errors="coerce")
+                    else:
+                        X2[col] = 0.0
+                probs = m2.predict_proba(X2[feat_cols])[:, 1]
+                out_df["predicted_risk_prob"] = np.round(probs, 3)
+                # Calibrated threshold for screening recall >= 85% is 0.416
+                out_df["risk_classification"] = np.where(
+                    probs >= 0.416, "At-Risk (High Priority)", "On-Track"
+                )
         except Exception as e:
-            print(f"[ML WARNING] Model 2 prediction error: {e}")
+            print(f"[ML WARNING] Model 2 batch prediction error: {e}")
 
-    return preds
+    return out_df
+
+
+def get_ml_predictions(student_data: Any) -> Any:
+    """
+    Runs Model 1 (Marks Regression) and Model 2 (Risk Classifier).
+    Accepts either a single dictionary record or a pandas DataFrame.
+    """
+    if isinstance(student_data, pd.DataFrame):
+        return predict_batch(student_data)
+
+    # If single record dict, wrap into 1-row DataFrame for unified inference
+    df_single = pd.DataFrame([student_data])
+    res_df = predict_batch(df_single)
+
+    return {
+        "predicted_marks": float(res_df["predicted_next_sem_marks"].iloc[0]) if "predicted_next_sem_marks" in res_df.columns else None,
+        "predicted_risk_prob": float(res_df["predicted_risk_prob"].iloc[0]) if "predicted_risk_prob" in res_df.columns else None,
+        "risk_classification": str(res_df["risk_classification"].iloc[0]) if "risk_classification" in res_df.columns else "Unknown",
+    }
 
 
 def build_faculty_prompt(student_id: str, record: Dict[str, Any], ml_preds: Dict[str, Any]) -> str:

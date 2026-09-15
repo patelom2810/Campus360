@@ -163,12 +163,13 @@ kpi5.metric("Avg Next Sem Marks", f"{avg_marks:.1f} / 100")
 st.markdown("---")
 
 # ── Tabs Navigation ───────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Performance & Grade Bands",
     "At-Risk Early Warning",
     "Lifestyle & Mental Health",
     "Career & Skill Readiness",
     "Individual Student 360",
+    "Predict from CSV",
 ])
 
 # ── TAB 1: Performance & Grade Distribution ───────────────────────────────────
@@ -483,3 +484,215 @@ with tab5:
                     st.markdown(insight_res["insights"])
                 except Exception as ex:
                     st.error(f"Failed to generate insight: {ex}")
+
+# ── TAB 6: Predict from CSV (Batch Inference) ──────────────────────────────────
+with tab6:
+    st.subheader("📂 Batch Student Inference: Predict from CSV")
+    st.markdown(
+        """
+        Upload a batch of student records (`.csv`) to generate dual ML predictions:
+        * **Model 1 (Regression):** `predicted_next_sem_marks` (Continuous score forecast)
+        * **Model 2 (Classification):** `predicted_risk_prob` & `risk_classification` (Calibrated threshold = 0.416)
+        """
+    )
+
+    import joblib
+    from config.config import MODEL_1_PATH, MODEL_2_PATH
+    from genai.generate_insights import predict_batch, get_ml_predictions
+
+    # 1. Load feature registry directly from trained model artifacts
+    if not MODEL_1_PATH.exists() or not MODEL_2_PATH.exists():
+        st.error("❌ Model artifacts (`next_semester_marks_model.pkl` or `at_risk_classifier_model.pkl`) not found in models/.")
+    else:
+        m1_obj = joblib.load(MODEL_1_PATH)
+        m2_obj = joblib.load(MODEL_2_PATH)
+        m1_required = list(getattr(m1_obj, "feature_names_in_", []))
+        m2_required = list(getattr(m2_obj, "feature_names_in_", []))
+
+        # Union of required features
+        all_required = list(dict.fromkeys(m1_required + m2_required))
+
+        # Sample Template Download Helper
+        with st.expander("ℹ️ Download Sample CSV Template & Required Column Specifications"):
+            st.markdown(
+                f"**Required Feature Union ({len(all_required)} unique columns):**\n"
+                f"* **Model 1 (18 features):** `{', '.join(m1_required)}`\n"
+                f"* **Model 2 (26 features):** `{', '.join(m2_required)}`\n\n"
+                f"*(Note: `backlogs` and `backlog_history` are seamlessly mapped. Extra columns like `student_id` or names are safely preserved).* "
+            )
+            template_cols = [c for c in ["student_id"] + all_required if c in df.columns]
+            sample_template_df = df[template_cols].head(5)
+            st.download_button(
+                label="📄 Download 5-Student Sample CSV Template",
+                data=sample_template_df.to_csv(index=False).encode("utf-8"),
+                file_name="campus360_predict_template.csv",
+                mime="text/csv",
+            )
+
+        # 2. Upload CSV
+        csv_file = st.file_uploader(
+            "Select Student Records CSV file to analyze",
+            type=["csv"],
+            key="predict_csv_uploader",
+            help="Upload a CSV file containing required academic, engagement, and lifestyle attributes.",
+        )
+
+        if csv_file is not None:
+            try:
+                uploaded_raw_df = pd.read_csv(csv_file)
+            except Exception as read_err:
+                st.error(f"❌ Error parsing CSV file: {read_err}")
+                uploaded_raw_df = None
+
+            if uploaded_raw_df is not None:
+                st.write(
+                    f"**File uploaded:** `{csv_file.name}` | "
+                    f"**Rows:** `{len(uploaded_raw_df):,}` | "
+                    f"**Columns:** `{len(uploaded_raw_df.columns)}`"
+                )
+
+                # 3. Column Validation
+                existing_cols = set(uploaded_raw_df.columns)
+                missing_features = []
+
+                for req_col in all_required:
+                    if req_col not in existing_cols:
+                        # Allow interchangeable backlogs / backlog_history
+                        if req_col == "backlogs" and "backlog_history" in existing_cols:
+                            continue
+                        if req_col == "backlog_history" and "backlogs" in existing_cols:
+                            continue
+                        missing_features.append(req_col)
+
+                if missing_features:
+                    st.error(
+                        f"❌ **Validation Error — Missing Required Columns ({len(missing_features)}):**\n\n"
+                        + ", ".join([f"`{col}`" for col in sorted(missing_features)])
+                        + "\n\nPlease ensure your CSV includes all required attributes before prediction."
+                    )
+                else:
+                    # Column validation passed! Extra columns are ignored/preserved.
+                    working_df = uploaded_raw_df.copy()
+
+                    # Harmonize backlogs / backlog_history if only one is present
+                    if "backlogs" in working_df.columns and "backlog_history" not in working_df.columns:
+                        working_df["backlog_history"] = working_df["backlogs"]
+                    elif "backlog_history" in working_df.columns and "backlogs" not in working_df.columns:
+                        working_df["backlogs"] = working_df["backlog_history"]
+
+                    # 4. Null and Non-Numeric Value Detection across required features
+                    invalid_rows_set = set()
+                    invalid_details_list = []
+
+                    for feat in all_required:
+                        num_series = pd.to_numeric(working_df[feat], errors="coerce")
+                        bad_mask = num_series.isna()
+                        if bad_mask.any():
+                            bad_indices = working_df.index[bad_mask].tolist()
+                            invalid_rows_set.update(bad_indices)
+                            for r_idx in bad_indices[:15]:
+                                invalid_details_list.append({
+                                    "Row (1-indexed)": r_idx + 1,
+                                    "Column": feat,
+                                    "Invalid / Null Value": repr(working_df.at[r_idx, feat]),
+                                })
+
+                    ready_to_predict = True
+                    clean_input_df = working_df.copy()
+
+                    if invalid_rows_set:
+                        st.warning(
+                            f"⚠️ **Data Quality Warning:** Found **{len(invalid_rows_set):,} row(s)** "
+                            f"with missing or non-numeric values in required feature columns."
+                        )
+                        with st.expander(f"Inspect First {min(15, len(invalid_details_list))} Affected Cells"):
+                            st.dataframe(pd.DataFrame(invalid_details_list), use_container_width=True, hide_index=True)
+
+                        imputation_choice = st.radio(
+                            "Choose an automated resolution strategy before running models:",
+                            options=[
+                                f"Drop rows with invalid values (drop {len(invalid_rows_set):,} rows)",
+                                "Fill invalid / missing values with column mean (keep all rows)",
+                            ],
+                            index=0,
+                        )
+
+                        if "Drop" in imputation_choice:
+                            clean_input_df = working_df.drop(index=list(invalid_rows_set)).reset_index(drop=True)
+                            if clean_input_df.empty:
+                                st.error("❌ All rows contained invalid or null values. No valid rows remaining.")
+                                ready_to_predict = False
+                            else:
+                                st.info(f"Proceeding with **{len(clean_input_df):,}** clean rows ({len(invalid_rows_set):,} dropped).")
+                        else:
+                            clean_input_df = working_df.copy()
+                            for feat in all_required:
+                                clean_input_df[feat] = pd.to_numeric(clean_input_df[feat], errors="coerce")
+                                mean_val = clean_input_df[feat].mean()
+                                if pd.isna(mean_val):
+                                    mean_val = 0.0
+                                clean_input_df[feat] = clean_input_df[feat].fillna(mean_val)
+                            st.info("Filled all invalid / missing values with their respective feature means.")
+                    else:
+                        st.success(f"✅ **Validation Succeeded:** All {len(clean_input_df):,} rows have complete numeric features.")
+
+                    # 5. Run Prediction via predict_batch() / get_ml_predictions()
+                    if ready_to_predict:
+                        st.markdown("---")
+                        if st.button("🚀 Execute Batch Predictions", type="primary"):
+                            with st.spinner(f"Computing predictions for {len(clean_input_df):,} students..."):
+                                # Reuse get_ml_predictions vectorized batch inference
+                                predicted_batch_df = get_ml_predictions(clean_input_df)
+
+                            st.session_state["active_batch_results"] = predicted_batch_df
+                            st.success(f"🎉 Generated predictions for {len(predicted_batch_df):,} student records!")
+
+                        # 6. Display results and Export
+                        if "active_batch_results" in st.session_state and st.session_state["active_batch_results"] is not None:
+                            batch_res = st.session_state["active_batch_results"]
+
+                            pred_cols = ["predicted_next_sem_marks", "predicted_risk_prob", "risk_classification"]
+                            front_cols = [c for c in ["student_id"] if c in batch_res.columns] + pred_cols
+                            tail_cols = [c for c in batch_res.columns if c not in front_cols]
+                            ordered_display_df = batch_res[front_cols + tail_cols]
+
+                            # Summary KPI Metrics
+                            total_rows = len(ordered_display_df)
+                            at_risk_count = (ordered_display_df["risk_classification"] == "At-Risk (High Priority)").sum()
+                            at_risk_pct = (at_risk_count / total_rows * 100) if total_rows > 0 else 0
+                            avg_marks = ordered_display_df["predicted_next_sem_marks"].mean() if total_rows > 0 else 0
+                            avg_prob = ordered_display_df["predicted_risk_prob"].mean() if total_rows > 0 else 0
+
+                            st.markdown("### 📈 Batch Prediction Summary")
+                            k1, k2, k3, k4 = st.columns(4)
+                            k1.metric("Evaluated Students", f"{total_rows:,}")
+                            k2.metric("Flagged At-Risk", f"{at_risk_count:,} ({at_risk_pct:.1f}%)", delta=f"{at_risk_pct - 50:+.1f}% vs baseline", delta_color="inverse")
+                            k3.metric("Avg Predicted Marks", f"{avg_marks:.2f} / 100")
+                            k4.metric("Avg Risk Probability", f"{avg_prob:.3f}")
+
+                            st.markdown("### 📋 Prediction Table Preview")
+
+                            def highlight_risk(val):
+                                if val == "At-Risk (High Priority)":
+                                    return "background-color: #FEE2E2; color: #991B1B; font-weight: bold;"
+                                elif val == "On-Track":
+                                    return "background-color: #DCFCE7; color: #166534; font-weight: bold;"
+                                return ""
+
+                            # Style table cleanly across pandas versions
+                            if hasattr(ordered_display_df.style, "map"):
+                                styled_df = ordered_display_df.style.map(highlight_risk, subset=["risk_classification"])
+                            else:
+                                styled_df = ordered_display_df.style.applymap(highlight_risk, subset=["risk_classification"])
+
+                            st.dataframe(styled_df, use_container_width=True)
+
+                            # Download Export Button
+                            csv_download_data = batch_res.to_csv(index=False).encode("utf-8")
+                            st.download_button(
+                                label="📥 Export Predictions as CSV",
+                                data=csv_download_data,
+                                file_name=f"campus360_batch_predictions_{csv_file.name}",
+                                mime="text/csv",
+                                type="primary",
+                            )
