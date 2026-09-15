@@ -318,8 +318,8 @@ def get_student_360(student_id: str):
         row_dict = dict(r._mapping)
         marks = row_dict.get("marks")
         max_marks = row_dict.get("max_marks")
-        if marks is not None and max_marks and max_marks > 0:
-            row_dict["normalized_pct"] = round((marks / max_marks) * 100.0, 2)
+        if marks is not None and max_marks and float(max_marks) > 0:
+            row_dict["normalized_pct"] = round((float(marks) / float(max_marks)) * 100.0, 2)
         else:
             row_dict["normalized_pct"] = None
         academics_list.append(row_dict)
