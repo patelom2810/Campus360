@@ -102,10 +102,16 @@ def get_ml_predictions(student_data: Dict[str, Any]) -> Dict[str, Any]:
     if MODEL_1_PATH.exists():
         try:
             m1 = joblib.load(MODEL_1_PATH)
-            # Match feature columns
             feat_cols = getattr(m1, "feature_names_in_", None)
             if feat_cols is not None:
-                row_dict = {col: student_data.get(col, 0.0) for col in feat_cols}
+                row_dict = {}
+                for col in feat_cols:
+                    val = student_data.get(col)
+                    if val is None and col == "backlogs":
+                        val = student_data.get("backlog_history", 0.0)
+                    elif val is None and col == "backlog_history":
+                        val = student_data.get("backlogs", 0.0)
+                    row_dict[col] = float(val) if val is not None else 0.0
                 X1 = pd.DataFrame([row_dict])[feat_cols]
                 preds["predicted_marks"] = round(float(m1.predict(X1)[0]), 2)
         except Exception as e:
@@ -117,7 +123,14 @@ def get_ml_predictions(student_data: Dict[str, Any]) -> Dict[str, Any]:
             m2 = joblib.load(MODEL_2_PATH)
             feat_cols = getattr(m2, "feature_names_in_", None)
             if feat_cols is not None:
-                row_dict = {col: student_data.get(col, 0.0) for col in feat_cols}
+                row_dict = {}
+                for col in feat_cols:
+                    val = student_data.get(col)
+                    if val is None and col == "backlog_history":
+                        val = student_data.get("backlogs", 0.0)
+                    elif val is None and col == "backlogs":
+                        val = student_data.get("backlog_history", 0.0)
+                    row_dict[col] = float(val) if val is not None else 0.0
                 X2 = pd.DataFrame([row_dict])[feat_cols]
                 prob = float(m2.predict_proba(X2)[0, 1])
                 preds["predicted_risk_prob"] = round(prob, 3)

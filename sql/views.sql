@@ -15,6 +15,7 @@ SELECT
     s.family_income_lpa,
     s.cgpa,
     s.backlogs,
+    s.backlogs AS backlog_history,
     s.failed_subjects,
     s.at_risk_flag,
 
@@ -140,6 +141,7 @@ SELECT
     s.student_id,
     s.cgpa,
     s.backlogs,
+    s.backlogs AS backlog_history,
     s.failed_subjects,
     s.family_income_lpa,
 
