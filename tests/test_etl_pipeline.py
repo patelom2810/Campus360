@@ -1,6 +1,7 @@
 """
-Unit & Integration Tests for ETL Pipeline
-Tests data ingestion, cleaning rules, attribute-based stitching, and star schema tables.
+Unit & Integration Tests for KDAC-3 ETL Pipeline
+Tests raw dataset ingestion, cleaning rules, student_id stitching,
+relational tables, and model-ready training datasets.
 """
 
 import sys
@@ -13,7 +14,6 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
-INTERIM_DIR = BASE_DIR / "data" / "interim"
 RAW_DIR = BASE_DIR / "data" / "raw"
 
 
@@ -21,54 +21,62 @@ class TestETLPipeline(unittest.TestCase):
 
     def test_raw_files_exist(self):
         expected_files = [
-            "suvidya_student_performance.csv",
-            "kundan_student_performance.csv",
-            "sehaj_student_lifestyle.csv",
-            "navinpatidar_indian_placement.csv",
-            "sakharebharat_indian_placement_2025.csv",
-            "shambhuraje_placement_career_2026.csv"
+            "1_student_records.csv",
+            "2_exam_marks.csv",
+            "3_attendance.csv",
+            "4_lifestyle.csv",
+            "5_skills.csv",
+            "6_career_preferences.csv",
         ]
         for f in expected_files:
             self.assertTrue((RAW_DIR / f).exists(), f"Raw file missing: {f}")
 
-    def test_interim_files_clean(self):
-        for clean_file in INTERIM_DIR.glob("*_clean.csv"):
-            df = pd.read_csv(clean_file)
-            self.assertGreater(len(df), 0, f"Cleaned file is empty: {clean_file.name}")
-            for c in df.columns:
-                self.assertEqual(c, c.lower(), f"Column not lowercase snake_case: {c} in {clean_file.name}")
+    def test_stitched_master_integrity(self):
+        stitched_path = PROCESSED_DIR / "student_master_stitched.csv"
+        self.assertTrue(stitched_path.exists(), "student_master_stitched.csv missing")
+        df = pd.read_csv(stitched_path)
+        self.assertEqual(len(df), 10000, f"Expected 10,000 rows, got {len(df)}")
+        self.assertEqual(df["student_id"].nunique(), 10000, "student_id must be strictly unique")
+        self.assertEqual(df["student_id"].iloc[0], "S100000")
+        self.assertEqual(df["student_id"].iloc[-1], "S109999")
 
-    def test_wide_master_integrity(self):
-        wide_path = PROCESSED_DIR / "student_master_wide.csv"
-        self.assertTrue(wide_path.exists())
-        df = pd.read_csv(wide_path)
-        self.assertEqual(len(df), 25000, f"Expected 25,000 rows, got {len(df)}")
-        self.assertEqual(df["student_id"].nunique(), 25000, "student_id must be strictly unique")
-        self.assertEqual(df["student_id"].iloc[0], "STU00001")
-        self.assertEqual(df["student_id"].iloc[-1], "STU25000")
+    def test_relational_warehouse_tables(self):
+        tables = [
+            "cleaned_students.csv",
+            "cleaned_academic_records.csv",
+            "cleaned_exam_marks.csv",
+            "cleaned_attendance.csv",
+            "cleaned_lifestyle.csv",
+            "cleaned_skills.csv",
+            "cleaned_career_preferences.csv",
+        ]
+        master_ids = None
+        for tbl in tables:
+            tbl_path = PROCESSED_DIR / tbl
+            self.assertTrue(tbl_path.exists(), f"Warehouse table missing: {tbl}")
+            df = pd.read_csv(tbl_path)
+            self.assertEqual(len(df), 10000, f"Table {tbl} row count mismatch: {len(df)}")
+            if tbl == "cleaned_students.csv":
+                master_ids = set(df["student_id"])
+            else:
+                self.assertEqual(set(df["student_id"]), master_ids, f"Referential mismatch in {tbl}")
 
-    def test_star_schema_relationships(self):
-        dim_student = pd.read_csv(PROCESSED_DIR / "dim_student.csv")
-        fact_career = pd.read_csv(PROCESSED_DIR / "fact_career.csv")
-        fact_lifestyle = pd.read_csv(PROCESSED_DIR / "fact_lifestyle.csv")
-        fact_perf = pd.read_csv(PROCESSED_DIR / "fact_performance.csv")
+    def test_model_training_datasets(self):
+        at_risk_path = PROCESSED_DIR / "at_risk_dataset.csv"
+        perf_path = PROCESSED_DIR / "student_performance_dataset.csv"
 
-        self.assertEqual(len(dim_student), 25000)
-        self.assertEqual(len(fact_career), 25000)
-        self.assertEqual(len(fact_lifestyle), 25000)
-        self.assertEqual(len(fact_perf), 105000)
+        self.assertTrue(at_risk_path.exists(), "at_risk_dataset.csv missing in data/processed")
+        self.assertTrue(perf_path.exists(), "student_performance_dataset.csv missing in data/processed")
 
-        # Foreign key integrity
-        student_id_set = set(dim_student["student_id"])
-        self.assertEqual(set(fact_career["student_id"]), student_id_set)
-        self.assertEqual(set(fact_lifestyle["student_id"]), student_id_set)
-        self.assertTrue(set(fact_perf["student_id"]).issubset(student_id_set))
+        df_risk = pd.read_csv(at_risk_path)
+        df_perf = pd.read_csv(perf_path)
 
-    def test_statistical_realism(self):
-        wide_df = pd.read_csv(PROCESSED_DIR / "student_master_wide.csv")
-        sub = wide_df[["anchor_cgpa", "sakhare_cgpa"]].dropna()
-        corr = sub["anchor_cgpa"].corr(sub["sakhare_cgpa"])
-        self.assertGreater(corr, 0.70, f"Correlation between Anchor and Sakhare CGPA is too low: {corr}")
+        self.assertEqual(len(df_risk), 10000)
+        self.assertEqual(len(df_perf), 10000)
+
+        self.assertIn("at_risk_flag", df_risk.columns)
+        self.assertIn("next_semester_marks", df_perf.columns)
+        self.assertTrue(df_risk["at_risk_flag"].isin([0, 1]).all())
 
 
 if __name__ == "__main__":

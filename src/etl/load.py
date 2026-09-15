@@ -43,10 +43,16 @@ def get_db_url(engine_type: Optional[str] = None) -> str:
         sqlite_path = PROCESSED_DATA_DIR / "warehouse.db"
         return f"sqlite:///{sqlite_path.as_posix()}"
     
-    # PostgreSQL URL
+    # PostgreSQL URL from config or environment
+    try:
+        from config.config import DATABASE_URL
+        return DATABASE_URL
+    except Exception:
+        pass
+
     return os.getenv(
         "DATABASE_URL",
-        "postgresql://campus360:changeme@localhost:5432/campus360_warehouse"
+        "postgresql://campus360:changeme@localhost:5433/campus360_warehouse"
     )
 
 
@@ -65,20 +71,28 @@ def create_warehouse_engine(engine_type: Optional[str] = None, force_refresh: bo
         return _CACHED_ENGINES[selected_engine]
 
     if selected_engine == "postgres":
-        pg_url = get_db_url("postgres")
-        try:
-            engine = sqlalchemy.create_engine(
-                pg_url,
-                pool_pre_ping=True,
-                connect_args={"connect_timeout": 3}
-            )
-            with engine.connect() as conn:
-                conn.execute(text("SELECT 1;"))
-            _CACHED_ENGINES["postgres"] = (engine, "postgres")
-            return engine, "postgres"
-        except Exception as err:
-            print(f"[WARNING] PostgreSQL connection failed ({err}). Falling back to SQLite.")
-            selected_engine = "sqlite"
+        urls_to_try = [get_db_url("postgres")]
+        if "5432" in urls_to_try[0]:
+            urls_to_try.append(urls_to_try[0].replace("5432", "5433"))
+        elif "5433" in urls_to_try[0]:
+            urls_to_try.append(urls_to_try[0].replace("5433", "5432"))
+
+        for pg_url in urls_to_try:
+            try:
+                engine = sqlalchemy.create_engine(
+                    pg_url,
+                    pool_pre_ping=True,
+                    connect_args={"connect_timeout": 2}
+                )
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT 1;"))
+                _CACHED_ENGINES["postgres"] = (engine, "postgres")
+                return engine, "postgres"
+            except Exception:
+                continue
+
+        print("[WARNING] PostgreSQL connection failed on both ports. Falling back to SQLite.")
+        selected_engine = "sqlite"
 
     sqlite_url = get_db_url("sqlite")
     engine = sqlalchemy.create_engine(sqlite_url)

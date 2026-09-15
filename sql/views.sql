@@ -224,3 +224,45 @@ SELECT
 FROM students s
 JOIN skills sk ON s.student_id = sk.student_id
 JOIN career_preferences cp ON s.student_id = cp.student_id;
+
+
+-- -----------------------------------------------------------------------------
+-- 5. STAR SCHEMA COMPATIBILITY VIEWS (For API and Dashboard Consumers)
+-- -----------------------------------------------------------------------------
+DROP VIEW IF EXISTS fact_career CASCADE;
+DROP VIEW IF EXISTS fact_lifestyle CASCADE;
+DROP VIEW IF EXISTS fact_performance CASCADE;
+DROP VIEW IF EXISTS dim_student CASCADE;
+
+CREATE OR REPLACE VIEW dim_student AS
+SELECT 
+    s.*,
+    COALESCE(s.preferred_domain, 'Computer Science') AS stream_branch,
+    CASE 
+        WHEN s.family_income_lpa >= 10.0 THEN 1
+        WHEN s.family_income_lpa >= 5.0 THEN 2
+        ELSE 3
+    END AS college_tier,
+    'Active' AS academic_status
+FROM student_360_view s;
+
+CREATE OR REPLACE VIEW fact_performance AS
+SELECT s.student_id, 'Mathematics' AS subject, ar.previous_subject_avg AS marks, 100.0 AS max_marks, 'academic' AS source FROM students s JOIN academic_records ar ON s.student_id = ar.student_id
+UNION ALL
+SELECT s.student_id, 'Science' AS subject, em.lowest_subject_score AS marks, 100.0 AS max_marks, 'exam' AS source FROM students s JOIN exam_marks em ON s.student_id = em.student_id
+UNION ALL
+SELECT s.student_id, 'English' AS subject, em.previous_internal_marks AS marks, 100.0 AS max_marks, 'internal' AS source FROM students s JOIN exam_marks em ON s.student_id = em.student_id
+UNION ALL
+SELECT s.student_id, 'Overall Score' AS subject, em.previous_midterm_score AS marks, 100.0 AS max_marks, 'midterm' AS source FROM students s JOIN exam_marks em ON s.student_id = em.student_id
+UNION ALL
+SELECT s.student_id, 'Overall Percentage' AS subject, ar.previous_semester_percentage AS marks, 100.0 AS max_marks, 'semester' AS source FROM students s JOIN academic_records ar ON s.student_id = ar.student_id
+UNION ALL
+SELECT s.student_id, 'Degree CGPA' AS subject, (s.cgpa * 10.0) AS marks, 100.0 AS max_marks, 'cgpa' AS source FROM students s;
+
+CREATE OR REPLACE VIEW fact_lifestyle AS
+SELECT * FROM lifestyle;
+
+CREATE OR REPLACE VIEW fact_career AS
+SELECT * FROM career_readiness_view;
+
+

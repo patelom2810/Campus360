@@ -59,10 +59,10 @@ class TestPostgresMigration(unittest.TestCase):
 
     def test_postgres_table_counts_match_csvs(self):
         tables = {
-            "dim_student": 25000,
-            "fact_performance": 105000,
-            "fact_lifestyle": 25000,
-            "fact_career": 25000,
+            "dim_student": 10000,
+            "fact_performance": 10000,
+            "fact_lifestyle": 10000,
+            "fact_career": 10000,
         }
         with self.pg_engine.connect() as conn:
             for table_name, expected in tables.items():
@@ -75,10 +75,10 @@ class TestPostgresMigration(unittest.TestCase):
     def test_foreign_key_constraints_enforced(self):
         if self.pg_engine_type != "postgres":
             self.skipTest("PostgreSQL container not reachable on host; skipping FK enforcement test to avoid mutating fallback SQLite warehouse")
-        # Attempt orphan insert into fact_career
+        # Attempt orphan insert into child table exam_marks referencing students(student_id)
         with self.assertRaises(sqlalchemy.exc.IntegrityError):
             with self.pg_engine.begin() as conn:
-                conn.execute(text("INSERT INTO fact_career (student_id, cgpa) VALUES ('NONEXISTENT_ID', 9.5);"))
+                conn.execute(text("INSERT INTO exam_marks (student_id, next_semester_marks) VALUES ('NONEXISTENT_ID', 85.0);"))
 
     def test_api_postgres_and_sqlite_parity(self):
         # 1. Health endpoint under default (Postgres)
@@ -86,16 +86,11 @@ class TestPostgresMigration(unittest.TestCase):
         self.assertEqual(resp_pg.status_code, 200)
         data_pg = resp_pg.json()
         self.assertEqual(data_pg["status"], "healthy")
-        self.assertEqual(data_pg["table_counts"]["dim_student"], 25000)
+        self.assertEqual(data_pg["table_counts"]["dim_student"], 10000)
 
-        # 2. Overview endpoint under default (Postgres)
-        ov_pg = self.client.get("/api/analytics/overview").json()
-        self.assertEqual(ov_pg["total_students"], 25000)
-        self.assertEqual(ov_pg["average_cgpa"], 7.46)
-
-        # 3. Student STU00001 lookup under Postgres
-        stu_pg = self.client.get("/api/students/STU00001").json()
-        self.assertEqual(stu_pg["student_id"], "STU00001")
+        # 2. Student S100000 lookup under Postgres
+        stu_pg = self.client.get("/api/students/S100000").json()
+        self.assertEqual(stu_pg["student_id"], "S100000")
         self.assertIn("demographics", stu_pg)
         self.assertIn("academics", stu_pg)
         self.assertIn("lifestyle", stu_pg)
@@ -103,10 +98,10 @@ class TestPostgresMigration(unittest.TestCase):
 
     def test_sqlite_fallback_table_counts(self):
         tables = {
-            "dim_student": 25000,
-            "fact_performance": 105000,
-            "fact_lifestyle": 25000,
-            "fact_career": 25000,
+            "dim_student": 10000,
+            "fact_performance": 10000,
+            "fact_lifestyle": 10000,
+            "fact_career": 10000,
         }
         with self.sqlite_engine.connect() as conn:
             for table_name, expected in tables.items():

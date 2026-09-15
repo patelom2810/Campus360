@@ -102,6 +102,16 @@ def main():
     )
     print(f"[SPLIT] Training instances: {len(X_train):,} | Test instances: {len(X_test):,}")
 
+    # Save train/test split CSVs for independent validation
+    processed_dir = BASE_DIR / "data" / "processed"
+    processed_dir.mkdir(parents=True, exist_ok=True)
+    train_split_df = X_train.copy()
+    train_split_df[target] = y_train
+    test_split_df = X_test.copy()
+    test_split_df[target] = y_test
+    train_split_df.to_csv(processed_dir / "model1_performance_train.csv", index=False)
+    test_split_df.to_csv(processed_dir / "model1_performance_test.csv", index=False)
+
     # ---------- Model ----------
     print("\n[TRAIN] Fitting RandomForestRegressor (300 estimators, max_depth=12)...")
     model = RandomForestRegressor(
@@ -155,27 +165,51 @@ def main():
     models_dir = BASE_DIR / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
     
-    # Save model in root and models/ directory
-    root_model_path = BASE_DIR / "next_semester_marks_model.pkl"
-    models_dir_path = models_dir / "next_semester_marks_model.pkl"
+    # Save model in joblib and pkl format in root and models/ directory
+    root_model_joblib = BASE_DIR / "next_semester_marks_model.joblib"
+    root_model_pkl = BASE_DIR / "next_semester_marks_model.pkl"
+    models_dir_joblib = models_dir / "next_semester_marks_model.joblib"
+    models_dir_predictor = models_dir / "model1_performance_predictor.joblib"
+    models_dir_pkl = models_dir / "next_semester_marks_model.pkl"
     
-    joblib.dump(model, root_model_path)
-    joblib.dump(model, models_dir_path)
+    joblib.dump(model, root_model_joblib)
+    joblib.dump(model, root_model_pkl)
+    joblib.dump(model, models_dir_joblib)
+    joblib.dump(model, models_dir_predictor)
+    joblib.dump(model, models_dir_pkl)
     
     # Save metadata bundle (model + features + metrics)
+    metrics_dict = {
+        "mae": float(mae),
+        "rmse": float(rmse),
+        "r2": float(r2),
+        "test_mae": float(mae),
+        "test_rmse": float(rmse),
+        "test_r2": float(r2),
+    }
     bundle = {
         "model": model,
         "features": feature_names,
         "target": target,
-        "metrics": {"mae": mae, "rmse": rmse, "r2": r2},
-        "top_features": importances.head(10).to_dict()
+        "metrics": metrics_dict,
+        "top_features": {k: float(v) for k, v in importances.head(10).items()}
     }
-    bundle_path = models_dir / "model_1_performance_regression_bundle.pkl"
-    joblib.dump(bundle, bundle_path)
+    bundle_pkl_path = models_dir / "model_1_performance_regression_bundle.pkl"
+    bundle_joblib_path = models_dir / "model_1_performance_regression_bundle.joblib"
+    metrics_json_path = models_dir / "model1_performance_metrics.json"
     
-    print(f"\n[SAVE] Model saved to: {root_model_path.name}")
-    print(f"[SAVE] Model saved to: models/{models_dir_path.name}")
-    print(f"[SAVE] Deployment bundle saved to: models/{bundle_path.name}")
+    joblib.dump(bundle, bundle_pkl_path)
+    joblib.dump(bundle, bundle_joblib_path)
+    
+    import json
+    with open(metrics_json_path, "w", encoding="utf-8") as f:
+        json.dump(bundle["metrics"] | {"features": feature_names, "target": target, "top_features": bundle["top_features"]}, f, indent=2)
+    
+    print(f"\n[SAVE] Model saved to: {root_model_joblib.name} & {root_model_pkl.name}")
+    print(f"[SAVE] Model saved to: models/{models_dir_joblib.name}")
+    print(f"[SAVE] Model saved to: models/{models_dir_predictor.name}")
+    print(f"[SAVE] Deployment bundle saved to: models/{bundle_joblib_path.name}")
+    print(f"[SAVE] Metrics JSON saved to: models/{metrics_json_path.name}")
     print("=" * 80 + "\n")
     return model, bundle
 

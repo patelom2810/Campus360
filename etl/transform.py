@@ -356,7 +356,39 @@ def transform_and_stitch(raw_dfs: Dict[str, pd.DataFrame]) -> Tuple[Dict[str, pd
         tbl_path = PROCESSED_DATA_DIR / f"cleaned_{tbl_name}.csv"
         df_tbl.to_csv(tbl_path, index=False)
         
+    # Generate and export dedicated training datasets for Model 1 and Model 2
+    at_risk_cols = [
+        'student_id', 'sleep_hours', 'screen_time', 'gaming_hours', 'stress_level', 'burnout_score',
+        'study_hours_daily', 'self_learning_hours', 'motivation_level', 'adaptability_score', 'gym_frequency',
+        'family_income_lpa', 'resume_score', 'communication_skills', 'aptitude_score', 'mock_interview_score',
+        'hackathons_participated', 'development_projects_count', 'ai_ml_projects', 'git_hub_repos',
+        'ai_tool_usage_frequency', 'prompt_engineering_skill', 'wellness_score', 'screen_to_study_ratio',
+        'backlogs', 'attendance_percentage', 'cgpa', 'at_risk_flag'
+    ]
+    perf_cols = [
+        'student_id', 'previous_cgpa', 'previous_semester_percentage', 'previous_internal_marks',
+        'previous_assignment_score', 'previous_midterm_score', 'attendance_percentage', 'study_hours_per_week',
+        'assignment_completion_rate', 'practice_questions', 'previous_subject_avg', 'weak_subject_count',
+        'lowest_subject_score', 'subject_consistency', 'sleep_hours', 'extracurricular_hours', 'stress_level',
+        'backlogs', 'failed_subjects', 'next_semester_marks', 'performance_band'
+    ]
+    
+    # Model 2 at-risk dataset
+    available_atrisk = [c for c in at_risk_cols if c in master_df.columns]
+    at_risk_df = master_df[available_atrisk].copy()
+    if 'backlogs' in at_risk_df.columns:
+        at_risk_df.rename(columns={'backlogs': 'backlog_history'}, inplace=True)
+    at_risk_df.to_csv(PROCESSED_DATA_DIR / "at_risk_dataset.csv", index=False)
+    at_risk_df.to_csv(BASE_DIR / "at_risk_dataset.csv", index=False)
+
+    # Model 1 student performance dataset
+    available_perf = [c for c in perf_cols if c in master_df.columns]
+    perf_df = master_df[available_perf].copy()
+    perf_df.to_csv(PROCESSED_DATA_DIR / "student_performance_dataset.csv", index=False)
+    perf_df.to_csv(BASE_DIR / "student_performance_dataset.csv", index=False)
+
     print(f"[TRANSFORM] Saved all {len(warehouse_dfs)} cleaned relational warehouse tables to data/processed/")
+    print(f"[TRANSFORM] Exported Model 1 & Model 2 datasets: at_risk_dataset.csv & student_performance_dataset.csv")
     return warehouse_dfs, master_df
 
 
