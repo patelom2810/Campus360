@@ -1,0 +1,38 @@
+{
+  "model_name": "GradientBoostingRegressor (10-feature compact)",
+  "target": "anchor_cgpa",
+  "feature_count": 10,
+  "features": [
+    "anchor_dsa_problems_solved",
+    "anchor_study_hours_daily",
+    "anchor_communication_skills",
+    "anchor_aptitude_score",
+    "effort_score",
+    "screen_to_study_ratio",
+    "anchor_internships_completed",
+    "anchor_resume_score",
+    "anchor_screen_time",
+    "anchor_family_income_lpa"
+  ],
+  "feature_importances": {
+    "anchor_dsa_problems_solved": 0.312,
+    "anchor_study_hours_daily": 0.2047,
+    "anchor_communication_skills": 0.168,
+    "anchor_aptitude_score": 0.0994,
+    "effort_score": 0.1358,
+    "screen_to_study_ratio": 0.0239,
+    "anchor_internships_completed": 0.0285,
+    "anchor_resume_score": 0.0076,
+    "anchor_screen_time": 0.0081,
+    "anchor_family_income_lpa": 0.012
+  },
+  "test_r2": 0.2132,
+  "test_rmse": 0.7564,
+  "test_mae": 0.6014,
+  "cv_5fold_r2_mean": 0.186,
+  "cv_5fold_r2_std": 0.0089,
+  "baseline_28feat_r2": 0.2096,
+  "delta_r2_vs_baseline": 0.0036,
+  "training_time_seconds": 1.43,
+  "trained_at": "2026-09-14T19:12:57Z"
+}

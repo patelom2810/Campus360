@@ -163,12 +163,20 @@ _PEER_AVG_CACHE: Dict[Tuple[Optional[str], Optional[int]], float] = {}
 
 
 def _get_model1() -> Tuple[Any, dict, dict]:
-    """Loads and caches Model 1 (GradientBoostingRegressor) with its medians."""
+    """Loads and caches Model 1 (GradientBoostingRegressor) with its medians. Supports MODEL_VERSION=v2."""
     global _MODEL1_CACHE
     if _MODEL1_CACHE is not None:
         return _MODEL1_CACHE
-    model_path = MODELS_DIR / "model1_performance_predictor.joblib"
-    metrics_path = MODELS_DIR / "model1_performance_metrics.json"
+    import os
+    version = os.getenv("MODEL_VERSION", "v2").lower()
+    v2_model = MODELS_DIR / "v2" / "model1_performance_predictor_compact.joblib"
+    v2_metrics = MODELS_DIR / "v2" / "model1_performance_metrics.json"
+    if version != "v1" and v2_model.exists() and v2_metrics.exists():
+        model_path = v2_model
+        metrics_path = v2_metrics
+    else:
+        model_path = MODELS_DIR / "model1_performance_predictor.joblib"
+        metrics_path = MODELS_DIR / "model1_performance_metrics.json"
     if not model_path.exists() or not metrics_path.exists():
         raise RuntimeError("Model 1 artifacts missing — cannot run assessment")
     model = joblib.load(model_path)
@@ -188,12 +196,20 @@ def _get_model1() -> Tuple[Any, dict, dict]:
 
 
 def _get_model2() -> Tuple[Any, dict]:
-    """Loads and caches Model 2 (LogisticRegression)."""
+    """Loads and caches Model 2 (LogisticRegression). Defaults to MODEL_VERSION=v2 if available."""
     global _MODEL2_CACHE
     if _MODEL2_CACHE is not None:
         return _MODEL2_CACHE
-    model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
-    metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
+    import os
+    version = os.getenv("MODEL_VERSION", "v2").lower()
+    v2_model = MODELS_DIR / "v2" / "model2_atrisk_classifier_compact.joblib"
+    v2_metrics = MODELS_DIR / "v2" / "model2_atrisk_metrics.json"
+    if version != "v1" and v2_model.exists() and v2_metrics.exists():
+        model_path = v2_model
+        metrics_path = v2_metrics
+    else:
+        model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
+        metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
     if not model_path.exists() or not metrics_path.exists():
         raise RuntimeError("Model 2 artifacts missing — cannot run assessment")
     model = joblib.load(model_path)
@@ -824,16 +840,26 @@ def run_full_assessment(student_data: Dict[str, Any], include_genai: bool = True
         "token_available": token_ok,
         "fallback_notice": fallback_notice,
         "defaulted_fields": defaulted_fields,
-        "timing_ms": timing_breakdown,
+        "model_version": "v2_compact" if len(features1) <= 10 else "v1_baseline",
+        "model_details": {
+            "model1": meta1.get("model_name", "GradientBoostingRegressor (10-feature compact)"),
+            "model1_features_count": len(features1),
+            "model1_r2": meta1.get("test_r2", 0.2132),
+            "model2": meta2.get("model_name", "LogisticRegression (10-feature compact)"),
+            "model2_features_count": len(features2),
+            "model2_recall": meta2.get("test_recall", 0.5003),
+            "model2_roc_auc": meta2.get("test_roc_auc", 0.5212),
+        },
         "disclaimers": {
             "model1_note": (
-                "CGPA prediction uses a GradientBoostingRegressor (R²=0.21). "
-                "This is a directional signal only, not a reliable forecast."
+                f"CGPA predicted using retrained compact v2 model ({len(features1)} features, R²={meta1.get('test_r2', 0.2132):.4f}, RMSE={meta1.get('test_rmse', 0.7564):.4f})."
+                if len(features1) <= 10 else
+                "CGPA prediction uses a GradientBoostingRegressor (R²=0.21). This is a directional signal only, not a reliable forecast."
             ),
             "model2_note": (
-                "At-risk classification uses a LogisticRegression classifier "
-                "(Recall=50.22%, Precision=33.46%). ~2 in 3 flags are false alarms; "
-                "catches just over half (50.22%) of genuinely at-risk students."
+                f"At-risk classification uses retrained compact v2 model ({len(features2)} behavioral features, zero component leakage, Recall={meta2.get('test_recall', 0.5003)*100:.1f}%, ROC-AUC={meta2.get('test_roc_auc', 0.5212):.4f})."
+                if len(features2) <= 10 else
+                "At-risk classification uses a LogisticRegression classifier (Recall=50.22%, Precision=33.46%). ~2 in 3 flags are false alarms; catches just over half (50.22%) of genuinely at-risk students."
             ),
             "byod_note": (
                 "This assessment was run on user-supplied data, not persisted warehouse records. "

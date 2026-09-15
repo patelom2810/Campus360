@@ -89,11 +89,18 @@ _AT_RISK_CACHE_DF = None
 
 
 def get_model1():
-    """Loads and caches Model 1 (Performance Predictor) and feature medians."""
+    """Loads and caches Model 1 (Performance Predictor) and feature medians. Supports MODEL_VERSION=v2."""
     global _MODEL1, _MODEL1_METRICS, _MODEL1_MEDIANS
     if _MODEL1 is None:
-        model_path = MODELS_DIR / "model1_performance_predictor.joblib"
-        metrics_path = MODELS_DIR / "model1_performance_metrics.json"
+        version = os.getenv("MODEL_VERSION", "v1").lower()
+        v2_model = MODELS_DIR / "v2" / "model1_performance_predictor_compact.joblib"
+        v2_metrics = MODELS_DIR / "v2" / "model1_performance_metrics.json"
+        if version == "v2" and v2_model.exists() and v2_metrics.exists():
+            model_path = v2_model
+            metrics_path = v2_metrics
+        else:
+            model_path = MODELS_DIR / "model1_performance_predictor.joblib"
+            metrics_path = MODELS_DIR / "model1_performance_metrics.json"
         if not model_path.exists() or not metrics_path.exists():
             raise RuntimeError("Model 1 artifacts missing")
         _MODEL1 = joblib.load(model_path)
@@ -109,11 +116,18 @@ def get_model1():
 
 
 def get_model2():
-    """Loads and caches Model 2 (At-Risk Classifier) and metrics."""
+    """Loads and caches Model 2 (At-Risk Classifier) and metrics. Supports MODEL_VERSION=v2."""
     global _MODEL2, _MODEL2_METRICS
     if _MODEL2 is None:
-        model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
-        metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
+        version = os.getenv("MODEL_VERSION", "v1").lower()
+        v2_model = MODELS_DIR / "v2" / "model2_atrisk_classifier_compact.joblib"
+        v2_metrics = MODELS_DIR / "v2" / "model2_atrisk_metrics.json"
+        if version == "v2" and v2_model.exists() and v2_metrics.exists():
+            model_path = v2_model
+            metrics_path = v2_metrics
+        else:
+            model_path = MODELS_DIR / "model2_atrisk_classifier.joblib"
+            metrics_path = MODELS_DIR / "model2_atrisk_metrics.json"
         if not model_path.exists() or not metrics_path.exists():
             raise RuntimeError("Model 2 artifacts missing")
         _MODEL2 = joblib.load(model_path)

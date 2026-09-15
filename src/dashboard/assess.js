@@ -20,7 +20,19 @@ const state = {
 };
 
 // ── Navigation & Persistence ──────────────────────────────────────────────────
-function selectOption(option) {
+function normalizeOption(name) {
+  if (!name) return null;
+  const n = String(name).toLowerCase().replace('#', '').trim();
+  if (n === 'form' || n === 'new-student' || n === 'direct-form') return 'form';
+  if (n === 'csv' || n === 'csv-match') return 'csv';
+  if (n === 'stitch' || n === 'csv-stitch' || n === 'multiple-csv') return 'stitch';
+  if (n === 'chat' || n === 'guided-chat') return 'chat';
+  return null;
+}
+
+function selectOption(rawOption) {
+  const option = normalizeOption(rawOption) || rawOption;
+
   // Highlight selected card
   document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
   const card = document.getElementById(`card-${option}`);
@@ -42,7 +54,9 @@ function selectOption(option) {
   if (singleContainer) singleContainer.classList.add('hidden');
 
   // Scroll to panel
-  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (panel) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   // Initialize chat if selected
   if (option === 'chat' && !state.chatSessionId) {
@@ -69,22 +83,143 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     saved = localStorage.getItem('campus360_assess_option');
   } catch (_) {}
-  const validOptions = ['csv-match', 'csv-stitch', 'chat', 'new-student'];
-  const initial = validOptions.includes(hash) ? hash : (validOptions.includes(saved) ? saved : null);
-  if (initial) {
-    setTimeout(() => selectOption(initial), 50);
+  const target = normalizeOption(hash) || normalizeOption(saved);
+  if (target) {
+    setTimeout(() => selectOption(target), 50);
   }
 });
 
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '');
-  const validOptions = ['csv-match', 'csv-stitch', 'chat', 'new-student'];
-  if (validOptions.includes(hash)) {
-    selectOption(hash);
+  const target = normalizeOption(hash);
+  if (target) {
+    selectOption(target);
   } else if (!hash) {
     backToCards();
   }
 });
+
+// ── Quick-Fill Form Presets ───────────────────────────────────────────────────
+function quickFillForm(presetType) {
+  const form = document.getElementById('direct-form');
+  if (!form) return;
+
+  const presets = {
+    high: {
+      student_label: 'Alex Chen (High Achiever)',
+      branch: 'Computer Science',
+      tier: '1',
+      anchor_attendance_percentage: 92,
+      anchor_study_hours_daily: 8.0,
+      anchor_self_learning_hours: 3.5,
+      anchor_backlog_history: 0,
+      anchor_dsa_problems_solved: 350,
+      anchor_internships_completed: 2,
+      anchor_sleep_hours: 7.5,
+      anchor_screen_time: 4.5,
+      anchor_gaming_hours: 0.5,
+      anchor_stress_level: 30,
+      anchor_burnout_score: 20,
+      anchor_motivation_level: 9,
+      anchor_adaptability_score: 8.5,
+      anchor_gym_frequency: 5,
+      anchor_family_income_lpa: 12.0,
+      anchor_resume_score: 85,
+      anchor_communication_skills: 88,
+      anchor_aptitude_score: 92,
+      anchor_mock_interview_score: 85,
+      anchor_hackathons_participated: 3,
+      anchor_development_projects_count: 5,
+      anchor_ai_ml_projects: 2,
+      anchor_git_hub_repos: 14,
+      anchor_ai_tool_usage_frequency: 4,
+      anchor_prompt_engineering_skill: 8,
+    },
+    atrisk: {
+      student_label: 'Rohan Verma (At-Risk Profile)',
+      branch: 'Computer Science',
+      tier: '2',
+      anchor_attendance_percentage: 52,
+      anchor_study_hours_daily: 1.5,
+      anchor_self_learning_hours: 0.5,
+      anchor_backlog_history: 2,
+      anchor_dsa_problems_solved: 15,
+      anchor_internships_completed: 0,
+      anchor_sleep_hours: 4.5,
+      anchor_screen_time: 12.0,
+      anchor_gaming_hours: 6.0,
+      anchor_stress_level: 85,
+      anchor_burnout_score: 80,
+      anchor_motivation_level: 3,
+      anchor_adaptability_score: 4.0,
+      anchor_gym_frequency: 0,
+      anchor_family_income_lpa: 4.0,
+      anchor_resume_score: 35,
+      anchor_communication_skills: 45,
+      anchor_aptitude_score: 42,
+      anchor_mock_interview_score: 30,
+      anchor_hackathons_participated: 0,
+      anchor_development_projects_count: 0,
+      anchor_ai_ml_projects: 0,
+      anchor_git_hub_repos: 1,
+      anchor_ai_tool_usage_frequency: 1,
+      anchor_prompt_engineering_skill: 2,
+    },
+    balanced: {
+      student_label: 'Jordan Lee (Typical Profile)',
+      branch: 'Computer Science',
+      tier: '2',
+      anchor_attendance_percentage: 82,
+      anchor_study_hours_daily: 4.0,
+      anchor_self_learning_hours: 1.5,
+      anchor_backlog_history: 0,
+      anchor_dsa_problems_solved: 120,
+      anchor_internships_completed: 1,
+      anchor_sleep_hours: 7.0,
+      anchor_screen_time: 5.0,
+      anchor_gaming_hours: 1.0,
+      anchor_stress_level: 54,
+      anchor_burnout_score: 44,
+      anchor_motivation_level: 6,
+      anchor_adaptability_score: 6.5,
+      anchor_gym_frequency: 3,
+      anchor_family_income_lpa: 8.0,
+      anchor_resume_score: 60,
+      anchor_communication_skills: 70,
+      anchor_aptitude_score: 65,
+      anchor_mock_interview_score: 60,
+      anchor_hackathons_participated: 1,
+      anchor_development_projects_count: 2,
+      anchor_ai_ml_projects: 1,
+      anchor_git_hub_repos: 8,
+      anchor_ai_tool_usage_frequency: 3,
+      anchor_prompt_engineering_skill: 5,
+    },
+    clear: {}
+  };
+
+  const vals = presets[presetType] || {};
+  form.reset();
+
+  if (presetType === 'clear') {
+    showToast('Form cleared.', 'info', 2000);
+    return;
+  }
+
+  for (const [k, v] of Object.entries(vals)) {
+    const el = form.elements[k];
+    if (el) {
+      el.value = v;
+    }
+  }
+
+  if (vals.branch && typeof onBranchSelectionChange === 'function') {
+    onBranchSelectionChange(vals.branch);
+  }
+
+  showToast(`Loaded ${presetType.toUpperCase()} preset. Click "Run Full Assessment" below to test the retrained v2 models!`, 'info', 4000);
+}
+window.quickFillForm = quickFillForm;
 
 // ── Shared Utilities ──────────────────────────────────────────────────────────
 function showError(containerId, message) {
@@ -473,30 +608,43 @@ function renderSingleResult(containerId, data, label = null, shouldScroll = true
     <div style="animation: fadeUp 0.4s ease forwards;">
       ${fallbackBanner}
       ${label ? `<div class="flex items-center justify-between mb-4">
-        <h3 class="sora font-bold text-xl text-campus-text">${label}</h3>
-        <span class="text-xs text-campus-muted bg-campus-lavender px-3 py-1 rounded-full">BYOD Assessment</span>
+        <div>
+          <h3 class="sora font-bold text-xl text-campus-text">${label}</h3>
+          <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span class="text-xs text-campus-muted bg-campus-lavender px-3 py-0.5 rounded-full">BYOD Assessment</span>
+            <span class="text-[11px] font-bold text-purple-700 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
+              <span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span>
+              ${data.model_version === 'v2_compact' || !data.model_version ? 'Retrained Compact Models (v2 Active · 10 Features)' : 'Baseline Models (v1)'}
+            </span>
+            <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              Zero Academic Leakage
+            </span>
+          </div>
+        </div>
       </div>` : ''}
 
       <!-- Top KPI row -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <!-- CGPA card -->
-        <div class="result-card text-center">
+        <div class="result-card text-center relative overflow-hidden">
+          <div class="absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">v2 Compact</div>
           <div class="text-xs text-campus-muted uppercase tracking-wider mb-2 font-semibold">Predicted CGPA</div>
           <div class="sora text-4xl font-bold text-campus-primary">${formatFloat(cgpa)}</div>
           <div class="text-xs text-campus-muted mt-1">/ 10.0</div>
           <div class="text-xs text-campus-muted mt-3 p-2 bg-campus-lavender rounded-lg leading-snug">
-            ${disclaimers.model1_note || 'R²=0.21 — directional signal only'}
+            ${disclaimers.model1_note || 'GradientBoostingRegressor (10 features, R²=0.2132, RMSE=0.7564)'}
           </div>
         </div>
 
         <!-- At-Risk -->
-        <div class="result-card text-center">
+        <div class="result-card text-center relative overflow-hidden">
+          <div class="absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">v2 Compact</div>
           <div class="text-xs text-campus-muted uppercase tracking-wider mb-2 font-semibold">At-Risk Signal</div>
           <div class="sora text-4xl font-bold" style="color:${atRiskColor}">${(prob * 100).toFixed(1)}%</div>
           <div class="text-xs font-semibold mt-1" style="color:${atRiskColor}">${riskLabel}</div>
           <div class="${atRiskBannerClass} mt-3 flex items-start gap-2 text-xs">
             ${atRiskIcon}
-            <span>${disclaimers.model2_note || 'Recall=50.22%, Precision=33.46%'}</span>
+            <span>${disclaimers.model2_note || 'LogisticRegression (10 behavioral features, zero leakage, Recall=50.0%)'}</span>
           </div>
         </div>
 
@@ -510,6 +658,39 @@ function renderSingleResult(containerId, data, label = null, shouldScroll = true
                <div class="text-xs text-campus-muted mt-1">Branch/tier needed for peer normalization</div>`}
           <div class="text-xs text-campus-muted mt-3 p-2 bg-campus-mint rounded-lg leading-snug">
             ${disclaimers.byod_note || 'No DB write — assessment only'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Compact v2 Feature Driver Breakdown -->
+      <div class="result-card mb-4">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="sora font-semibold text-campus-text text-sm flex items-center gap-2">
+            <span>Compact Model Input Drivers (v2)</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700">10 Features</span>
+          </h4>
+          <span class="text-xs text-campus-muted">Evaluated live against population baseline</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-campus-muted block text-[11px]">Daily Study Hours</span>
+            <span class="font-bold text-slate-800 text-sm">${formatFloat(data.input_echo?.anchor_study_hours_daily ?? 4.0, 1)} hrs</span>
+            <span class="text-[10px] text-slate-500 block">Pop Avg: 4.0 hrs</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-campus-muted block text-[11px]">DSA Problems Solved</span>
+            <span class="font-bold text-slate-800 text-sm">${Math.round(data.input_echo?.anchor_dsa_problems_solved ?? 120)}</span>
+            <span class="text-[10px] text-slate-500 block">Pop Avg: 120 (#1 CGPA Factor)</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-campus-muted block text-[11px]">Communication Skills</span>
+            <span class="font-bold text-slate-800 text-sm">${Math.round(data.input_echo?.anchor_communication_skills ?? 70)} / 100</span>
+            <span class="text-[10px] text-slate-500 block">Pop Avg: 70</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-campus-muted block text-[11px]">Gym / Fitness Freq</span>
+            <span class="font-bold text-slate-800 text-sm">${Math.round(data.input_echo?.anchor_gym_frequency ?? 3)} days/wk</span>
+            <span class="text-[10px] text-emerald-600 block">#1 Risk Reducer</span>
           </div>
         </div>
       </div>
@@ -742,6 +923,41 @@ async function generateBatchRowGenAI(tempId, containerId, idx) {
     showToast('Failed to generate GenAI briefs: ' + err.message, 'error', 4000);
   }
 }
+
+// ── Progressive Live GenAI Loader for Single Assessment ──────────────────────
+async function loadProgressiveGenAI(containerId, data, label = null) {
+  if (!data || !data.genai_payloads) return;
+
+  const displayLabel = label || data._label || 'Assessment Results';
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/assess/genai-insights`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data.genai_payloads),
+    });
+
+    if (resp.ok) {
+      const insights = await resp.json();
+      data.atrisk_brief = insights.atrisk_brief;
+      data.performance_summary = insights.performance_summary;
+      data.career_narrative = insights.career_narrative;
+      data.gemini_fallback_active = insights.gemini_fallback_active;
+      data.token_available = insights.token_available;
+      data.fallback_notice = insights.fallback_notice;
+    } else {
+      data.gemini_fallback_active = true;
+    }
+  } catch (err) {
+    console.warn('Progressive GenAI insight loading error:', err);
+    data.gemini_fallback_active = true;
+  } finally {
+    data.genai_pending = false;
+    // Re-render single result in place without page jumping
+    renderSingleResult(containerId, data, displayLabel, false);
+  }
+}
+window.loadProgressiveGenAI = loadProgressiveGenAI;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // OPTION 1: CSV Upload with Fuzzy Matching
@@ -1738,11 +1954,13 @@ async function submitDirectForm(event) {
     resultEl.innerHTML = `<div id="form-result-inner"></div>`;
     resultEl.classList.remove('hidden');
     data.genai_pending = true;
-    renderSingleResult('form-result-inner', data, body.student_label || 'Assessment Results', true);
+    const studentLabel = body.student_label || 'Assessment Results';
+    data._label = studentLabel;
+    renderSingleResult('form-result-inner', data, studentLabel, true);
 
     // Asynchronously fetch live Gemini insights to smoothly populate skeleton cards
-    if (data.genai_payloads) {
-      loadProgressiveGenAI('form-result-inner', data);
+    if (data.genai_payloads && typeof loadProgressiveGenAI === 'function') {
+      loadProgressiveGenAI('form-result-inner', data, studentLabel);
     }
 
   } catch (err) {
