@@ -50,8 +50,27 @@ def log_genai_interaction(student_id: str, provider: str, model_name: str, promp
         f.write(log_entry)
 
 
+def normalize_student_id(raw_id: str) -> str:
+    """Normalizes student ID inputs (e.g., 'S900', '900', 's100000') into standard S10xxxx format."""
+    if not raw_id:
+        return ""
+    cleaned = str(raw_id).strip().upper()
+    digits = "".join(ch for ch in cleaned if ch.isdigit())
+    if not digits:
+        return cleaned
+    val = int(digits)
+    if len(digits) <= 4 and 0 <= val <= 9999:
+        return f"S10{val:04d}"
+    if len(digits) == 5:
+        return f"S{val:06d}"
+    if len(digits) == 6:
+        return f"S{digits}"
+    return cleaned
+
+
 def get_student_record(student_id: str) -> Optional[Dict[str, Any]]:
     """Retrieves full student record from SQLite warehouse."""
+    student_id = normalize_student_id(student_id)
     conn = get_db_connection()
     try:
         query = "SELECT * FROM student_360_view WHERE student_id = ?;"
@@ -214,6 +233,7 @@ def call_llm(prompt: str, student_id: str) -> Dict[str, str]:
 
 def generate_student_insight(student_id: str) -> Dict[str, Any]:
     """End-to-end insight generation for a single student."""
+    student_id = normalize_student_id(student_id)
     record = get_student_record(student_id)
     if not record:
         raise ValueError(f"Student ID '{student_id}' not found in warehouse.")

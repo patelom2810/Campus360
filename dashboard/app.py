@@ -11,6 +11,12 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
+try:
+    import statsmodels.api as sm
+    HAS_STATSMODELS = True
+except ImportError:
+    HAS_STATSMODELS = False
+
 # Ensure project root is in python path
 BASE_DIR = Path(__file__).resolve().parents[1]
 if str(BASE_DIR) not in sys.path:
@@ -290,7 +296,7 @@ with tab3:
             color_discrete_map={0: "#10B981", 1: "#EF4444"},
             labels={"study_hours_daily": "Daily Study Hours", "next_semester_marks": "Next Semester Marks", "at_risk_flag": "At-Risk"},
             title="Daily Study Hours vs. Next Semester Marks (Sample)",
-            trendline="ols",
+            trendline="ols" if HAS_STATSMODELS else None,
         )
         st.plotly_chart(fig_study, use_container_width=True)
 
@@ -326,7 +332,7 @@ with tab3:
             color="at_risk_flag",
             color_discrete_map={0: "#10B981", 1: "#EF4444"},
             title="Stress Level vs. Burnout Score",
-            trendline="ols",
+            trendline="ols" if HAS_STATSMODELS else None,
         )
         st.plotly_chart(fig_wellness, use_container_width=True)
 
@@ -382,12 +388,56 @@ with tab4:
 # ── TAB 5: Individual Student 360 Deep-Dive ───────────────────────────────────
 with tab5:
     st.subheader("Single Student 360 Dossier")
-    search_id = st.text_input("Enter Student ID (e.g., S100000 to S109999):", value="S100000").strip().upper()
+
+    from genai.generate_insights import normalize_student_id
+
+    # 1-Click Quick Preset Profiles
+    st.markdown("##### ⚡ Quick Select Preset Profiles:")
+    pcol1, pcol2, pcol3, pcol4, pcol5 = st.columns(5)
+
+    if "selected_student_id" not in st.session_state:
+        st.session_state["selected_student_id"] = "S100000"
+
+    if pcol1.button("🎲 Random Student"):
+        st.session_state["selected_student_id"] = str(df["student_id"].sample(1).iloc[0])
+    if pcol2.button("⚠️ At-Risk Example (S100000)"):
+        st.session_state["selected_student_id"] = "S100000"
+    if pcol3.button("⚠️ Academic Fragile (S100001)"):
+        st.session_state["selected_student_id"] = "S100001"
+    if pcol4.button("✅ Low-Risk Example (S100004)"):
+        st.session_state["selected_student_id"] = "S100004"
+    if pcol5.button("🎯 Student S900 (S100900)"):
+        st.session_state["selected_student_id"] = "S100900"
+
+    raw_input = st.text_input(
+        "Enter Student ID or Number (e.g. S100900, S900, 900, S100000):",
+        value=st.session_state["selected_student_id"],
+        help="You can enter full ID (S100900), short form (S900), or simple number (900)."
+    ).strip().upper()
+
+    # Smart ID resolution (handles S900, 900, S100000, etc.)
+    resolved_id = normalize_student_id(raw_input)
+    all_known_ids = set(df["student_id"].dropna().unique())
+
+    if resolved_id in all_known_ids:
+        search_id = resolved_id
+        if resolved_id != raw_input:
+            st.info(f"💡 Resolved shorthand '**{raw_input}**' to Student ID **{resolved_id}**")
+    else:
+        search_id = raw_input
 
     student_records = df[df["student_id"] == search_id]
     if student_records.empty:
-        st.warning(f"Student ID '{search_id}' not found in the warehouse.")
-    else:
+        # Check partial/fuzzy substring matches
+        partial_matches = [sid for sid in all_known_ids if raw_input in sid]
+        if partial_matches:
+            st.warning(f"Student ID '{raw_input}' not found directly. Did you mean one of these?")
+            search_id = st.selectbox("Matching student IDs in warehouse:", options=sorted(partial_matches)[:20])
+            student_records = df[df["student_id"] == search_id]
+        else:
+            st.error(f"Student ID '{raw_input}' not found in the warehouse. Valid IDs range from **S100000** to **S109999** (or enter 0 to 9999).")
+
+    if not student_records.empty:
         s = student_records.iloc[0]
         s_col1, s_col2, s_col3 = st.columns([1, 2, 2])
 
