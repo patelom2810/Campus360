@@ -15,6 +15,9 @@ services:
       - ./data:/app/data
       - ./models:/app/models
       - ./logs:/app/logs
+      - ./dashboard:/app/dashboard
+      - ./genai:/app/genai
+      - ./etl:/app/etl
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"]
