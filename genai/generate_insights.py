@@ -117,7 +117,8 @@ def predict_batch(df: pd.DataFrame) -> pd.DataFrame:
                         X1[col] = pd.to_numeric(out_df["backlogs"], errors="coerce")
                     else:
                         X1[col] = 0.0
-                out_df["predicted_next_sem_marks"] = np.round(m1.predict(X1[feat_cols]), 2)
+                raw_preds = m1.predict(X1[feat_cols])
+                out_df["predicted_next_sem_marks"] = np.round(np.clip(raw_preds, 0.0, 100.0), 2)
         except Exception as e:
             print(f"[ML WARNING] Model 1 batch prediction error: {e}")
 
@@ -138,7 +139,7 @@ def predict_batch(df: pd.DataFrame) -> pd.DataFrame:
                     else:
                         X2[col] = 0.0
                 probs = m2.predict_proba(X2[feat_cols])[:, 1]
-                out_df["predicted_risk_prob"] = np.round(probs, 3)
+                out_df["predicted_risk_prob"] = np.round(np.clip(probs, 0.0, 1.0), 3)
                 # Dynamically load calibrated threshold from model_metrics.json if available
                 metrics_file = BASE_DIR / "models" / "model_metrics.json"
                 cal_thresh = 0.370
@@ -162,8 +163,14 @@ def predict_batch(df: pd.DataFrame) -> pd.DataFrame:
 def get_ml_predictions(student_data: Any) -> Any:
     """
     Runs Model 1 (Marks Regression) and Model 2 (Risk Classifier).
-    Accepts either a single dictionary record or a pandas DataFrame.
+    Accepts a student_id string, a single dictionary record, or a pandas DataFrame.
     """
+    if isinstance(student_data, str):
+        record = get_student_record(student_data)
+        if not record:
+            return {"predicted_marks": None, "predicted_risk_prob": None, "risk_classification": "Unknown"}
+        student_data = record
+
     if isinstance(student_data, pd.DataFrame):
         return predict_batch(student_data)
 

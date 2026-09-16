@@ -33,49 +33,73 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling with FontAwesome Icons & Modern Aesthetics
+# ── Palette & Design System (User Specified Tokens) ───────────────────────────
+MOLTEN_LAVA = "#780000"
+FLAG_RED = "#C1121F"
+PAPAYA_WHIP = "#FDF0D5"
+DEEP_SPACE_BLUE = "#003049"
+STEEL_BLUE = "#669BBC"
+
+# Vibrant Rainbow Spectrum for Analytics Visualizations
+RAINBOW_PALETTE = [
+    "#E63946",  # Vibrant Red
+    "#F77F00",  # Amber Orange
+    "#FCBF49",  # Sunshine Yellow
+    "#2A9D8F",  # Emerald Cyan
+    "#00B4D8",  # Sky Blue
+    "#3A86FF",  # Royal Indigo
+    "#8338EC",  # Vivid Purple
+    "#FF006E",  # Rose Magenta
+]
+RAINBOW_COLORSCALE = "Rainbow"
+
+# Custom Styling with FontAwesome Icons, Tab Pill Highlights, and Palette Integration
 st.markdown(
     """
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
     .main-header {
-        font-size: 2.2rem;
+        font-size: 2.1rem;
         font-weight: 800;
-        color: #1E1B4B;
-        margin-bottom: 0.2rem;
+        color: #003049;
+        margin-bottom: 0.1rem;
         display: flex;
         align-items: center;
         gap: 12px;
     }
     .sub-header {
-        font-size: 1.0rem;
-        color: #64748B;
-        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+        color: #669BBC;
+        font-weight: 500;
+        margin-bottom: 1.25rem;
     }
     .metric-card {
-        background: #F8FAFC;
+        background: #FFFFFF;
         border: 1px solid #E2E8F0;
+        border-top: 3px solid #003049;
         border-radius: 12px;
         padding: 1rem 1.25rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        box-shadow: 0 1px 3px rgba(0, 48, 73, 0.05);
     }
     .risk-badge {
-        background-color: #FEE2E2;
-        color: #991B1B;
-        padding: 4px 10px;
+        background-color: #FDF0D5;
+        color: #780000;
+        border: 1px solid #C1121F;
+        padding: 5px 12px;
         border-radius: 6px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.85rem;
         display: inline-flex;
         align-items: center;
         gap: 6px;
     }
     .safe-badge {
-        background-color: #DCFCE7;
+        background-color: #F0FDF4;
         color: #166534;
-        padding: 4px 10px;
+        border: 1px solid #86EFAC;
+        padding: 5px 12px;
         border-radius: 6px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.85rem;
         display: inline-flex;
         align-items: center;
@@ -89,6 +113,69 @@ st.markdown(
         margin-bottom: 0.75rem;
         box-shadow: 0 1px 2px rgba(0,0,0,0.04);
         min-height: 140px;
+    }
+
+    /* ── Tab Bar Navigation: Light Highlight Word Background, Generous Padding & Space ── */
+    .stTabs [data-baseweb="tab-list"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        padding: 8px 10px !important;
+        background-color: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 12px !important;
+        box-shadow: inset 0 1px 2px rgba(0, 48, 73, 0.04) !important;
+        border-bottom: none !important;
+        overflow-x: visible !important;
+    }
+
+    /* Individual tab buttons with light color highlight word background and comfortable padding */
+    .stTabs [data-baseweb="tab"] {
+        background-color: #FDF0D5 !important; /* ~Papaya Whip light highlight */
+        color: #003049 !important;           /* ~Deep Space Blue text */
+        border: 1px solid #EADBBE !important;
+        border-radius: 8px !important;
+        padding: 9px 18px !important;        /* generous padding for words */
+        margin: 3px 2px !important;          /* clean spacing between tabs */
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        white-space: nowrap !important;
+        box-shadow: 0 1px 3px rgba(0, 48, 73, 0.07) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        cursor: pointer !important;
+    }
+
+    /* Tab hover effect */
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #669BBC !important; /* ~Steel Blue hover */
+        color: #FFFFFF !important;
+        border-color: #003049 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 8px rgba(0, 48, 73, 0.16) !important;
+    }
+
+    /* Active selected tab: distinct deep blue highlight with crisp white text */
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, #003049 0%, #174E6F 100%) !important; /* ~Deep Space Blue */
+        color: #FFFFFF !important;
+        border: 1px solid #003049 !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 10px rgba(0, 48, 73, 0.25) !important;
+    }
+
+    /* Inherit styling inside tab text nodes */
+    .stTabs [data-baseweb="tab"] div,
+    .stTabs [data-baseweb="tab"] p,
+    .stTabs [data-baseweb="tab"] span {
+        color: inherit !important;
+        font-size: inherit !important;
+        font-weight: inherit !important;
+    }
+
+    /* Hide default BaseWeb bottom red highlight line & borders to eliminate overlap */
+    .stTabs [data-baseweb="tab-highlight"],
+    .stTabs [data-baseweb="tab-border"] {
+        display: none !important;
     }
     </style>
     """,
@@ -114,14 +201,19 @@ def load_data():
 df = load_data()
 
 # ── Sidebar Controls ──────────────────────────────────────────────────────────
+logo_path = BASE_DIR / "dashboard" / "assets" / "logo.png"
+
 with st.sidebar:
-    st.image("https://img.icons8.com/fluency/96/graduation-cap.png", width=64)
-    st.markdown("## **Campus360**")
+    if logo_path.exists():
+        st.image(str(logo_path), use_container_width=True)
+    else:
+        st.image("https://img.icons8.com/fluency/96/graduation-cap.png", width=64)
+        st.markdown("## **Campus360**")
     st.caption("AI-Powered Student Success Engine")
     st.markdown("---")
 
     # Global Filters
-    st.markdown("### <i class='fa-solid fa-filter'></i> Filters", unsafe_allow_html=True)
+    st.markdown("### <i class='fa-solid fa-filter' style='color:#003049;'></i> Global Filters", unsafe_allow_html=True)
 
     all_bands = sorted([b for b in df["performance_band"].dropna().unique()])
     selected_bands = st.multiselect(
@@ -160,14 +252,21 @@ if selected_domains:
     filtered_df = filtered_df[filtered_df["preferred_domain"].isin(selected_domains)]
 
 # ── Header & KPI Metrics ──────────────────────────────────────────────────────
-st.markdown(
-    '<div class="main-header"><i class="fa-solid fa-graduation-cap" style="color:#4F46E5;"></i> Campus360 Student Analytics Dashboard</div>',
-    unsafe_allow_html=True,
-)
-st.markdown(
-    f'<div class="sub-header">Holistic Student Performance, Psychological Wellness, and Early Screening Insights · Showing <b>{len(filtered_df):,}</b> of <b>{len(df):,}</b> students</div>',
-    unsafe_allow_html=True,
-)
+hdr_col1, hdr_col2 = st.columns([1, 14])
+with hdr_col1:
+    if logo_path.exists():
+        st.image(str(logo_path), width=75)
+    else:
+        st.markdown('<i class="fa-solid fa-graduation-cap" style="font-size: 2.3rem; color:#003049;"></i>', unsafe_allow_html=True)
+with hdr_col2:
+    st.markdown(
+        '<div class="main-header">Campus360 Student Analytics & Early Warning Platform</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="sub-header">Holistic Student Performance, Psychological Wellness, and Early Screening Insights · Showing <b>{len(filtered_df):,}</b> of <b>{len(df):,}</b> students</div>',
+        unsafe_allow_html=True,
+    )
 
 kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
 total_count = len(filtered_df)
@@ -205,11 +304,11 @@ with tab1:
     with col1:
         band_counts = filtered_df["performance_band"].value_counts().reset_index()
         band_counts.columns = ["Band", "Students"]
-        color_map = {
-            "Excellent": "#10B981",
-            "Good": "#3B82F6",
-            "Average": "#F59E0B",
-            "At_Risk": "#EF4444",
+        rainbow_color_map = {
+            "Excellent": "#3A86FF",  # Royal Blue
+            "Good": "#2A9D8F",       # Emerald Cyan
+            "Average": "#FCBF49",    # Sunshine Amber
+            "At_Risk": "#E63946",    # Crimson Red
         }
         fig_band = px.pie(
             band_counts,
@@ -217,7 +316,7 @@ with tab1:
             values="Students",
             title="Academic Performance Band Distribution",
             color="Band",
-            color_discrete_map=color_map,
+            color_discrete_map=rainbow_color_map,
             hole=0.45,
         )
         fig_band.update_traces(textinfo="percent+label", textposition="inside")
@@ -228,7 +327,7 @@ with tab1:
             filtered_df,
             x="next_semester_marks",
             color="performance_band",
-            color_discrete_map=color_map,
+            color_discrete_map=rainbow_color_map,
             nbins=30,
             title="Next Semester Marks Distribution by Band",
             marginal="box",
@@ -254,7 +353,7 @@ with tab1:
         y="Cohort Average",
         text_auto=".1f",
         color="Cohort Average",
-        color_continuous_scale="Viridis",
+        color_continuous_scale=RAINBOW_COLORSCALE,
         title="Average Component Exam Scores Across Cohort",
     )
     fig_bar.update_layout(yaxis=dict(range=[0, 100]))
@@ -291,8 +390,8 @@ with tab2:
     comp_df = pd.DataFrame(comparison_data)
 
     fig_comp = go.Figure(data=[
-        go.Bar(name="At-Risk Students", x=comp_df["Factor"], y=comp_df["At-Risk Cohort"], marker_color="#EF4444"),
-        go.Bar(name="Not At-Risk Students", x=comp_df["Factor"], y=comp_df["Not At-Risk Cohort"], marker_color="#10B981"),
+        go.Bar(name="At-Risk Students", x=comp_df["Factor"], y=comp_df["At-Risk Cohort"], marker_color="#E63946"),
+        go.Bar(name="Not At-Risk Students", x=comp_df["Factor"], y=comp_df["Not At-Risk Cohort"], marker_color="#00B4D8"),
     ])
     fig_comp.update_layout(barmode="group", title="Holistic Metrics: At-Risk vs. Non At-Risk Students")
     st.plotly_chart(fig_comp, use_container_width=True)
@@ -319,7 +418,7 @@ with tab3:
             x="study_hours_daily",
             y="next_semester_marks",
             color="at_risk_flag",
-            color_discrete_map={0: "#10B981", 1: "#EF4444"},
+            color_discrete_map={0: "#00B4D8", 1: "#E63946"},
             labels={"study_hours_daily": "Daily Study Hours", "next_semester_marks": "Next Semester Marks", "at_risk_flag": "At-Risk"},
             title="Daily Study Hours vs. Next Semester Marks (Sample)",
             trendline="ols" if HAS_STATSMODELS else None,
@@ -332,7 +431,7 @@ with tab3:
             x="sleep_hours",
             y="cgpa",
             color="stress_level",
-            color_continuous_scale="Reds",
+            color_continuous_scale=RAINBOW_COLORSCALE,
             labels={"sleep_hours": "Sleep Hours / Night", "cgpa": "Current CGPA", "stress_level": "Stress"},
             title="Sleep Hours vs. CGPA (Colored by Stress Level)",
         )
@@ -345,7 +444,7 @@ with tab3:
             x="performance_band",
             y="screen_time",
             color="performance_band",
-            color_discrete_map=color_map,
+            color_discrete_map=rainbow_color_map,
             title="Daily Screen Time by Performance Band",
         )
         st.plotly_chart(fig_screen, use_container_width=True)
@@ -356,7 +455,7 @@ with tab3:
             x="stress_level",
             y="burnout_score",
             color="at_risk_flag",
-            color_discrete_map={0: "#10B981", 1: "#EF4444"},
+            color_discrete_map={0: "#00B4D8", 1: "#E63946"},
             title="Stress Level vs. Burnout Score",
             trendline="ols" if HAS_STATSMODELS else None,
         )
@@ -377,7 +476,7 @@ with tab4:
             orientation="h",
             text_auto=True,
             color="Students",
-            color_continuous_scale="Blues",
+            color_continuous_scale=RAINBOW_COLORSCALE,
             title="Student Distribution Across Preferred Domains",
         )
         fig_domain.update_layout(yaxis=dict(autorange="reversed"))
@@ -392,7 +491,7 @@ with tab4:
             values="Count",
             title="Primary Career Objectives",
             hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Safe,
+            color_discrete_sequence=RAINBOW_PALETTE,
         )
         st.plotly_chart(fig_goal, use_container_width=True)
 
@@ -495,14 +594,21 @@ with tab5:
 
         st.markdown("---")
         st.markdown("### Faculty AI Advisory Briefing")
-        st.caption("Powered by Gemini 3.6 Flash (with Groq Qwen 3.8 fallback) & Campus360 ML Models")
+        st.caption("Campus360 Automated Multi-Source Synthesizer & Academic Advisory Engine")
 
         if st.button("Generate AI Faculty Briefing for " + search_id, type="primary"):
             with st.spinner("Analyzing student dossier and generating academic counseling summary..."):
                 try:
                     from genai.generate_insights import generate_student_insight
                     insight_res = generate_student_insight(search_id)
-                    st.success(f"Generated via {insight_res['provider']} ({insight_res['model']})")
+                    st.markdown(
+                        """
+                        <div style="background-color:#FDF0D5; border-left: 4px solid #003049; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-weight:600; color:#003049;">
+                            <i class="fa-solid fa-circle-check" style="color:#2A9D8F;"></i> AI Faculty Advisory Briefing Ready
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
                     st.markdown(insight_res["insights"])
                 except Exception as ex:
                     st.error(f"Failed to generate insight: {ex}")
@@ -511,7 +617,7 @@ with tab5:
 with tab6:
     st.subheader("Predict from CSV")
     st.write(
-        "Upload student records and we'll predict next-semester performance and flag at-risk students."
+        "Upload student records or load a pre-configured cohort batch to predict next-semester performance and flag at-risk students."
     )
 
     import joblib
@@ -530,167 +636,305 @@ with tab6:
 
         template_cols = [c for c in ["student_id"] + all_required if c in df.columns]
         sample_template_df = df[template_cols].head(5)
-        st.download_button(
-            label="Download Sample CSV Template",
-            data=sample_template_df.to_csv(index=False).encode("utf-8"),
-            file_name="campus360_sample_template.csv",
-            mime="text/csv",
-        )
 
+        col_tpl1, col_tpl2 = st.columns([1, 3])
+        with col_tpl1:
+            st.download_button(
+                label="Download Sample CSV Template",
+                data=sample_template_df.to_csv(index=False).encode("utf-8"),
+                file_name="campus360_sample_template.csv",
+                mime="text/csv",
+            )
+
+        st.markdown("---")
+        sample_dir = BASE_DIR / "data" / "sample_prediction_csvs"
+        sample_batches = {
+            "-- Choose a realistic pre-loaded dataset or upload below --": None,
+            "Batch 1: High Risk & Academic Probation Cohort (30 Students)": "batch_1_high_risk_probation_cohort.csv",
+            "Batch 2: Honors & Placement Star Candidates (30 Students)": "batch_2_honors_and_placement_stars.csv",
+            "Batch 3: Borderline Attendance & Stress Boundary Cases (30 Students)": "batch_3_borderline_attendance_and_stress.csv",
+            "Batch 4: Balanced Classroom Cohort Section (40 Students)": "batch_4_balanced_classroom_section.csv",
+            "Batch 5: Final Year Career & Placement Batch (30 Students)": "batch_5_final_year_career_placement_batch.csv",
+        }
+
+        st.markdown("#### <i class='fa-solid fa-folder-tree' style='color:#003049;'></i> Option A: Load Pre-Built Realistic Cohort Batches", unsafe_allow_html=True)
+        sel_c1, sel_c2 = st.columns([3, 1])
+        with sel_c1:
+            selected_sample_label = st.selectbox(
+                "Choose a pre-configured realistic batch to showcase model accuracy:",
+                options=list(sample_batches.keys()),
+                key="sample_cohort_selector",
+            )
+        with sel_c2:
+            st.write("")
+            st.write("")
+            if selected_sample_label and sample_batches[selected_sample_label]:
+                batch_file_path = sample_dir / sample_batches[selected_sample_label]
+                if batch_file_path.exists():
+                    with open(batch_file_path, "rb") as bf:
+                        st.download_button(
+                            label="Download Selected CSV",
+                            data=bf.read(),
+                            file_name=sample_batches[selected_sample_label],
+                            mime="text/csv",
+                            key="dl_selected_batch_btn",
+                        )
+
+        st.markdown("#### <i class='fa-solid fa-cloud-arrow-up' style='color:#003049;'></i> Option B: Upload Your Own CSV File", unsafe_allow_html=True)
         csv_file = st.file_uploader(
             "Upload CSV file",
             type=["csv"],
             key="predict_csv_uploader",
         )
 
+        active_raw_df = None
+        source_label = ""
+
         if csv_file is not None:
             try:
-                uploaded_raw_df = pd.read_csv(csv_file)
+                active_raw_df = pd.read_csv(csv_file)
+                source_label = csv_file.name
             except Exception as read_err:
-                st.error(f"Error parsing CSV file: {read_err}")
-                uploaded_raw_df = None
+                st.error(f"Error parsing uploaded CSV file: {read_err}")
+                active_raw_df = None
+        elif selected_sample_label and sample_batches[selected_sample_label]:
+            batch_file_path = sample_dir / sample_batches[selected_sample_label]
+            if batch_file_path.exists():
+                try:
+                    active_raw_df = pd.read_csv(batch_file_path)
+                    source_label = sample_batches[selected_sample_label]
+                    st.info(f"Loaded preset realistic cohort: **{selected_sample_label}**")
+                except Exception as read_err:
+                    st.error(f"Error loading sample batch: {read_err}")
+                    active_raw_df = None
 
-            if uploaded_raw_df is not None:
-                st.write(
-                    f"**File uploaded:** `{csv_file.name}` | "
-                    f"**Rows:** `{len(uploaded_raw_df):,}` | "
-                    f"**Columns:** `{len(uploaded_raw_df.columns)}`"
+        if active_raw_df is not None:
+            st.write(
+                f"**Active Dataset:** `{source_label}` | "
+                f"**Total Records:** `{len(active_raw_df):,}` | "
+                f"**Columns:** `{len(active_raw_df.columns)}`"
+            )
+
+            existing_cols = set(active_raw_df.columns)
+            missing_features = []
+
+            for req_col in all_required:
+                if req_col not in existing_cols:
+                    if req_col == "backlogs" and "backlog_history" in existing_cols:
+                        continue
+                    if req_col == "backlog_history" and "backlogs" in existing_cols:
+                        continue
+                    missing_features.append(req_col)
+
+            if missing_features:
+                st.error(
+                    f"**Validation Error — Missing Required Columns ({len(missing_features)}):**\n\n"
+                    + ", ".join([f"`{col}`" for col in sorted(missing_features)])
+                    + "\n\nPlease ensure your CSV includes all required attributes before prediction."
                 )
+            else:
+                working_df = active_raw_df.copy()
 
-                existing_cols = set(uploaded_raw_df.columns)
-                missing_features = []
+                if "backlogs" in working_df.columns and "backlog_history" not in working_df.columns:
+                    working_df["backlog_history"] = working_df["backlogs"]
+                elif "backlog_history" in working_df.columns and "backlogs" not in working_df.columns:
+                    working_df["backlogs"] = working_df["backlog_history"]
 
-                for req_col in all_required:
-                    if req_col not in existing_cols:
-                        if req_col == "backlogs" and "backlog_history" in existing_cols:
-                            continue
-                        if req_col == "backlog_history" and "backlogs" in existing_cols:
-                            continue
-                        missing_features.append(req_col)
+                invalid_rows_set = set()
+                invalid_details_list = []
 
-                if missing_features:
-                    st.error(
-                        f"**Validation Error — Missing Required Columns ({len(missing_features)}):**\n\n"
-                        + ", ".join([f"`{col}`" for col in sorted(missing_features)])
-                        + "\n\nPlease ensure your CSV includes all required attributes before prediction."
+                for feat in all_required:
+                    num_series = pd.to_numeric(working_df[feat], errors="coerce")
+                    bad_mask = num_series.isna()
+                    if bad_mask.any():
+                        bad_indices = working_df.index[bad_mask].tolist()
+                        invalid_rows_set.update(bad_indices)
+                        for r_idx in bad_indices[:15]:
+                            invalid_details_list.append({
+                                "Row (1-indexed)": r_idx + 1,
+                                "Column": feat,
+                                "Invalid / Null Value": repr(working_df.at[r_idx, feat]),
+                            })
+
+                ready_to_predict = True
+                clean_input_df = working_df.copy()
+
+                if invalid_rows_set:
+                    st.warning(
+                        f"**Data Quality Warning:** Found **{len(invalid_rows_set):,} row(s)** "
+                        f"with missing or non-numeric values in required feature columns."
                     )
-                else:
-                    working_df = uploaded_raw_df.copy()
+                    with st.expander(f"Inspect First {min(15, len(invalid_details_list))} Affected Cells"):
+                        st.dataframe(pd.DataFrame(invalid_details_list), use_container_width=True, hide_index=True)
 
-                    if "backlogs" in working_df.columns and "backlog_history" not in working_df.columns:
-                        working_df["backlog_history"] = working_df["backlogs"]
-                    elif "backlog_history" in working_df.columns and "backlogs" not in working_df.columns:
-                        working_df["backlogs"] = working_df["backlog_history"]
+                    imputation_choice = st.radio(
+                        "Choose an automated resolution strategy before running models:",
+                        options=[
+                            f"Drop rows with invalid values (drop {len(invalid_rows_set):,} rows)",
+                            "Fill invalid / missing values with column mean (keep all rows)",
+                        ],
+                        index=0,
+                    )
 
-                    invalid_rows_set = set()
-                    invalid_details_list = []
-
-                    for feat in all_required:
-                        num_series = pd.to_numeric(working_df[feat], errors="coerce")
-                        bad_mask = num_series.isna()
-                        if bad_mask.any():
-                            bad_indices = working_df.index[bad_mask].tolist()
-                            invalid_rows_set.update(bad_indices)
-                            for r_idx in bad_indices[:15]:
-                                invalid_details_list.append({
-                                    "Row (1-indexed)": r_idx + 1,
-                                    "Column": feat,
-                                    "Invalid / Null Value": repr(working_df.at[r_idx, feat]),
-                                })
-
-                    ready_to_predict = True
-                    clean_input_df = working_df.copy()
-
-                    if invalid_rows_set:
-                        st.warning(
-                            f"**Data Quality Warning:** Found **{len(invalid_rows_set):,} row(s)** "
-                            f"with missing or non-numeric values in required feature columns."
-                        )
-                        with st.expander(f"Inspect First {min(15, len(invalid_details_list))} Affected Cells"):
-                            st.dataframe(pd.DataFrame(invalid_details_list), use_container_width=True, hide_index=True)
-
-                        imputation_choice = st.radio(
-                            "Choose an automated resolution strategy before running models:",
-                            options=[
-                                f"Drop rows with invalid values (drop {len(invalid_rows_set):,} rows)",
-                                "Fill invalid / missing values with column mean (keep all rows)",
-                            ],
-                            index=0,
-                        )
-
-                        if "Drop" in imputation_choice:
-                            clean_input_df = working_df.drop(index=list(invalid_rows_set)).reset_index(drop=True)
-                            if clean_input_df.empty:
-                                st.error("All rows contained invalid or null values. No valid rows remaining.")
-                                ready_to_predict = False
-                            else:
-                                st.info(f"Proceeding with **{len(clean_input_df):,}** clean rows ({len(invalid_rows_set):,} dropped).")
+                    if "Drop" in imputation_choice:
+                        clean_input_df = working_df.drop(index=list(invalid_rows_set)).reset_index(drop=True)
+                        if clean_input_df.empty:
+                            st.error("All rows contained invalid or null values. No valid rows remaining.")
+                            ready_to_predict = False
                         else:
-                            clean_input_df = working_df.copy()
-                            for feat in all_required:
-                                clean_input_df[feat] = pd.to_numeric(clean_input_df[feat], errors="coerce")
-                                mean_val = clean_input_df[feat].mean()
-                                if pd.isna(mean_val):
-                                    mean_val = 0.0
-                                clean_input_df[feat] = clean_input_df[feat].fillna(mean_val)
-                            st.info("Filled all invalid / missing values with their respective feature means.")
+                            st.info(f"Proceeding with **{len(clean_input_df):,}** clean rows ({len(invalid_rows_set):,} dropped).")
                     else:
-                        st.success(f"**Validation Succeeded:** All {len(clean_input_df):,} rows have complete numeric features.")
+                        clean_input_df = working_df.copy()
+                        for feat in all_required:
+                            clean_input_df[feat] = pd.to_numeric(clean_input_df[feat], errors="coerce")
+                            mean_val = clean_input_df[feat].mean()
+                            if pd.isna(mean_val):
+                                mean_val = 0.0
+                            clean_input_df[feat] = clean_input_df[feat].fillna(mean_val)
+                        st.info("Filled all invalid / missing values with their respective feature means.")
+                else:
+                    st.success(f"**Validation Succeeded:** All {len(clean_input_df):,} rows have complete numeric features.")
 
-                    if ready_to_predict:
-                        st.markdown("---")
-                        if st.button("Run Predictions", type="primary"):
-                            with st.spinner(f"Computing predictions for {len(clean_input_df):,} students..."):
-                                predicted_batch_df = get_ml_predictions(clean_input_df)
+                if ready_to_predict:
+                    st.markdown("---")
+                    if st.button("Run Predictions on Cohort", type="primary"):
+                        with st.spinner(f"Computing dual-model inference for {len(clean_input_df):,} students..."):
+                            predicted_batch_df = get_ml_predictions(clean_input_df)
 
-                            st.session_state["active_batch_results"] = predicted_batch_df
-                            st.success(f"Generated predictions for {len(predicted_batch_df):,} student records.")
+                        st.session_state["active_batch_results"] = predicted_batch_df
+                        st.session_state["active_source_label"] = source_label
+                        st.success(f"Generated predictions for {len(predicted_batch_df):,} student records.")
 
-                        if "active_batch_results" in st.session_state and st.session_state["active_batch_results"] is not None:
-                            batch_res = st.session_state["active_batch_results"]
+                    if "active_batch_results" in st.session_state and st.session_state["active_batch_results"] is not None:
+                        batch_res = st.session_state["active_batch_results"]
 
-                            pred_cols = ["predicted_next_sem_marks", "predicted_risk_prob", "risk_classification"]
-                            front_cols = [c for c in ["student_id"] if c in batch_res.columns] + pred_cols
-                            tail_cols = [c for c in batch_res.columns if c not in front_cols]
-                            ordered_display_df = batch_res[front_cols + tail_cols]
+                        pred_cols = ["predicted_next_sem_marks", "predicted_risk_prob", "risk_classification"]
+                        front_cols = [c for c in ["student_id"] if c in batch_res.columns] + pred_cols
+                        tail_cols = [c for c in batch_res.columns if c not in front_cols]
+                        ordered_display_df = batch_res[front_cols + tail_cols]
 
-                            total_rows = len(ordered_display_df)
-                            at_risk_count = (ordered_display_df["risk_classification"] == "At-Risk (High Priority)").sum()
-                            at_risk_pct = (at_risk_count / total_rows * 100) if total_rows > 0 else 0
-                            avg_marks = ordered_display_df["predicted_next_sem_marks"].mean() if total_rows > 0 else 0
-                            avg_prob = ordered_display_df["predicted_risk_prob"].mean() if total_rows > 0 else 0
+                        total_rows = len(ordered_display_df)
+                        at_risk_count = (ordered_display_df["risk_classification"] == "At-Risk (High Priority)").sum()
+                        at_risk_pct = (at_risk_count / total_rows * 100) if total_rows > 0 else 0
+                        avg_marks = ordered_display_df["predicted_next_sem_marks"].mean() if total_rows > 0 else 0
+                        avg_prob = ordered_display_df["predicted_risk_prob"].mean() if total_rows > 0 else 0
 
-                            st.markdown("### Prediction Summary")
-                            k1, k2, k3, k4 = st.columns(4)
-                            k1.metric("Evaluated Students", f"{total_rows:,}")
-                            k2.metric("Flagged At-Risk", f"{at_risk_count:,} ({at_risk_pct:.1f}%)", delta=f"{at_risk_pct - 50:+.1f}% vs baseline", delta_color="inverse")
-                            k3.metric("Avg Predicted Marks", f"{avg_marks:.2f} / 100")
-                            k4.metric("Avg Risk Probability", f"{avg_prob:.3f}")
+                        st.markdown("### Prediction Summary")
+                        k1, k2, k3, k4 = st.columns(4)
+                        k1.metric("Evaluated Students", f"{total_rows:,}")
+                        k2.metric("Flagged At-Risk", f"{at_risk_count:,} ({at_risk_pct:.1f}%)", delta=f"{at_risk_pct - 50:+.1f}% vs baseline", delta_color="inverse")
+                        k3.metric("Avg Predicted Marks", f"{avg_marks:.2f} / 100")
+                        k4.metric("Avg Risk Probability", f"{avg_prob:.3f}")
 
-                            st.markdown("### Prediction Results")
+                        st.markdown("### Prediction Results")
 
-                            def highlight_risk(val):
-                                if val == "At-Risk (High Priority)":
-                                    return "background-color: #FEE2E2; color: #991B1B; font-weight: bold;"
-                                elif val == "On-Track":
-                                    return "background-color: #DCFCE7; color: #166534; font-weight: bold;"
-                                return ""
+                        # Filter for Viewing All vs At-Risk vs On-Track
+                        filter_risk_choice = st.radio(
+                            "Filter Results View:",
+                            options=["All Students", "At-Risk Students Only (High Priority)", "On-Track / Low-Risk Only"],
+                            horizontal=True,
+                            key="batch_filter_risk_choice"
+                        )
 
-                            if hasattr(ordered_display_df.style, "map"):
-                                styled_df = ordered_display_df.style.map(highlight_risk, subset=["risk_classification"])
-                            else:
-                                styled_df = ordered_display_df.style.applymap(highlight_risk, subset=["risk_classification"])
+                        if filter_risk_choice == "At-Risk Students Only (High Priority)":
+                            filtered_table_df = ordered_display_df[ordered_display_df["risk_classification"] == "At-Risk (High Priority)"]
+                        elif filter_risk_choice == "On-Track / Low-Risk Only":
+                            filtered_table_df = ordered_display_df[ordered_display_df["risk_classification"] == "On-Track"]
+                        else:
+                            filtered_table_df = ordered_display_df
 
-                            st.dataframe(styled_df, use_container_width=True)
+                        # Mentor Early Intervention Action Panel
+                        at_risk_students_pool = ordered_display_df[ordered_display_df["risk_classification"] == "At-Risk (High Priority)"]
 
-                            csv_download_data = batch_res.to_csv(index=False).encode("utf-8")
-                            st.download_button(
-                                label="Download Predictions CSV",
-                                data=csv_download_data,
-                                file_name=f"campus360_predictions_{csv_file.name}",
-                                mime="text/csv",
-                                type="primary",
+                        if not at_risk_students_pool.empty:
+                            st.markdown(
+                                f"""
+                                <div style="background-color:#FDF0D5; border-left: 5px solid #C1121F; padding: 14px 18px; border-radius: 8px; margin: 16px 0 12px 0;">
+                                    <div style="font-weight:700; color:#780000; font-size: 1.05rem;">
+                                        <i class="fa-solid fa-user-doctor"></i> Faculty Mentor Early Intervention Action Panel
+                                    </div>
+                                    <div style="font-size: 0.88rem; color: #003049; margin-top: 4px;">
+                                        Identified <b>{len(at_risk_students_pool):,} at-risk students</b> requiring proactive faculty counseling. Select any student below to generate an immediate AI Mentor response.
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
                             )
+
+                            ar_col1, ar_col2 = st.columns([3, 1])
+                            with ar_col1:
+                                at_risk_ids = at_risk_students_pool["student_id"].tolist() if "student_id" in at_risk_students_pool.columns else at_risk_students_pool.index.tolist()
+                                selected_at_risk_id = st.selectbox(
+                                    "Select At-Risk Student for AI Intervention Counseling:",
+                                    options=at_risk_ids,
+                                    format_func=lambda sid: f"Student {sid} (Pred Marks: {at_risk_students_pool.loc[at_risk_students_pool['student_id'] == sid, 'predicted_next_sem_marks'].values[0]} | Risk Prob: {at_risk_students_pool.loc[at_risk_students_pool['student_id'] == sid, 'predicted_risk_prob'].values[0]*100:.1f}%)" if "student_id" in at_risk_students_pool.columns else f"Student #{sid}",
+                                    key="mentor_student_picker"
+                                )
+                            with ar_col2:
+                                st.write("")
+                                st.write("")
+                                generate_mentor_advice = st.button(
+                                    "Generate AI Mentor Response",
+                                    type="primary",
+                                    key="btn_generate_mentor_advice"
+                                )
+
+                            if generate_mentor_advice:
+                                with st.spinner(f"Synthesizing academic profile and generating AI mentor intervention for student {selected_at_risk_id}..."):
+                                    try:
+                                        from genai.generate_insights import build_faculty_prompt, call_llm
+                                        if "student_id" in at_risk_students_pool.columns:
+                                            target_row = at_risk_students_pool[at_risk_students_pool["student_id"] == selected_at_risk_id].iloc[0].to_dict()
+                                        else:
+                                            target_row = at_risk_students_pool.loc[selected_at_risk_id].to_dict()
+
+                                        ml_info = {
+                                            "predicted_marks": target_row.get("predicted_next_sem_marks", 0.0),
+                                            "predicted_risk_prob": target_row.get("predicted_risk_prob", 0.0),
+                                            "risk_classification": target_row.get("risk_classification", "At-Risk (High Priority)"),
+                                        }
+                                        m_prompt = build_faculty_prompt(str(selected_at_risk_id), target_row, ml_info)
+                                        m_ai_resp = call_llm(m_prompt, str(selected_at_risk_id))
+
+                                        st.markdown(
+                                            f"""
+                                            <div style="background-color: #FFFFFF; border: 1px solid #C1121F; border-radius: 10px; padding: 18px; margin: 12px 0; box-shadow: 0 4px 6px rgba(120,0,0,0.06);">
+                                                <h4 style="color:#780000; margin-top:0; border-bottom: 2px solid #FDF0D5; padding-bottom: 8px;">
+                                                    <i class="fa-solid fa-graduation-cap"></i> AI Mentor Counseling Response for Student {selected_at_risk_id}
+                                                </h4>
+                                            </div>
+                                            """,
+                                            unsafe_allow_html=True
+                                        )
+                                        st.markdown(m_ai_resp["insights"])
+                                    except Exception as advice_err:
+                                        st.error(f"Error generating mentor counseling guidance: {advice_err}")
+
+                        st.write(f"Showing **{len(filtered_table_df):,}** of **{len(ordered_display_df):,}** students")
+
+                        def highlight_risk(val):
+                            if val == "At-Risk (High Priority)":
+                                return "background-color: #FDF0D5; color: #780000; font-weight: bold;"
+                            elif val == "On-Track":
+                                return "background-color: #F0FDF4; color: #166534; font-weight: bold;"
+                            return ""
+
+                        if hasattr(filtered_table_df.style, "map"):
+                            styled_df = filtered_table_df.style.map(highlight_risk, subset=["risk_classification"])
+                        else:
+                            styled_df = filtered_table_df.style.applymap(highlight_risk, subset=["risk_classification"])
+
+                        st.dataframe(styled_df, use_container_width=True)
+
+                        csv_download_data = batch_res.to_csv(index=False).encode("utf-8")
+                        download_fname = f"campus360_predictions_{source_label}" if source_label else "campus360_predictions.csv"
+                        st.download_button(
+                            label="Download Predictions CSV",
+                            data=csv_download_data,
+                            file_name=download_fname,
+                            mime="text/csv",
+                            type="primary",
+                        )
 
 # ── TAB 7: ETL Pipeline & Data Warehouse ──────────────────────────────────────
 with tab7:
