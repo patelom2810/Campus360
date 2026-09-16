@@ -18,6 +18,8 @@ services:
       - ./dashboard:/app/dashboard
       - ./genai:/app/genai
       - ./etl:/app/etl
+      - ./config:/app/config
+      - ./sql:/app/sql
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"]
