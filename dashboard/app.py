@@ -217,9 +217,9 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "Lifestyle & Mental Health",
     "Career & Skill Readiness",
     "Individual Student 360",
-    "Predict from CSV",
     "ETL Pipeline & Warehouse",
     "Model Architecture & Accuracy",
+    "Predict from CSV",
     "Interactive Predictor & AI",
 ])
 
@@ -540,8 +540,375 @@ with tab5:
                 except Exception as ex:
                     st.error(f"Failed to generate insight: {ex}")
 
-# ── TAB 6: Predict from CSV ───────────────────────────────────────────────────
+# ── TAB 6: ETL Pipeline & Data Warehouse ──────────────────────────────────────
 with tab6:
+    st.subheader("Data Engineering & ETL Warehouse Architecture")
+    st.markdown(
+        """
+        Campus360 ingests, profiles, standardizes, and reconciles **6 disparate institutional departmental feeds** 
+        into a unified, 100% matched relational star schema.
+        """
+    )
+
+    # Top KPI Metrics Cards
+    ep1, ep2, ep3, ep4, ep5 = st.columns(5)
+    ep1.metric("Institutional Sources", "6 Feeds", "SIS, Exams, LMS, Wellness, Skills, Career")
+    ep2.metric("Warehouse Master Cohort", f"{len(df):,} Students", "Primary Entity")
+    ep3.metric("Key Stitching Match Rate", "100.0%", "0 Orphans across all 6 feeds")
+    ep4.metric("Relational Architecture", "7 Tables + 4 Views", "Foreign Keys & Cascade")
+    ep5.metric("Database Engine", "SQLite / PostgreSQL", "Zero-Drift Idempotency")
+
+    st.markdown("---")
+
+    # Interactive 5-Stage Visual Architecture Pipeline
+    st.markdown("### 5-Stage Data Engineering Pipeline")
+    p_col1, p_col2, p_col3, p_col4, p_col5 = st.columns(5)
+    with p_col1:
+        st.markdown(
+            """
+            <div class="stage-card">
+                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-file-arrow-down" style="color:#3B82F6;"></i> 1. Extraction</div>
+                <div style="font-size:0.85rem; color:#475569;">
+                    Reads raw immutable CSVs from 6 campus departments (10k+ rows each) with non-standard schema naming.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with p_col2:
+        st.markdown(
+            """
+            <div class="stage-card">
+                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#8B5CF6;"></i> 2. Transform & Normalize</div>
+                <div style="font-size:0.85rem; color:#475569;">
+                    Normalizes heterogeneous keys (<code>StudentID</code>, <code>roll_no</code>, <code>STUDENT_ID</code>, <code>roll_number</code>) to canonical <code>student_id</code>.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with p_col3:
+        st.markdown(
+            """
+            <div class="stage-card">
+                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-link" style="color:#10B981;"></i> 3. Non-Positional Stitching</div>
+                <div style="font-size:0.85rem; color:#475569;">
+                    Joins strictly on primary key <code>student_id</code> (never assumes row order). Achieves 10,000 matches with zero orphans.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with p_col4:
+        st.markdown(
+            """
+            <div class="stage-card">
+                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-database" style="color:#F59E0B;"></i> 4. Warehouse Loading</div>
+                <div style="font-size:0.85rem; color:#475569;">
+                    Bulk loads into relational Star Schema (SQLite / PostgreSQL 16) with foreign keys and check boundary constraints.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with p_col5:
+        st.markdown(
+            """
+            <div class="stage-card">
+                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-layer-group" style="color:#EF4444;"></i> 5. Analytical Views</div>
+                <div style="font-size:0.85rem; color:#475569;">
+                    Materializes 4 analytical SQL views for instant dashboard queries and zero-leakage ML feature pipelines.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+
+    st.markdown("---")
+
+    # Institutional Data Feed Reconciliation Table
+    st.markdown("### Departmental Data Sources & Key Reconciliation Audit")
+    reconciliation_table = [
+        {"Source Feed": "1_student_records.csv", "Department": "Registrar / SIS", "Original Key": "student_id", "Raw Count": 10080, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
+        {"Source Feed": "2_exam_marks.csv", "Department": "Controller of Examinations", "Original Key": "StudentID", "Raw Count": 10050, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
+        {"Source Feed": "3_attendance.csv", "Department": "LMS & Biometric Gates", "Original Key": "roll_no", "Raw Count": 10100, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
+        {"Source Feed": "4_lifestyle.csv", "Department": "Student Wellness & Counseling", "Original Key": "student_id", "Raw Count": 10060, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
+        {"Source Feed": "5_skills.csv", "Department": "Placement & Coding Cell", "Original Key": "STUDENT_ID", "Raw Count": 10070, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
+        {"Source Feed": "6_career_preferences.csv", "Department": "Career Guidance Office", "Original Key": "roll_number", "Raw Count": 10050, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
+    ]
+    st.dataframe(pd.DataFrame(reconciliation_table), use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+
+    # Data Quality Validation Suite
+    st.markdown("### Automated Data Quality & Warehouse Validation Suite")
+    st.caption("Verifies row count uniqueness, referential integrity, domain boundaries, null prevention, and analytical views.")
+
+    if st.button("Run Warehouse Quality & Integrity Audit", type="primary"):
+        with st.spinner("Executing automated test suite against relational warehouse..."):
+            try:
+                from etl.validate import run_data_quality_tests
+                val_res = run_data_quality_tests()
+                st.success("Quality Test Suite Completed: All checks passed with 100% integrity!")
+            except Exception as e:
+                st.info("Validation tests verified against warehouse schema.")
+
+    q_col1, q_col2, q_col3 = st.columns(3)
+    with q_col1:
+        st.markdown(
+            """
+            <div class="stage-card">
+                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 1. Row Counts & Uniqueness</div>
+                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
+                    10,000 distinct primary keys in all 7 tables.<br>
+                    <strong>Status: PASS (0 duplicates)</strong>
+                </div>
+            </div>
+            <div class="stage-card">
+                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 2. Referential Integrity</div>
+                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
+                    0 orphaned child records across foreign keys.<br>
+                    <strong>Status: PASS (100% integrity)</strong>
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with q_col2:
+        st.markdown(
+            """
+            <div class="stage-card">
+                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 3. Domain Boundary Checks</div>
+                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
+                    CGPA in [0.0, 10.0], Marks in [0.0, 100.0], Sleep in [0, 24].<br>
+                    <strong>Status: PASS (0 boundary violations)</strong>
+                </div>
+            </div>
+            <div class="stage-card">
+                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 4. Null & Completeness Checks</div>
+                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
+                    0 missing values in primary keys or essential columns.<br>
+                    <strong>Status: PASS (0 unexpected nulls)</strong>
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with q_col3:
+        st.markdown(
+            """
+            <div class="stage-card">
+                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 5. Analytical Views Integrity</div>
+                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
+                    All 4 SQL views query 10,000 rows without syntax or join errors.<br>
+                    <strong>Status: PASS (10,000 / 10,000 rows)</strong>
+                </div>
+            </div>
+            <div class="stage-card">
+                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 6. Pipeline Idempotency</div>
+                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
+                    Re-running pipeline produces identical warehouse state.<br>
+                    <strong>Status: PASS (Zero duplication)</strong>
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+
+    st.markdown("---")
+
+    # Relational Warehouse Table Inspector
+    st.markdown("### Relational Warehouse Schema & Table Inspector")
+    avail_tables = [
+        "students", "academic_records", "exam_marks", "attendance",
+        "lifestyle", "skills", "career_preferences", "student_360_view"
+    ]
+    sel_tbl = st.selectbox("Select Warehouse Table / Analytical View to Inspect:", options=avail_tables, index=0)
+
+    conn_inspect = get_db_connection()
+    try:
+        tbl_preview_df = pd.read_sql_query(f"SELECT * FROM {sel_tbl} LIMIT 10;", conn_inspect)
+        total_rows_count = pd.read_sql_query(f"SELECT COUNT(*) as count FROM {sel_tbl};", conn_inspect)["count"].iloc[0]
+    finally:
+        conn_inspect.close()
+
+    t_col1, t_col2 = st.columns([1, 4])
+    t_col1.metric("Table Name", sel_tbl)
+    t_col1.metric("Total Records", f"{total_rows_count:,}")
+    t_col1.metric("Columns", f"{len(tbl_preview_df.columns)}")
+
+    with t_col2:
+        st.markdown(f"**Preview of `{sel_tbl}` (First 10 records):**")
+        st.dataframe(tbl_preview_df, use_container_width=True, hide_index=True)
+
+# ── TAB 7: Model Architecture & Accuracy Diagnostics ──────────────────────────
+with tab7:
+    st.subheader("Predictive Machine Learning Engine & Accuracy Benchmarks")
+    st.markdown(
+        """
+        Campus360 employs a **dual-model machine learning architecture** designed with **zero target leakage** 
+        and **calibrated screening recall**. Both models have undergone systematic hyperparameter tuning 
+        with K-Fold cross-validation.
+        """
+    )
+
+    metrics_path = BASE_DIR / "models" / "model_metrics.json"
+    m_data = {}
+    if metrics_path.exists():
+        try:
+            with open(metrics_path, "r") as mf:
+                m_data = json.load(mf)
+        except Exception:
+            m_data = {}
+
+    m1_info = m_data.get("model_1", {})
+    m2_info = m_data.get("model_2", {})
+
+    # Top KPI Metrics Cards for Models
+    mk1, mk2, mk3, mk4, mk5, mk6 = st.columns(6)
+    mk1.metric(
+        "Model 1 Test R²",
+        f"{m1_info.get('test_metrics', {}).get('r2', 0.754):.3f}",
+        delta=f"+{m1_info.get('relative_gain', {}).get('r2_percentage_gain', 12.1):.1f}% vs baseline",
+    )
+    mk2.metric(
+        "Model 1 RMSE",
+        f"{m1_info.get('test_metrics', {}).get('rmse', 7.33):.2f} marks",
+        delta=f"-{m1_info.get('relative_gain', {}).get('rmse_reduction_marks', 1.13):.2f} error",
+    )
+    mk3.metric(
+        "Model 1 MAE",
+        f"{m1_info.get('test_metrics', {}).get('mae', 5.88):.2f} marks",
+    )
+    mk4.metric(
+        "Model 2 ROC-AUC",
+        f"{m2_info.get('roc_auc', 0.834):.3f}",
+    )
+    mk5.metric(
+        "Model 2 Screening Recall",
+        f"{m2_info.get('metrics_calibrated', {}).get('recall', 0.850)*100:.1f}%",
+        delta="Target >= 85%",
+    )
+    mk6.metric(
+        "Calibrated Threshold",
+        f"{m2_info.get('calibrated_threshold', 0.370):.3f}",
+        help="Optimal probability cut-off prioritizing recall to catch vulnerable students.",
+    )
+
+    st.markdown("---")
+
+    # Section 1: Model 1 Details
+    st.markdown("### Model 1: Next Semester Marks Regressor")
+    m1_col1, m1_col2 = st.columns([1, 1])
+
+    with m1_col1:
+        st.markdown(
+            f"""
+            * **Task:** Continuous prediction of final semester marks (`next_semester_marks`, $0–100$)
+            * **Algorithm:** `{m1_info.get('algorithm', 'GradientBoostingRegressor (Tuned Balanced)')}`
+            * **Feature Space:** `{m1_info.get('features_count', 18)}` finalized academic & lifestyle features (Zero Target Leakage)
+            * **Cross-Validation R²:** `{m1_info.get('cross_val_r2', 0.7657):.4f}` (3-Fold CV)
+            * **Train R²:** `{m1_info.get('train_metrics', {}).get('r2', 0.8438):.4f}` | **Test R²:** `{m1_info.get('test_metrics', {}).get('r2', 0.7539):.4f}`
+            * **Test RMSE:** `{m1_info.get('test_metrics', {}).get('rmse', 7.33):.2f}` marks | **Test MAE:** `{m1_info.get('test_metrics', {}).get('mae', 5.88):.2f}` marks
+            """
+        )
+        st.markdown("##### Selected Best Hyperparameters:")
+        best_p1 = m1_info.get("best_hyperparameters", {})
+        if best_p1:
+            st.json(best_p1)
+
+    with m1_col2:
+        m1_fi = m1_info.get("feature_importances", {})
+        if m1_fi:
+            fi_df = pd.DataFrame(list(m1_fi.items()), columns=["Feature", "Importance"]).sort_values("Importance", ascending=True)
+            fig_fi1 = px.bar(
+                fi_df.tail(10),
+                x="Importance",
+                y="Feature",
+                orientation="h",
+                title="Model 1: Top 10 Feature Importance Ranking",
+                color="Importance",
+                color_continuous_scale="Viridis",
+                text_auto=".3f",
+            )
+            fig_fi1.update_layout(height=320, margin=dict(l=10, r=10, t=35, b=10))
+            st.plotly_chart(fig_fi1, use_container_width=True)
+
+    # Model 1 Candidates Benchmark Table
+    if "benchmark_candidates" in m1_info and m1_info["benchmark_candidates"]:
+        st.markdown("##### Model 1 Candidate Hyperparameter Benchmark:")
+        b_df = pd.DataFrame(m1_info["benchmark_candidates"])[["name", "cv_r2", "train_r2", "test_r2", "test_rmse", "test_mae"]]
+        b_df.columns = ["Model Architecture", "CV R² (3-Fold)", "Train R²", "Test R²", "Test RMSE", "Test MAE"]
+        st.dataframe(b_df, use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+
+    # Section 2: Model 2 Details
+    st.markdown("### Model 2: At-Risk Early Warning Classifier")
+    m2_col1, m2_col2 = st.columns([1, 1])
+
+    with m2_col1:
+        st.markdown(
+            fr"""
+            * **Task:** Binary classification of vulnerable students (`at_risk_flag` $\in \{{0, 1\}}$)
+            * **Algorithm:** `{m2_info.get('algorithm', 'GradientBoostingClassifier (Tuned Subsample)')}`
+            * **Feature Space:** `{m2_info.get('features_count', 26)}` holistic attributes (Wellness, Lifestyle, Marks, Attendance, Skills)
+            * **ROC-AUC Score:** `{m2_info.get('roc_auc', 0.8337):.4f}` (CV ROC-AUC: `{m2_info.get('cross_val_auc', 0.8104):.4f}`)
+            * **Screening Recall:** `{m2_info.get('metrics_calibrated', {}).get('recall', 0.850)*100:.1f}%` at calibrated threshold `{m2_info.get('calibrated_threshold', 0.370):.3f}`
+            * **Students Caught:** `{m2_info.get('metrics_calibrated', {}).get('students_caught', 851)}` / `{m2_info.get('metrics_calibrated', {}).get('total_at_risk', 1001)}` at-risk students identified
+            """
+        )
+        st.markdown("##### Selected Best Hyperparameters:")
+        best_p2 = m2_info.get("best_hyperparameters", {})
+        if best_p2:
+            st.json(best_p2)
+
+    with m2_col2:
+        top_risk_feat = m2_info.get("top_10_risk_drivers", {})
+        if top_risk_feat:
+            rfi_df = pd.DataFrame(list(top_risk_feat.items()), columns=["Feature", "Importance"]).sort_values("Importance", ascending=True)
+            fig_rfi = px.bar(
+                rfi_df,
+                x="Importance",
+                y="Feature",
+                orientation="h",
+                title="Model 2: Top Risk Driver Features",
+                color="Importance",
+                color_continuous_scale="Reds",
+                text_auto=".3f",
+            )
+            fig_rfi.update_layout(height=320, margin=dict(l=10, r=10, t=35, b=10))
+            st.plotly_chart(fig_rfi, use_container_width=True)
+
+    # Confusion Matrix Visualization
+    cm_cal = m2_info.get("metrics_calibrated", {}).get("confusion_matrix", [[644, 355], [150, 851]])
+    cm_def = m2_info.get("metrics_default", {}).get("confusion_matrix", [[754, 245], [254, 747]])
+
+    cm_col1, cm_col2 = st.columns(2)
+    with cm_col1:
+        st.markdown(f"##### Confusion Matrix — Calibrated Screening Threshold ({m2_info.get('calibrated_threshold', 0.370):.3f}):")
+        fig_cm1 = go.Figure(data=go.Heatmap(
+            z=cm_cal,
+            x=["Predicted Safe", "Predicted At-Risk"],
+            y=["Actual Safe", "Actual At-Risk"],
+            colorscale="Teal",
+            text=[[f"TN: {cm_cal[0][0]}", f"FP: {cm_cal[0][1]}"], [f"FN: {cm_cal[1][0]} (Missed)", f"TP: {cm_cal[1][1]} (Caught)"]],
+            texttemplate="%{text}",
+            textfont={"size": 15},
+        ))
+        fig_cm1.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=20))
+        st.plotly_chart(fig_cm1, use_container_width=True)
+        st.caption("Prioritizes screening recall: catches 85.0% of all at-risk students.")
+
+    with cm_col2:
+        st.markdown("##### Confusion Matrix — Standard Threshold (0.50):")
+        fig_cm2 = go.Figure(data=go.Heatmap(
+            z=cm_def,
+            x=["Predicted Safe", "Predicted At-Risk"],
+            y=["Actual Safe", "Actual At-Risk"],
+            colorscale="Blues",
+            text=[[f"TN: {cm_def[0][0]}", f"FP: {cm_def[0][1]}"], [f"FN: {cm_def[1][0]}", f"TP: {cm_def[1][1]}"]],
+            texttemplate="%{text}",
+            textfont={"size": 15},
+        ))
+        fig_cm2.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=20))
+        st.plotly_chart(fig_cm2, use_container_width=True)
+        st.caption("Standard 0.50 threshold misses 254 at-risk students (Recall is only 74.6%).")
+
+# ── TAB 8: Predict from CSV ───────────────────────────────────────────────────
+with tab8:
     st.subheader("Predict from CSV")
     st.write(
         "Upload student records or load a pre-configured cohort batch to predict next-semester performance and flag at-risk students."
@@ -862,373 +1229,6 @@ with tab6:
                             mime="text/csv",
                             type="primary",
                         )
-
-# ── TAB 7: ETL Pipeline & Data Warehouse ──────────────────────────────────────
-with tab7:
-    st.subheader("Data Engineering & ETL Warehouse Architecture")
-    st.markdown(
-        """
-        Campus360 ingests, profiles, standardizes, and reconciles **6 disparate institutional departmental feeds** 
-        into a unified, 100% matched relational star schema.
-        """
-    )
-
-    # Top KPI Metrics Cards
-    ep1, ep2, ep3, ep4, ep5 = st.columns(5)
-    ep1.metric("Institutional Sources", "6 Feeds", "SIS, Exams, LMS, Wellness, Skills, Career")
-    ep2.metric("Warehouse Master Cohort", f"{len(df):,} Students", "Primary Entity")
-    ep3.metric("Key Stitching Match Rate", "100.0%", "0 Orphans across all 6 feeds")
-    ep4.metric("Relational Architecture", "7 Tables + 4 Views", "Foreign Keys & Cascade")
-    ep5.metric("Database Engine", "SQLite / PostgreSQL", "Zero-Drift Idempotency")
-
-    st.markdown("---")
-
-    # Interactive 5-Stage Visual Architecture Pipeline
-    st.markdown("### 5-Stage Data Engineering Pipeline")
-    p_col1, p_col2, p_col3, p_col4, p_col5 = st.columns(5)
-    with p_col1:
-        st.markdown(
-            """
-            <div class="stage-card">
-                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-file-arrow-down" style="color:#3B82F6;"></i> 1. Extraction</div>
-                <div style="font-size:0.85rem; color:#475569;">
-                    Reads raw immutable CSVs from 6 campus departments (10k+ rows each) with non-standard schema naming.
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-    with p_col2:
-        st.markdown(
-            """
-            <div class="stage-card">
-                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#8B5CF6;"></i> 2. Transform & Normalize</div>
-                <div style="font-size:0.85rem; color:#475569;">
-                    Normalizes heterogeneous keys (<code>StudentID</code>, <code>roll_no</code>, <code>STUDENT_ID</code>, <code>roll_number</code>) to canonical <code>student_id</code>.
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-    with p_col3:
-        st.markdown(
-            """
-            <div class="stage-card">
-                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-link" style="color:#10B981;"></i> 3. Non-Positional Stitching</div>
-                <div style="font-size:0.85rem; color:#475569;">
-                    Joins strictly on primary key <code>student_id</code> (never assumes row order). Achieves 10,000 matches with zero orphans.
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-    with p_col4:
-        st.markdown(
-            """
-            <div class="stage-card">
-                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-database" style="color:#F59E0B;"></i> 4. Warehouse Loading</div>
-                <div style="font-size:0.85rem; color:#475569;">
-                    Bulk loads into relational Star Schema (SQLite / PostgreSQL 16) with foreign keys and check boundary constraints.
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-    with p_col5:
-        st.markdown(
-            """
-            <div class="stage-card">
-                <div style="font-weight:700; color:#1E1B4B; margin-bottom:6px;"><i class="fa-solid fa-layer-group" style="color:#EF4444;"></i> 5. Analytical Views</div>
-                <div style="font-size:0.85rem; color:#475569;">
-                    Materializes 4 analytical SQL views for instant dashboard queries and zero-leakage ML feature pipelines.
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-
-    st.markdown("---")
-
-    # Institutional Data Feed Reconciliation Table
-    st.markdown("### Departmental Data Sources & Key Reconciliation Audit")
-    reconciliation_table = [
-        {"Source Feed": "1_student_records.csv", "Department": "Registrar / SIS", "Original Key": "student_id", "Raw Count": 10080, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
-        {"Source Feed": "2_exam_marks.csv", "Department": "Controller of Examinations", "Original Key": "StudentID", "Raw Count": 10050, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
-        {"Source Feed": "3_attendance.csv", "Department": "LMS & Biometric Gates", "Original Key": "roll_no", "Raw Count": 10100, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
-        {"Source Feed": "4_lifestyle.csv", "Department": "Student Wellness & Counseling", "Original Key": "student_id", "Raw Count": 10060, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
-        {"Source Feed": "5_skills.csv", "Department": "Placement & Coding Cell", "Original Key": "STUDENT_ID", "Raw Count": 10070, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
-        {"Source Feed": "6_career_preferences.csv", "Department": "Career Guidance Office", "Original Key": "roll_number", "Raw Count": 10050, "Cleaned Rows": 10000, "Match Rate": "100.0%", "Orphans": 0},
-    ]
-    st.dataframe(pd.DataFrame(reconciliation_table), use_container_width=True, hide_index=True)
-
-    st.markdown("---")
-
-    # Data Quality Validation Suite
-    st.markdown("### Automated Data Quality & Warehouse Validation Suite")
-    st.caption("Verifies row count uniqueness, referential integrity, domain boundaries, null prevention, and analytical views.")
-
-    if st.button("Run Warehouse Quality & Integrity Audit", type="primary"):
-        with st.spinner("Executing automated test suite against relational warehouse..."):
-            try:
-                from etl.validate import run_data_quality_tests
-                val_res = run_data_quality_tests()
-                st.success("Quality Test Suite Completed: All checks passed with 100% integrity!")
-            except Exception as e:
-                st.info("Validation tests verified against warehouse schema.")
-
-    q_col1, q_col2, q_col3 = st.columns(3)
-    with q_col1:
-        st.markdown(
-            """
-            <div class="stage-card">
-                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 1. Row Counts & Uniqueness</div>
-                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
-                    10,000 distinct primary keys in all 7 tables.<br>
-                    <strong>Status: PASS (0 duplicates)</strong>
-                </div>
-            </div>
-            <div class="stage-card">
-                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 2. Referential Integrity</div>
-                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
-                    0 orphaned child records across foreign keys.<br>
-                    <strong>Status: PASS (100% integrity)</strong>
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-    with q_col2:
-        st.markdown(
-            """
-            <div class="stage-card">
-                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 3. Domain Boundary Checks</div>
-                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
-                    CGPA in [0.0, 10.0], Marks in [0.0, 100.0], Sleep in [0, 24].<br>
-                    <strong>Status: PASS (0 boundary violations)</strong>
-                </div>
-            </div>
-            <div class="stage-card">
-                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 4. Null & Completeness Checks</div>
-                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
-                    0 missing values in primary keys or essential columns.<br>
-                    <strong>Status: PASS (0 unexpected nulls)</strong>
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-    with q_col3:
-        st.markdown(
-            """
-            <div class="stage-card">
-                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 5. Analytical Views Integrity</div>
-                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
-                    All 4 SQL views query 10,000 rows without syntax or join errors.<br>
-                    <strong>Status: PASS (10,000 / 10,000 rows)</strong>
-                </div>
-            </div>
-            <div class="stage-card">
-                <div style="font-weight:600; color:#1E1B4B;"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> 6. Pipeline Idempotency</div>
-                <div style="font-size:0.85rem; color:#475569; margin-top:4px;">
-                    Re-running pipeline produces identical warehouse state.<br>
-                    <strong>Status: PASS (Zero duplication)</strong>
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-
-    st.markdown("---")
-
-    # Relational Warehouse Table Inspector
-    st.markdown("### Relational Warehouse Schema & Table Inspector")
-    avail_tables = [
-        "students", "academic_records", "exam_marks", "attendance",
-        "lifestyle", "skills", "career_preferences", "student_360_view"
-    ]
-    sel_tbl = st.selectbox("Select Warehouse Table / Analytical View to Inspect:", options=avail_tables, index=0)
-
-    conn_inspect = get_db_connection()
-    try:
-        tbl_preview_df = pd.read_sql_query(f"SELECT * FROM {sel_tbl} LIMIT 10;", conn_inspect)
-        total_rows_count = pd.read_sql_query(f"SELECT COUNT(*) as count FROM {sel_tbl};", conn_inspect)["count"].iloc[0]
-    finally:
-        conn_inspect.close()
-
-    t_col1, t_col2 = st.columns([1, 4])
-    t_col1.metric("Table Name", sel_tbl)
-    t_col1.metric("Total Records", f"{total_rows_count:,}")
-    t_col1.metric("Columns", f"{len(tbl_preview_df.columns)}")
-
-    with t_col2:
-        st.markdown(f"**Preview of `{sel_tbl}` (First 10 records):**")
-        st.dataframe(tbl_preview_df, use_container_width=True, hide_index=True)
-
-# ── TAB 8: Model Architecture & Accuracy Diagnostics ──────────────────────────
-with tab8:
-    st.subheader("Predictive Machine Learning Engine & Accuracy Benchmarks")
-    st.markdown(
-        """
-        Campus360 employs a **dual-model machine learning architecture** designed with **zero target leakage** 
-        and **calibrated screening recall**. Both models have undergone systematic hyperparameter tuning 
-        with K-Fold cross-validation.
-        """
-    )
-
-    metrics_path = BASE_DIR / "models" / "model_metrics.json"
-    m_data = {}
-    if metrics_path.exists():
-        try:
-            with open(metrics_path, "r") as mf:
-                m_data = json.load(mf)
-        except Exception:
-            m_data = {}
-
-    m1_info = m_data.get("model_1", {})
-    m2_info = m_data.get("model_2", {})
-
-    # Top KPI Metrics Cards for Models
-    mk1, mk2, mk3, mk4, mk5, mk6 = st.columns(6)
-    mk1.metric(
-        "Model 1 Test R²",
-        f"{m1_info.get('test_metrics', {}).get('r2', 0.754):.3f}",
-        delta=f"+{m1_info.get('relative_gain', {}).get('r2_percentage_gain', 12.1):.1f}% vs baseline",
-    )
-    mk2.metric(
-        "Model 1 RMSE",
-        f"{m1_info.get('test_metrics', {}).get('rmse', 7.33):.2f} marks",
-        delta=f"-{m1_info.get('relative_gain', {}).get('rmse_reduction_marks', 1.13):.2f} error",
-    )
-    mk3.metric(
-        "Model 1 MAE",
-        f"{m1_info.get('test_metrics', {}).get('mae', 5.88):.2f} marks",
-    )
-    mk4.metric(
-        "Model 2 ROC-AUC",
-        f"{m2_info.get('roc_auc', 0.834):.3f}",
-    )
-    mk5.metric(
-        "Model 2 Screening Recall",
-        f"{m2_info.get('metrics_calibrated', {}).get('recall', 0.850)*100:.1f}%",
-        delta="Target >= 85%",
-    )
-    mk6.metric(
-        "Calibrated Threshold",
-        f"{m2_info.get('calibrated_threshold', 0.370):.3f}",
-        help="Optimal probability cut-off prioritizing recall to catch vulnerable students.",
-    )
-
-    st.markdown("---")
-
-    # Section 1: Model 1 Details
-    st.markdown("### Model 1: Next Semester Marks Regressor")
-    m1_col1, m1_col2 = st.columns([1, 1])
-
-    with m1_col1:
-        st.markdown(
-            f"""
-            * **Task:** Continuous prediction of final semester marks (`next_semester_marks`, $0–100$)
-            * **Algorithm:** `{m1_info.get('algorithm', 'GradientBoostingRegressor (Tuned Balanced)')}`
-            * **Feature Space:** `{m1_info.get('features_count', 18)}` finalized academic & lifestyle features (Zero Target Leakage)
-            * **Cross-Validation R²:** `{m1_info.get('cross_val_r2', 0.7657):.4f}` (3-Fold CV)
-            * **Train R²:** `{m1_info.get('train_metrics', {}).get('r2', 0.8438):.4f}` | **Test R²:** `{m1_info.get('test_metrics', {}).get('r2', 0.7539):.4f}`
-            * **Test RMSE:** `{m1_info.get('test_metrics', {}).get('rmse', 7.33):.2f}` marks | **Test MAE:** `{m1_info.get('test_metrics', {}).get('mae', 5.88):.2f}` marks
-            """
-        )
-        st.markdown("##### Selected Best Hyperparameters:")
-        best_p1 = m1_info.get("best_hyperparameters", {})
-        if best_p1:
-            st.json(best_p1)
-
-    with m1_col2:
-        m1_fi = m1_info.get("feature_importances", {})
-        if m1_fi:
-            fi_df = pd.DataFrame(list(m1_fi.items()), columns=["Feature", "Importance"]).sort_values("Importance", ascending=True)
-            fig_fi1 = px.bar(
-                fi_df.tail(10),
-                x="Importance",
-                y="Feature",
-                orientation="h",
-                title="Model 1: Top 10 Feature Importance Ranking",
-                color="Importance",
-                color_continuous_scale="Viridis",
-                text_auto=".3f",
-            )
-            fig_fi1.update_layout(height=320, margin=dict(l=10, r=10, t=35, b=10))
-            st.plotly_chart(fig_fi1, use_container_width=True)
-
-    # Model 1 Candidates Benchmark Table
-    if "benchmark_candidates" in m1_info and m1_info["benchmark_candidates"]:
-        st.markdown("##### Model 1 Candidate Hyperparameter Benchmark:")
-        b_df = pd.DataFrame(m1_info["benchmark_candidates"])[["name", "cv_r2", "train_r2", "test_r2", "test_rmse", "test_mae"]]
-        b_df.columns = ["Model Architecture", "CV R² (3-Fold)", "Train R²", "Test R²", "Test RMSE", "Test MAE"]
-        st.dataframe(b_df, use_container_width=True, hide_index=True)
-
-    st.markdown("---")
-
-    # Section 2: Model 2 Details
-    st.markdown("### Model 2: At-Risk Early Warning Classifier")
-    m2_col1, m2_col2 = st.columns([1, 1])
-
-    with m2_col1:
-        st.markdown(
-            fr"""
-            * **Task:** Binary classification of vulnerable students (`at_risk_flag` $\in \{{0, 1\}}$)
-            * **Algorithm:** `{m2_info.get('algorithm', 'GradientBoostingClassifier (Tuned Subsample)')}`
-            * **Feature Space:** `{m2_info.get('features_count', 26)}` holistic attributes (Wellness, Lifestyle, Marks, Attendance, Skills)
-            * **ROC-AUC Score:** `{m2_info.get('roc_auc', 0.8337):.4f}` (CV ROC-AUC: `{m2_info.get('cross_val_auc', 0.8104):.4f}`)
-            * **Screening Recall:** `{m2_info.get('metrics_calibrated', {}).get('recall', 0.850)*100:.1f}%` at calibrated threshold `{m2_info.get('calibrated_threshold', 0.370):.3f}`
-            * **Students Caught:** `{m2_info.get('metrics_calibrated', {}).get('students_caught', 851)}` / `{m2_info.get('metrics_calibrated', {}).get('total_at_risk', 1001)}` at-risk students identified
-            """
-        )
-        st.markdown("##### Selected Best Hyperparameters:")
-        best_p2 = m2_info.get("best_hyperparameters", {})
-        if best_p2:
-            st.json(best_p2)
-
-    with m2_col2:
-        top_risk_feat = m2_info.get("top_10_risk_drivers", {})
-        if top_risk_feat:
-            rfi_df = pd.DataFrame(list(top_risk_feat.items()), columns=["Feature", "Importance"]).sort_values("Importance", ascending=True)
-            fig_rfi = px.bar(
-                rfi_df,
-                x="Importance",
-                y="Feature",
-                orientation="h",
-                title="Model 2: Top Risk Driver Features",
-                color="Importance",
-                color_continuous_scale="Reds",
-                text_auto=".3f",
-            )
-            fig_rfi.update_layout(height=320, margin=dict(l=10, r=10, t=35, b=10))
-            st.plotly_chart(fig_rfi, use_container_width=True)
-
-    # Confusion Matrix Visualization
-    cm_cal = m2_info.get("metrics_calibrated", {}).get("confusion_matrix", [[644, 355], [150, 851]])
-    cm_def = m2_info.get("metrics_default", {}).get("confusion_matrix", [[754, 245], [254, 747]])
-
-    cm_col1, cm_col2 = st.columns(2)
-    with cm_col1:
-        st.markdown(f"##### Confusion Matrix — Calibrated Screening Threshold ({m2_info.get('calibrated_threshold', 0.370):.3f}):")
-        fig_cm1 = go.Figure(data=go.Heatmap(
-            z=cm_cal,
-            x=["Predicted Safe", "Predicted At-Risk"],
-            y=["Actual Safe", "Actual At-Risk"],
-            colorscale="Teal",
-            text=[[f"TN: {cm_cal[0][0]}", f"FP: {cm_cal[0][1]}"], [f"FN: {cm_cal[1][0]} (Missed)", f"TP: {cm_cal[1][1]} (Caught)"]],
-            texttemplate="%{text}",
-            textfont={"size": 15},
-        ))
-        fig_cm1.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=20))
-        st.plotly_chart(fig_cm1, use_container_width=True)
-        st.caption("Prioritizes screening recall: catches 85.0% of all at-risk students.")
-
-    with cm_col2:
-        st.markdown("##### Confusion Matrix — Standard Threshold (0.50):")
-        fig_cm2 = go.Figure(data=go.Heatmap(
-            z=cm_def,
-            x=["Predicted Safe", "Predicted At-Risk"],
-            y=["Actual Safe", "Actual At-Risk"],
-            colorscale="Blues",
-            text=[[f"TN: {cm_def[0][0]}", f"FP: {cm_def[0][1]}"], [f"FN: {cm_def[1][0]}", f"TP: {cm_def[1][1]}"]],
-            texttemplate="%{text}",
-            textfont={"size": 15},
-        ))
-        fig_cm2.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=20))
-        st.plotly_chart(fig_cm2, use_container_width=True)
-        st.caption("Standard 0.50 threshold misses 254 at-risk students (Recall is only 74.6%).")
 
 # ── TAB 9: Interactive Student Predictor & AI Guidance ────────────────────────
 with tab9:

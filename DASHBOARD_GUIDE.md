@@ -231,54 +231,19 @@ Positioned at the top of the main dashboard viewport, providing real-time execut
 
 ---
 
-### 📁 Tab 6: Predict from CSV & Batch Inference
-
-**Objective:** Batch model inference on unlabelled/new cohorts, automated data validation, and faculty intervention triage.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│  Section 6.1: Sample CSV Template Generator [ 📥 Download Sample CSV Template ]             │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 6.2: Option A — Load Pre-Built Realistic Cohort Batches (Dropdown)                 │
-│  • Batch 1: High Risk & Academic Probation Cohort (30 Students)                             │
-│  • Batch 2: Honors & Placement Star Candidates (30 Students)                                │
-│  • Batch 3: Borderline Attendance & Stress Boundary Cases (30 Students)                      │
-│  • Batch 4: Balanced Classroom Cohort Section (40 Students)                                 │
-│  • Batch 5: Final Year Career & Placement Batch (30 Students)                               │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 6.3: Option B — Drag & Drop Custom CSV Upload                                       │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 6.4: Automated Data Quality Validation & Mean Imputation Engine                    │
-│  • Scans for missing columns and invalid non-numeric inputs.                                │
-│  • Offers interactive resolution: (1) Drop invalid rows, or (2) Mean-impute missing values. │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 6.5: Batch ML Predictions Table with Risk Highlighter                              │
-│  • Appends 'predicted_next_sem_marks', 'predicted_risk_prob', and 'risk_classification'.    │
-│  • Radio Filter: [ All Students | At-Risk Only (High Priority) | On-Track Only ]            │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 6.6: Faculty Mentor Early Intervention Action Panel                                │
-│  • Select any at-risk student from batch -> Click [ Generate AI Mentor Response ]           │
-│  • Produces instant, targeted mentoring advice tailored to that batch record.               │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 6.7: Export [ 📥 Download Predictions CSV ]                                        │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### 🏗️ Tab 7: ETL Pipeline & Data Warehouse Architecture
+### 🏗️ Tab 6: ETL Pipeline & Data Warehouse Architecture
 
 **Objective:** Data engineering transparency, departmental reconciliation audit, and database schema inspection.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│  Section 7.1: Top Architecture Metrics Cards                                                │
+│  Section 6.1: Top Architecture Metrics Cards                                                │
 │  • 6 Feeds Ingested • 10,000 Master Students • 100.0% Key Match Rate • 7 Tables + 4 Views   │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 7.2: 5-Stage Visual Architecture Cards                                             │
+│  Section 6.2: 5-Stage Visual Architecture Cards                                             │
 │  [ 1. Extract ] -> [ 2. Transform ] -> [ 3. Stitch ] -> [ 4. Load & DDL ] -> [ 5. Validate ]│
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 7.3: Departmental Data Sources & Key Reconciliation Audit Table                    │
+│  Section 6.3: Departmental Data Sources & Key Reconciliation Audit Table                    │
 │  Source File                | Department | Original Key | Raw Rows | Stitched IDs | Match % │
 │  1_student_records.csv      | Registrar  | student_id   |  10,080  |    10,000    |  100.0% │
 │  2_exam_marks.csv           | Exams      | StudentID    |  10,050  |    10,000    |  100.0% │
@@ -287,32 +252,67 @@ Positioned at the top of the main dashboard viewport, providing real-time execut
 │  5_skills.csv               | Placement  | STUDENT_ID   |  10,070  |    10,000    |  100.0% │
 │  6_career_preferences.csv   | Career Off | roll_number  |  10,050  |    10,000    |  100.0% │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 7.4: Automated 5-Dimension Quality Verification Badges (All PASS)                  │
+│  Section 6.4: Automated 5-Dimension Quality Verification Badges (All PASS)                  │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 7.5: Relational Warehouse Schema & Table Inspector (Live Table Previews)           │
+│  Section 6.5: Relational Warehouse Schema & Table Inspector (Live Table Previews)           │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### 🤖 Tab 8: Model Architecture & Accuracy Diagnostics
+### 🤖 Tab 7: Model Architecture & Accuracy Diagnostics
 
 **Objective:** Machine learning auditability, hyperparameter benchmark reports, and zero-leakage verification.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│  Section 8.1: Dual ML Pipeline Overview & Zero Target Leakage Guarantee                     │
+│  Section 7.1: Dual ML Pipeline Overview & Zero Target Leakage Guarantee                     │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 8.2: Model 1 — Next Semester Marks Regressor (Random Forest)                       │
+│  Section 7.2: Model 1 — Next Semester Marks Regressor (Random Forest)                       │
 │  • R² Score: ~0.84 | RMSE: ~4.12 | MAE: ~3.25                                               │
 │  • Hyperparameter Tuning Table: Grid search comparison of 6 candidate configurations.      │
-│  • Chart 8.2: Feature Importance Bar Chart (Top drivers: CGPA, Internal Marks, Study Hrs). │
+│  • Chart 7.2: Feature Importance Bar Chart (Top drivers: CGPA, Internal Marks, Study Hrs). │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Section 8.3: Model 2 — At-Risk Early Warning Classifier (Balanced Random Forest)           │
+│  Section 7.3: Model 2 — At-Risk Early Warning Classifier (Balanced Random Forest)           │
 │  • Screening Recall: ~88.4% (Tuned Threshold: 0.370) | ROC-AUC: ~0.92                       │
-│  • Chart 8.3: Classifier Feature Importance (Top drivers: Wellness, Stress, Attendance).   │
+│  • Chart 7.3: Classifier Feature Importance (Top drivers: Wellness, Stress, Attendance).   │
 │  • Confusion Matrix 1: Calibrated Screening Threshold (0.370) minimizing False Negatives.   │
 │  • Confusion Matrix 2: Standard Baseline Threshold (0.50) comparison.                       │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 📁 Tab 8: Predict from CSV & Batch Inference
+
+**Objective:** Batch model inference on unlabelled/new cohorts, automated data validation, and faculty intervention triage.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│  Section 8.1: Sample CSV Template Generator [ 📥 Download Sample CSV Template ]             │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Section 8.2: Option A — Load Pre-Built Realistic Cohort Batches (Dropdown)                 │
+│  • Batch 1: High Risk & Academic Probation Cohort (30 Students)                             │
+│  • Batch 2: Honors & Placement Star Candidates (30 Students)                                │
+│  • Batch 3: Borderline Attendance & Stress Boundary Cases (30 Students)                      │
+│  • Batch 4: Balanced Classroom Cohort Section (40 Students)                                 │
+│  • Batch 5: Final Year Career & Placement Batch (30 Students)                               │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Section 8.3: Option B — Drag & Drop Custom CSV Upload                                       │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Section 8.4: Automated Data Quality Validation & Mean Imputation Engine                    │
+│  • Scans for missing columns and invalid non-numeric inputs.                                │
+│  • Offers interactive resolution: (1) Drop invalid rows, or (2) Mean-impute missing values. │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Section 8.5: Batch ML Predictions Table with Risk Highlighter                              │
+│  • Appends 'predicted_next_sem_marks', 'predicted_risk_prob', and 'risk_classification'.    │
+│  • Radio Filter: [ All Students | At-Risk Only (High Priority) | On-Track Only ]            │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Section 8.6: Faculty Mentor Early Intervention Action Panel                                │
+│  • Select any at-risk student from batch -> Click [ Generate AI Mentor Response ]           │
+│  • Produces instant, targeted mentoring advice tailored to that batch record.               │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Section 8.7: Export [ 📥 Download Predictions CSV ]                                        │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
