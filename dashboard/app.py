@@ -113,69 +113,6 @@ st.html(
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     min-height: 140px;
 }
-
-/* ── Tab Bar Navigation: Light Highlight Word Background, Generous Padding & Space ── */
-.stTabs [data-baseweb="tab-list"] {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    padding: 8px 10px !important;
-    background-color: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 12px !important;
-    box-shadow: inset 0 1px 2px rgba(0, 48, 73, 0.04) !important;
-    border-bottom: none !important;
-    overflow-x: visible !important;
-}
-
-/* Individual tab buttons with light color highlight word background and comfortable padding */
-.stTabs [data-baseweb="tab"] {
-    background-color: #FDF0D5 !important; /* ~Papaya Whip light highlight */
-    color: #003049 !important;           /* ~Deep Space Blue text */
-    border: 1px solid #EADBBE !important;
-    border-radius: 8px !important;
-    padding: 9px 18px !important;        /* generous padding for words */
-    margin: 3px 2px !important;          /* clean spacing between tabs */
-    font-weight: 600 !important;
-    font-size: 0.88rem !important;
-    white-space: nowrap !important;
-    box-shadow: 0 1px 3px rgba(0, 48, 73, 0.07) !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    cursor: pointer !important;
-}
-
-/* Tab hover effect */
-.stTabs [data-baseweb="tab"]:hover {
-    background-color: #669BBC !important; /* ~Steel Blue hover */
-    color: #FFFFFF !important;
-    border-color: #003049 !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 8px rgba(0, 48, 73, 0.16) !important;
-}
-
-/* Active selected tab: distinct deep blue highlight with crisp white text */
-.stTabs [data-baseweb="tab"][aria-selected="true"] {
-    background: linear-gradient(135deg, #003049 0%, #174E6F 100%) !important; /* ~Deep Space Blue */
-    color: #FFFFFF !important;
-    border: 1px solid #003049 !important;
-    font-weight: 700 !important;
-    box-shadow: 0 4px 10px rgba(0, 48, 73, 0.25) !important;
-}
-
-/* Inherit styling inside tab text nodes */
-.stTabs [data-baseweb="tab"] div,
-.stTabs [data-baseweb="tab"] p,
-.stTabs [data-baseweb="tab"] span {
-    color: inherit !important;
-    font-size: inherit !important;
-    font-weight: inherit !important;
-}
-
-/* Hide default BaseWeb bottom red highlight line & borders to eliminate overlap */
-.stTabs [data-baseweb="tab-highlight"],
-.stTabs [data-baseweb="tab-border"] {
-    display: none !important;
-}
 </style>"""
 )
 
