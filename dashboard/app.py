@@ -158,7 +158,7 @@ with st.sidebar:
 
     risk_filter = st.radio(
         "At-Risk Status",
-        options=["All Students", "At-Risk Only (Flag=1)", "Not At-Risk (Flag=0)"],
+        options=["All Students", "At-Risk Only", "Not At-Risk"],
         index=0,
     )
 
@@ -177,9 +177,9 @@ filtered_df = df.copy()
 if selected_bands:
     filtered_df = filtered_df[filtered_df["performance_band"].isin(selected_bands)]
 
-if risk_filter == "At-Risk Only (Flag=1)":
+if risk_filter == "At-Risk Only":
     filtered_df = filtered_df[filtered_df["at_risk_flag"] == 1]
-elif risk_filter == "Not At-Risk (Flag=0)":
+elif risk_filter == "Not At-Risk":
     filtered_df = filtered_df[filtered_df["at_risk_flag"] == 0]
 
 if selected_domains:
@@ -200,13 +200,13 @@ total_count = len(filtered_df)
 avg_cgpa = filtered_df["cgpa"].mean() if total_count > 0 else 0
 risk_rate = (filtered_df["at_risk_flag"].mean() * 100) if total_count > 0 else 0
 avg_attendance = filtered_df["attendance_percentage"].mean() if total_count > 0 else 0
-avg_marks = filtered_df["next_semester_marks"].mean() if total_count > 0 else 0
+avg_next_sem_cgpa = (filtered_df["next_semester_marks"].mean() / 10.0) if total_count > 0 else 0
 
 kpi1.metric("Filtered Students", f"{total_count:,}")
 kpi2.metric("Average CGPA", f"{avg_cgpa:.2f} / 10.0")
 kpi3.metric("At-Risk Proportion", f"{risk_rate:.1f}%", delta=f"{risk_rate - 50.0:+.1f}% vs baseline", delta_color="inverse")
 kpi4.metric("Avg Attendance", f"{avg_attendance:.1f}%")
-kpi5.metric("Avg Next Sem Marks", f"{avg_marks:.1f} / 100")
+kpi5.metric("Avg Next Sem CGPA", f"{avg_next_sem_cgpa:.2f} / 10.0")
 
 st.markdown("---")
 

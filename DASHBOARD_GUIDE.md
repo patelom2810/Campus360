@@ -30,7 +30,7 @@ Located in the left sidebar, these controls dynamically cross-filter data across
 | Filter Component | Type | Options / Scope | Impact on Dashboard |
 | :--- | :--- | :--- | :--- |
 | **Performance Band** | Multi-Select | `Excellent`, `Good`, `Average`, `At_Risk` | Filters all cohort statistics by historical academic standing. |
-| **At-Risk Status** | Radio Buttons | • All Students<br>• At-Risk Only (`Flag=1`)<br>• Not At-Risk (`Flag=0`) | Isolates vulnerable students requiring faculty triage. |
+| **At-Risk Status** | Radio Buttons | • All Students<br>• At-Risk Only<br>• Not At-Risk | Isolates vulnerable students requiring faculty triage. |
 | **Preferred Domain** | Multi-Select | `AI/ML`, `Core Engineering`, `Cybersecurity`, `Data Science`, `Product/Management`, `Software Development`, `Web Development` | Slices student metrics by career specialization. |
 | **Warehouse Metadata** | Info Badge | Displays active DB engine (`SQLite / warehouse.db`) and total indexed cohort size (`10,000`). |
 
@@ -41,8 +41,8 @@ Positioned at the top of the main dashboard viewport, providing real-time execut
 
 ```
 ┌──────────────────┬──────────────────┬──────────────────┬──────────────────┬──────────────────┐
-│ FILTERED STUDENTS│   AVERAGE CGPA   │ AT-RISK PROPORTION│  AVG ATTENDANCE  │AVG NEXT SEM MARKS│
-│      10,000      │   6.92 / 10.0    │  50.1% (+0.1%)   │      75.8%       │   50.9 / 100     │
+│ FILTERED STUDENTS│   AVERAGE CGPA   │ AT-RISK PROPORTION│  AVG ATTENDANCE  │ AVG NEXT SEM CGPA│
+│      10,000      │   6.92 / 10.0    │  50.1% (+0.1%)   │      75.8%       │   5.09 / 10.0    │
 └──────────────────┴──────────────────┴──────────────────┴──────────────────┴──────────────────┘
 ```
 
@@ -50,7 +50,7 @@ Positioned at the top of the main dashboard viewport, providing real-time execut
 2. **Average CGPA**: Mean cumulative grade point average (scale 0.0 to 10.0).
 3. **At-Risk Proportion**: Percentage of active students flagged as at-risk, with delta variance vs. baseline.
 4. **Avg Attendance**: Mean biometric/classroom attendance rate across the active subset.
-5. **Avg Next Sem Marks**: Projected average examination marks (scale 0 to 100).
+5. **Avg Next Sem CGPA**: Projected average next semester CGPA (scale 0.0 to 10.0).
 
 ---
 
