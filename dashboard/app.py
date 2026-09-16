@@ -186,21 +186,14 @@ if selected_domains:
     filtered_df = filtered_df[filtered_df["preferred_domain"].isin(selected_domains)]
 
 # ── Header & KPI Metrics ──────────────────────────────────────────────────────
-hdr_col1, hdr_col2 = st.columns([1, 14])
-with hdr_col1:
-    if logo_path.exists():
-        st.image(str(logo_path), width=75)
-    else:
-        st.markdown('<i class="fa-solid fa-graduation-cap" style="font-size: 2.3rem; color:#003049;"></i>', unsafe_allow_html=True)
-with hdr_col2:
-    st.markdown(
-        '<div class="main-header">Campus360 Student Analytics & Early Warning Platform</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<div class="sub-header">Holistic Student Performance, Psychological Wellness, and Early Screening Insights · Showing <b>{len(filtered_df):,}</b> of <b>{len(df):,}</b> students</div>',
-        unsafe_allow_html=True,
-    )
+st.markdown(
+    '<div class="main-header">Campus360 Student Analytics & Early Warning Platform</div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    f'<div class="sub-header">Holistic Student Performance, Psychological Wellness, and Early Screening Insights · Showing <b>{len(filtered_df):,}</b> of <b>{len(df):,}</b> students</div>',
+    unsafe_allow_html=True,
+)
 
 kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
 total_count = len(filtered_df)
