@@ -42,7 +42,7 @@ Positioned at the top of the main dashboard viewport, providing real-time execut
 ```
 ┌──────────────────┬──────────────────┬──────────────────┬──────────────────┬──────────────────┐
 │ FILTERED STUDENTS│   AVERAGE CGPA   │ AT-RISK PROPORTION│  AVG ATTENDANCE  │ AVG NEXT SEM CGPA│
-│      10,000      │   6.92 / 10.0    │  50.1% (+0.1%)   │      75.8%       │   5.09 / 10.0    │
+│      10,000      │   6.92 / 10.0    │  50.1% (+0.1%)   │      75.8%       │   6.20 / 10.0    │
 └──────────────────┴──────────────────┴──────────────────┴──────────────────┴──────────────────┘
 ```
 
